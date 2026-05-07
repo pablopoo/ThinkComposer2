@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ThinkComposer.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "ThinkComposer.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
