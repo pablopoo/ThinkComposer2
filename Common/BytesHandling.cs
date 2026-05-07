@@ -25,7 +25,9 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+#if NETFRAMEWORK
 using System.Runtime.Serialization.Formatters.Binary;
+#endif
 using System.Text;
 using System.Windows;
 
@@ -739,6 +741,7 @@ namespace Instrumind.Common
             if (Data == null)
                 return null;
 
+#if NETFRAMEWORK
             var Formatter = new BinaryFormatter();
             // Formatter.Binder = BinderForWeakToStrongNamedAssembly;
 
@@ -759,6 +762,9 @@ namespace Instrumind.Common
             }
 
             return Torrent.GetBuffer();
+#else
+            throw LegacyBinaryFormatterNotSupported();
+#endif
         }
 
         // -------------------------------------------------------------------------------------------
@@ -767,6 +773,7 @@ namespace Instrumind.Common
         /// </summary>
         public static TReturn DeserializeFromBytes<TReturn>(this byte[] BytesArray)
         {
+#if NETFRAMEWORK
             TReturn Result = default(TReturn);
 
             var Formatter = new BinaryFormatter();
@@ -788,6 +795,9 @@ namespace Instrumind.Common
             }
 
             return Result;
+#else
+            throw LegacyBinaryFormatterNotSupported();
+#endif
         }
 
         //------------------------------------------------------------------------------------------
@@ -796,6 +806,7 @@ namespace Instrumind.Common
         /// </summary>
         public static TTarget Deserialize<TTarget>(Stream Source)
         {
+#if NETFRAMEWORK
             TTarget Content;
             // PENDING: DESERIALIZE FROM XML BASED ON USER PREFERENCES (SOAP FORMATTER)
 
@@ -820,6 +831,9 @@ namespace Instrumind.Common
             }
 
             return Content;
+#else
+            throw LegacyBinaryFormatterNotSupported();
+#endif
         }
 
         /// <summary>
@@ -831,6 +845,7 @@ namespace Instrumind.Common
         // SEE: http://stackoverflow.com/questions/5170333/c-sharp-binaryformatter-deserialize-unable-to-find-assembly-after-ilmerge
         public static void Serialize<TTarget>(TTarget Content, Stream Target)
         {
+#if NETFRAMEWORK
             // PENDING: CONSIDER SERIALIZE IN TEXT/XML BASED ON USER PREFERENCES (SOAP FORMATTER DOES NOT ACCEPTS GENERIC TYPES)
             // BETTER: SERIALIZER USING THE SHARP-SERIALIZER
             // SEE: http://www.sharpserializer.com/en/index.html and http://sharpserializer.codeplex.com/
@@ -852,6 +867,14 @@ namespace Instrumind.Common
                 Target.Flush();
                 Target.Close();
             }
+#else
+            throw LegacyBinaryFormatterNotSupported();
+#endif
+        }
+
+        private static PlatformNotSupportedException LegacyBinaryFormatterNotSupported()
+        {
+            return new PlatformNotSupportedException("BinaryFormatter-based serialization is only supported for legacy .NET Framework compatibility. Use StandardBinarySerializer or a documented migration path for modern .NET.");
         }
 
         //------------------------------------------------------------------------------------------

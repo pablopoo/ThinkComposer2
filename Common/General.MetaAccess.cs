@@ -817,6 +817,7 @@ namespace Instrumind.Common
         /// </summary>
         public static TSource GenerateDeepClone<TSource>(this TSource Source)
         {
+#if NETFRAMEWORK
             TSource Clone;
 
             using (var Torrent = new System.IO.MemoryStream())
@@ -830,6 +831,9 @@ namespace Instrumind.Common
             }
 
             return Clone;
+#else
+            throw new PlatformNotSupportedException("BinaryFormatter-based deep cloning is only supported for legacy .NET Framework compatibility. Use an explicit clone path for modern .NET.");
+#endif
         }
 
         //------------------------------------------------------------------------------------------
