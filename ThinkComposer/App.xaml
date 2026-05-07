@@ -7,6 +7,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Instrumind.Common;component/Themes/Generic.xaml"/>
+                <ResourceDictionary Source="ApplicationShell/ModernShellResources.xaml"/>
                 <ResourceDictionary Source="ApplicationProduct/Cursors/AppCursors.xaml"/>
                 <ResourceDictionary Source="MetaModel/VisualMetaModel/DecoratorGeometries.xaml" />
                 <ResourceDictionary Source="MetaModel/VisualMetaModel/SymbolGeometries.xaml" />

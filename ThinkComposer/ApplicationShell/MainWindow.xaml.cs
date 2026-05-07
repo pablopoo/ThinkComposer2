@@ -49,6 +49,15 @@ namespace Instrumind.ThinkComposer.ApplicationShell
     {
         public const double PREDEF_INITIAL_TOOLTAB_WIDTH = 388;
 
+        private const double ExplorerPanelWidth = 240.0;
+        private const double InspectorPanelWidth = 250.0;
+        private const double BottomPanelHeight = 180.0;
+
+        private bool IsExplorerPanelVisible = true;
+        private bool IsInspectorPanelVisible = true;
+        private bool IsBottomPanelVisible = true;
+        private bool IsDarkShellTheme = false;
+
         /// <summary>
         /// Register of hosted container panels
         /// </summary>
@@ -97,27 +106,7 @@ namespace Instrumind.ThinkComposer.ApplicationShell
             if (this.Top < 0)
                 this.Top = 0;
 
-            var InitialPaletteSupraContainerHeight = this.WinHeader.PaletteSupraContainer.ActualHeight;
-            var Delta = double.NaN;
-
-            this.WinHeader.PaletteSupraContainer.AtCanCollapseChanged =
-                ((CanCollapse) =>
-                {
-                    Delta = Delta.NaNDefault(97.0); // Previous = 75
-                    var Offset = (Delta * (CanCollapse ? -1 : 1));
-
-                    this.WorkingAreaBorder.Margin = new Thickness(this.WorkingAreaBorder.Margin.Left,
-                                                                  this.WorkingAreaBorder.Margin.Top + Offset,
-                                                                  this.WorkingAreaBorder.Margin.Right,
-                                                                  this.WorkingAreaBorder.Margin.Bottom);
-
-                    var Engine = ProductDirector.WorkspaceDirector.ActiveDocumentEngine as CompositionEngine;
-                    if (Engine == null || Engine.CurrentView == null)
-                        return;
-
-                    // Adjust visualization to not "jump"
-                    Engine.CurrentView.Pan(double.NaN, Offset, false);
-                });
+            this.WinHeader.PaletteSupraContainer.AtCanCollapseChanged = (CanCollapse) => { };
 
             // Starts the application product
             ProductDirector.Start();
@@ -195,6 +184,86 @@ namespace Instrumind.ThinkComposer.ApplicationShell
             this.EditingMediumLowerContainer.Children.Clear();
             this.EditingBottomContainer.Children.Clear();
             this.StatusContainer.Children.Clear();
+        }
+
+        private void ApplyShellPanelState()
+        {
+            this.ExplorerColumn.Width = new GridLength(this.IsExplorerPanelVisible ? ExplorerPanelWidth : 0.0);
+            this.InspectorColumn.Width = new GridLength(this.IsInspectorPanelVisible ? InspectorPanelWidth : 0.0);
+            this.BottomPanelRow.Height = new GridLength(this.IsBottomPanelVisible ? BottomPanelHeight : 0.0);
+
+            this.ExplorerPanel.Visibility = this.IsExplorerPanelVisible ? Visibility.Visible : Visibility.Collapsed;
+            this.InspectorPanel.Visibility = this.IsInspectorPanelVisible ? Visibility.Visible : Visibility.Collapsed;
+            this.BottomPanel.Visibility = this.IsBottomPanelVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void ToggleExplorerPanel_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsExplorerPanelVisible = !this.IsExplorerPanelVisible;
+            ApplyShellPanelState();
+        }
+
+        private void ToggleInspectorPanel_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsInspectorPanelVisible = !this.IsInspectorPanelVisible;
+            ApplyShellPanelState();
+        }
+
+        private void ToggleBottomPanel_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsBottomPanelVisible = !this.IsBottomPanelVisible;
+            ApplyShellPanelState();
+        }
+
+        private void ToggleFocusMode_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsExplorerPanelVisible = false;
+            this.IsInspectorPanelVisible = false;
+            this.IsBottomPanelVisible = false;
+            ApplyShellPanelState();
+        }
+
+        private void ToggleShellTheme_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsDarkShellTheme = !this.IsDarkShellTheme;
+            ApplyShellTheme();
+        }
+
+        private void ApplyShellTheme()
+        {
+            if (this.IsDarkShellTheme)
+            {
+                SetShellBrush("TcShellTitleBrush", Color.FromRgb(0x3C, 0x3C, 0x3C));
+                SetShellBrush("TcShellCommandBrush", Color.FromRgb(0x25, 0x25, 0x26));
+                SetShellBrush("TcShellRailBrush", Color.FromRgb(0x33, 0x33, 0x33));
+                SetShellBrush("TcShellPanelBrush", Color.FromRgb(0x25, 0x25, 0x26));
+                SetShellBrush("TcShellCanvasBrush", Color.FromRgb(0x1E, 0x1E, 0x1E));
+                SetShellBrush("TcShellBottomBrush", Color.FromRgb(0x1E, 0x1E, 0x1E));
+                SetShellBrush("TcShellBorderBrush", Color.FromRgb(0x3C, 0x3C, 0x3C));
+                SetShellBrush("TcShellMutedTextBrush", Color.FromRgb(0xBB, 0xBB, 0xBB));
+                SetShellBrush("TcShellTextBrush", Color.FromRgb(0xCC, 0xCC, 0xCC));
+                SetShellBrush("TcShellButtonBrush", Color.FromRgb(0x33, 0x33, 0x33));
+                SetShellBrush("TcShellButtonHoverBrush", Color.FromRgb(0x3A, 0x3D, 0x41));
+            }
+            else
+            {
+                SetShellBrush("TcShellTitleBrush", Color.FromRgb(0xF8, 0xF8, 0xF8));
+                SetShellBrush("TcShellCommandBrush", Color.FromRgb(0xFF, 0xFF, 0xFF));
+                SetShellBrush("TcShellRailBrush", Color.FromRgb(0xF3, 0xF3, 0xF3));
+                SetShellBrush("TcShellPanelBrush", Color.FromRgb(0xFF, 0xFF, 0xFF));
+                SetShellBrush("TcShellCanvasBrush", Color.FromRgb(0xFF, 0xFF, 0xFF));
+                SetShellBrush("TcShellBottomBrush", Color.FromRgb(0xFA, 0xFA, 0xFA));
+                SetShellBrush("TcShellBorderBrush", Color.FromRgb(0xE5, 0xE5, 0xE5));
+                SetShellBrush("TcShellMutedTextBrush", Color.FromRgb(0x57, 0x60, 0x6A));
+                SetShellBrush("TcShellTextBrush", Color.FromRgb(0x24, 0x29, 0x2F));
+                SetShellBrush("TcShellButtonBrush", Color.FromRgb(0xF6, 0xF8, 0xFA));
+                SetShellBrush("TcShellButtonHoverBrush", Color.FromRgb(0xEF, 0xF6, 0xFC));
+            }
+        }
+
+        private static void SetShellBrush(string ResourceKey, Color Color)
+        {
+            Application.Current.Resources[ResourceKey] = new SolidColorBrush(Color);
         }
 
         private void WinHeader_Dragging(MouseButtonEventArgs obj)
