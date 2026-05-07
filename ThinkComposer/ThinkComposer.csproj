@@ -15,7 +15,7 @@
     <Deterministic>false</Deterministic>
     <AppendTargetFrameworkToOutputPath Condition="'$(TargetFramework)' == 'net48'">false</AppendTargetFrameworkToOutputPath>
     <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net10.0-windows'">7.0</SupportedOSPlatformVersion>
-    <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0011;SYSLIB0014;SYSLIB0050;SYSLIB0051;CA1416;CA2022;CA2200</NoWarn>
+    <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0050;SYSLIB0051;CA1416;CA2022;CA2200</NoWarn>
     <FileAlignment>512</FileAlignment>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget Condition="'$(TargetFramework)' == 'net48'">x86</PlatformTarget>

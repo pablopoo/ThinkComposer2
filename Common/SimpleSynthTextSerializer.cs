@@ -68,7 +68,7 @@ SAMPLE-END
     /// <summary>
     /// Provides services for serializing objects in the Instrumind's Simple-Synth format.
     /// </summary>
-    public class SimpleSynthSerializer : IFormatter
+    public class SimpleSynthSerializer
     {
         public const string VERSION = "0100";
         public const string SERIALIZATION_HEADER_CODE = "IMSS";
