@@ -32,6 +32,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Runtime.InteropServices;
 
 using Instrumind.Common;
 using Instrumind.Common.EntityDefinition;
@@ -1192,10 +1193,23 @@ namespace Instrumind.Common.Visualization
 #if NETFRAMEWORK
         public static BitmapSource ConvertToBitmapSource(this System.Drawing.Bitmap Picture)
         {
-            var Result = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(Picture.GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty,
-                                                                                      BitmapSizeOptions.FromWidthAndHeight(Picture.Width, Picture.Height));
-            return Result;
+            var HBitmap = Picture.GetHbitmap();
+            try
+            {
+                var Result = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(HBitmap, IntPtr.Zero, System.Windows.Int32Rect.Empty,
+                                                                                          BitmapSizeOptions.FromWidthAndHeight(Picture.Width, Picture.Height));
+                return Result;
+            }
+            finally
+            {
+                if (HBitmap != IntPtr.Zero)
+                    DeleteObject(HBitmap);
+            }
         }
+
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DeleteObject(IntPtr hObject);
 #endif
 
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1215,9 +1229,11 @@ namespace Instrumind.Common.Visualization
                 {
                     try
                     {
-                        System.Drawing.Bitmap Picture = new System.Drawing.Bitmap(Width, Height);
-                        Browser.DrawToBitmap(Picture, new System.Drawing.Rectangle(0, 0, Width, Height));
-                        Setter(Picture.ConvertToBitmapSource());
+                        using (var Picture = new System.Drawing.Bitmap(Width, Height))
+                        {
+                            Browser.DrawToBitmap(Picture, new System.Drawing.Rectangle(0, 0, Width, Height));
+                            Setter(Picture.ConvertToBitmapSource());
+                        }
                     }
                     catch (Exception Problem)
                     {

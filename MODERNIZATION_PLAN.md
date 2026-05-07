@@ -198,6 +198,7 @@ Exit criteria:
 - 2026-05-07: Removed WinForms/`System.Drawing` from `ICSharpCode.AvalonEdit` by replacing screen working-area lookups with direct Win32 monitor APIs. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Removed WinForms targeting from `Common` for `net10.0-windows`: folder selection uses WPF `OpenFolderDialog`, print setup returns a framework-neutral result, and the legacy WebBrowser screenshot helper is restricted to `net48`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Removed WinForms targeting from `PdfSharp-WPF` and `PdfSharp.Xps`; their remaining `System.Drawing` project references are restricted to `net48`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
+- 2026-05-07: Fixed the `Common` GDI bitmap conversion helper to release the HBITMAP handle and dispose the temporary screenshot bitmap. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 
 ## References
 
