@@ -1,102 +1,182 @@
-# ThinkComposer UI Modernization Design
+# ThinkComposer 100% WinUI Modernization Design
 
 Date: 2026-05-07
 
 ## Decision
 
-Use the B2 "Command Center" mockup as the target direction: a Figma-like editor shell with a central canvas, left activity rail, left explorer, right inspector, top command bar, command/object search, and collapsible panels similar to VS Code.
+The final application target is 100% WinUI 3 on Windows App SDK.
+
+The current WPF app is only a temporary control/baseline while the migration reaches feature parity. The final product must not depend on WPF for its main shell, canvas, panels, commands, or editor workflows.
 
 Reference mockups:
 
-- `docs/ui-mockups/thinkcomposer-canvas-focus-iterations.html`
-- `docs/ui-mockups/thinkcomposer-b2-vscode-collapse.html`
+- `docs/ui-mockups/thinkcomposer-winui3-final-direction.html`
 - `docs/ui-mockups/thinkcomposer-b2-vscode-light-dark.html`
 
-## Goals
+## Product Goal
 
-- Make the canvas the primary workspace.
-- Keep navigation and properties discoverable.
-- Let users collapse the explorer, inspector, and bottom panel independently.
-- Preserve existing editor behavior while modernizing shell layout and styling.
-- Keep the first implementation WPF-native and incremental.
+Keep ThinkComposer's functionality, but allow the UI to change radically if that improves UX.
 
-## Layout
+The app should feel like a modern native editor: fast startup, dense workspace, collapsible panels, command search, central canvas, modern inspector, clean light theme, and a VS Code-inspired dark theme.
 
-The shell will use four main regions:
+## Non-Negotiables
 
-- Activity rail: always visible, narrow, icon-first navigation for explorer, inspector, messages/search, and focus mode.
-- Explorer panel: left panel for map/document/navigation content.
-- Canvas: central editor surface with tabs, quick actions, and floating contextual tools.
-- Inspector panel: right panel for properties and selected-object actions.
-- Bottom panel: collapsible area for messages, search results, previews, and future diagnostics.
+- Final UI is native WinUI 3, not WPF.
+- No Electron/WebView/web UI runtime as the primary app shell.
+- Existing document compatibility must be preserved.
+- Existing core workflows must survive: create/open/save compositions, edit concepts and relationships, inspect properties, navigate content, use messages/search/preview, export/print where supported today.
+- WPF remains buildable only until the WinUI app reaches parity.
 
-The top command bar remains visible and compact. It contains common actions and a search box for commands, objects, and views.
+## Target UX
 
-## Collapsible Behavior
+The final shell uses a Figma/VS Code-style workspace:
 
-Panels collapse like VS Code:
+- Left activity rail for workspace areas.
+- Collapsible explorer for composition/domain navigation.
+- Central GPU-accelerated composition canvas.
+- Right inspector for selected object properties and actions.
+- Bottom panel for messages, search results, previews, diagnostics, and logs.
+- Compact command bar and command/object search.
+- Tabs for open compositions or views.
+- Light and dark themes based on WinUI theme resources.
 
-- The rail stays visible.
-- Clicking a rail icon toggles the related panel.
-- Each panel also has a local collapse button.
-- Focus mode collapses explorer, inspector, and bottom panel together.
-- Collapsed state should not destroy panel content; it only hides layout width or height.
+The canvas is the product center. Panels support the canvas; they should never dominate the workspace.
 
-Preferred initial widths:
+## Architecture
 
-- Rail: 54 px.
-- Explorer: 240 px.
-- Inspector: 250 px.
-- Bottom panel: 180 px.
+Use a staged replacement, not a direct XAML port.
 
-## Visual Style
+### `ThinkComposer.Core`
 
-Use VS Code-inspired light and dark themes:
+UI-independent document/model/application logic.
 
-- Default theme: clean almost-white UI with white panels, very light borders, pale canvas grid, and blue command accent.
-- Secondary theme: dark editor UI with VS Code-like graphite panels, dark canvas grid, and the same blue command accent.
-- Keep accent color usage restrained: primary actions, active rail item, selected tab, and status bar.
-- Avoid warm beige/tan shell colors.
-- Minimal gradients; mostly solid fills, subtle borders, and clear contrast.
+This layer must not reference WPF or WinUI surface types. Where the old model leaks UI primitives, introduce neutral records such as:
 
-Avoid decorative hero-style visuals. The product should feel like a dense editor, not a landing page.
+```csharp
+public readonly record struct TcPoint(double X, double Y);
+public readonly record struct TcSize(double Width, double Height);
+public readonly record struct TcColor(byte A, byte R, byte G, byte B);
+```
 
-## Implementation Boundaries
+### `ThinkComposer.Rendering`
 
-First implementation should target the shell only:
+Neutral canvas view models and render DTOs.
 
-- `ThinkComposer/ApplicationShell/MainWindow.xaml`
-- `ThinkComposer/ApplicationShell/MainWindowHeader.xaml`
-- related shell code-behind only where needed
-- shared WPF resources in `Common/Themes/Generic.xaml` or a new app resource dictionary
+The renderer consumes composition-view data, not WPF controls:
 
-Do not rewrite canvas rendering, document model, or command logic in the first UI pass.
+```csharp
+public sealed record CompositionNodeView(string Id, string Text, TcPoint Position, TcSize Size);
+public sealed record CompositionConnectorView(string Id, string SourceId, string TargetId);
+```
 
-## UX Details
+### `ThinkComposer.WinUI`
 
-- The canvas should remain usable at small and large window sizes.
-- Panel collapse/expand should be fast and predictable.
-- Command search can be visual-only in the first pass if wiring all commands is too large.
-- Existing palette/tool commands should be preserved, then reorganized.
-- Keyboard shortcuts are a second pass, except focus mode if cheap to wire.
+The new app shell, panels, commands, canvas host, dialogs, theme system, and native interaction layer.
 
-## Verification
+The project must not reference `PresentationFramework`, `PresentationCore`, `WindowsBase`, `System.Xaml`, or WPF controls.
 
-Minimum verification for the first implementation:
+### Current WPF App
 
-- `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86`
-- net10 smoke test: app opens, responds, panels collapse/expand, app closes with exit code 0.
-- Manual check at 1440x810 and a narrower width around 1100 px.
+Temporary reference implementation only.
 
-## Non-goals
+It stays usable during migration so behavior can be compared. It is removed or archived after WinUI reaches parity.
 
-- No full Figma clone.
-- No canvas engine rewrite.
-- No document format changes.
-- No cleanup of legacy projects in this pass.
+## Migration Stages
+
+### Stage 0: Freeze Baseline
+
+Keep the current WPF app buildable and smoke-testable. Capture current workflows before replacing them.
+
+### Stage 1: Feature Inventory
+
+Map the existing app into functional areas:
+
+- document lifecycle
+- composition canvas
+- concept editing
+- relationship editing
+- inspector/properties
+- explorer/navigation
+- palettes/tools
+- search/messages/preview
+- export/print
+- settings/theme
+
+### Stage 2: Core Extraction
+
+Move only UI-independent model/document contracts first. Do not drag WPF controls into the new core.
+
+### Stage 3: WinUI Shell
+
+Create the native WinUI shell with real layout, theme switching, collapsible panels, command bar, and placeholder canvas.
+
+### Stage 4: Win2D Canvas Spike
+
+Build a native canvas proof:
+
+- draw nodes/connectors
+- pan
+- zoom
+- select
+- drag
+- show selection affordances
+
+This proves the app can feel fast without web UI.
+
+### Stage 5: Read-Only Real Composition
+
+Load an existing or generated composition into WinUI and render it read-only through neutral DTOs.
+
+### Stage 6: Editing Workflows
+
+Add editing in priority order:
+
+1. create/select/move concepts
+2. edit text/properties
+3. create/select relationships
+4. delete/undo/redo
+5. palette/tool commands
+
+### Stage 7: App Parity
+
+Port dialogs, search, messages, preview, import/export, printing, and settings.
+
+### Stage 8: Cutover
+
+Make WinUI the primary executable once parity is acceptable.
+
+### Stage 9: Remove WPF Dependency
+
+Delete or archive the old WPF app after the WinUI executable replaces it. The final app must be WinUI-native.
+
+## Acceptance Criteria
+
+First milestone:
+
+- `ThinkComposer.WinUI` opens.
+- Shell is native WinUI.
+- Light/dark themes work.
+- Panels collapse like VS Code.
+- Win2D canvas draws and interacts with a fake composition.
+- WinUI project has no WPF references.
+
+Final milestone:
+
+- WinUI app preserves existing user workflows.
+- Existing documents open/save correctly.
+- Canvas editing is native and responsive.
+- WPF app is no longer required for normal use.
+- No primary UI surface remains WPF.
 
 ## Risks
 
-- Existing panels may assume fixed host sizes.
-- Current toolbar/palette content may not map cleanly into the new shell.
-- Some controls may rely on old resource keys, so theme changes should preserve compatibility keys while changing values.
+- Existing model code may mix domain state with WPF geometry/brush/control types.
+- Canvas fidelity may require custom text/layout work in Win2D.
+- Printing/export may be more expensive than shell/canvas migration.
+- Some legacy dialogs may need redesign instead of porting.
+
+## Design Stance
+
+Do not make a prettier WPF app. Build the replacement editor.
+
+The UI can change completely, but the product capability must remain ThinkComposer.

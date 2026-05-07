@@ -1,29 +1,41 @@
-# WinUI 3 Migration Implementation Plan
+# 100% WinUI Migration Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move ThinkComposer toward a modern native WinUI 3 app without adding a web UI runtime and without rewriting business/document logic first.
+**Goal:** Replace the ThinkComposer WPF UI with a fully native WinUI 3 application while preserving existing app functionality and document compatibility.
 
-**Architecture:** Use a strangler migration. Keep the current WPF app as the working product, extract UI-independent core services, create a parallel WinUI 3 shell, then migrate the canvas through a native Win2D renderer. Avoid attempting a direct XAML port because the current app has thousands of WPF-specific references and WPF controls cannot be reused directly in WinUI 3.
+**Architecture:** Use a strangler migration. Keep WPF as a temporary behavior reference, extract UI-independent core logic, build a parallel WinUI 3 app, move rendering to a native Win2D canvas, then cut over once the WinUI app reaches parity. The final executable must not require WPF for the shell, canvas, panels, or editor workflows.
 
-**Tech Stack:** .NET 10, Windows App SDK / WinUI 3, C#, XAML, Win2D for GPU-accelerated 2D canvas rendering, existing ThinkComposer document/model code after extraction.
+**Tech Stack:** .NET 10, Windows App SDK / WinUI 3, C#, XAML, Win2D, neutral ThinkComposer core/domain assemblies.
 
 ---
 
-## Rationale
+## Final Direction
 
-WinUI 3 is the native Windows option for a modern, fast UI. It avoids WebView/Electron overhead and gives Fluent controls, modern composition, and Windows App SDK integration.
+This is not a WPF reskin.
 
-The current codebase is deeply WPF-bound. A quick scan found more than 3,000 references to WPF surface types such as `System.Windows`, `Window`, `UserControl`, `Canvas`, `DrawingVisual`, `Adorner`, `DependencyObject`, and related APIs. A direct conversion would be high-risk and slow.
+The final product is a 100% WinUI 3 app. WPF remains only as a temporary baseline while the new app catches up.
 
-Therefore the migration must be staged.
+Reference design:
 
-## Phase 0: Freeze the WPF Baseline
+- `docs/superpowers/specs/2026-05-07-ui-modernization-design.md`
+- `docs/ui-mockups/thinkcomposer-winui3-final-direction.html`
+
+## Hard Rules
+
+- `ThinkComposer.WinUI` must not reference WPF assemblies.
+- No primary UI surface may depend on `System.Windows.Controls`, `Window`, `UserControl`, `Canvas`, `DrawingVisual`, `Adorner`, `DependencyObject`, or WPF resource dictionaries.
+- Document/model logic moves behind UI-neutral contracts before WinUI consumes it.
+- WPF app must keep building until WinUI reaches parity.
+- WPF is removed or archived after cutover.
+
+## Phase 0: Freeze WPF Baseline
 
 **Files:**
-- No code changes.
+- No product code changes.
+- Update only verification notes in `MODERNIZATION_PLAN.md` if needed.
 
-- [ ] **Step 1: Keep WPF app buildable**
+- [ ] **Step 1: Build baseline**
 
 Run:
 
@@ -38,50 +50,154 @@ Expected:
 0 Errores
 ```
 
-- [ ] **Step 2: Keep WPF smoke test as control**
+- [ ] **Step 2: Smoke-test baseline executable**
 
-Run the current net10 WPF app:
+Run:
 
 ```powershell
 .\ThinkComposer\bin\Debug\net10.0-windows\Instrumind.ThinkComposer.exe
 ```
 
-Expected: app opens, a new composition can be created, and the process exits cleanly.
+Expected: the current app opens, creates a composition, and closes cleanly.
 
-## Phase 1: Split Core From WPF
+- [ ] **Step 3: Record baseline workflows**
+
+Create `docs/superpowers/specs/2026-05-07-thinkcomposer-parity-inventory.md` with this checklist:
+
+```markdown
+# ThinkComposer Parity Inventory
+
+## Document
+- Open
+- New
+- Save
+- Save As
+- Recent files
+
+## Composition Canvas
+- Create concept
+- Select concept
+- Move concept
+- Edit concept text
+- Create relationship
+- Select relationship
+- Delete selected object
+- Undo/redo
+- Zoom
+- Pan
+
+## Panels
+- Explorer navigation
+- Inspector properties
+- Messages
+- Search
+- Preview
+
+## Output
+- Export
+- Print
+
+## Settings
+- Theme
+- Workspace preferences
+```
+
+Expected: the migration has a visible parity target before WinUI work starts.
+
+## Phase 1: Extract UI-Neutral Core
 
 **Files:**
 - Create: `ThinkComposer.Core/ThinkComposer.Core.csproj`
-- Move or duplicate first-pass core-only classes from `ThinkComposer/Model`, `ThinkComposer/MetaModel`, and non-visual document services.
-- Do not move visual WPF classes in this phase.
+- Create: `ThinkComposer.Core/Primitives/TcPoint.cs`
+- Create: `ThinkComposer.Core/Primitives/TcSize.cs`
+- Create: `ThinkComposer.Core/Primitives/TcColor.cs`
+- Create: `ThinkComposer.Core/Rendering/CompositionNodeView.cs`
+- Create: `ThinkComposer.Core/Rendering/CompositionConnectorView.cs`
+- Modify: `Instrumind_ThinkComposer.sln`
 
-- [ ] **Step 1: Create `ThinkComposer.Core`**
+- [ ] **Step 1: Create core project**
 
-Create a new SDK-style class library targeting `net10.0-windows` first. The first version references only UI-independent libraries.
+Run:
 
-- [ ] **Step 2: Move document/model contracts**
-
-Start with model contracts and serialization boundaries, not UI controls. Candidate areas:
-
-```text
-ThinkComposer/Model
-ThinkComposer/MetaModel/InformationMetaModel
-ThinkComposer/MetaModel/GraphMetaModel
+```powershell
+dotnet new classlib -n ThinkComposer.Core -f net10.0-windows
+dotnet sln Instrumind_ThinkComposer.sln add ThinkComposer.Core\ThinkComposer.Core.csproj
 ```
 
-Expected: no direct dependency on `PresentationFramework`, `PresentationCore`, or `WindowsBase` in the new project.
+Expected: `ThinkComposer.Core` appears in the solution and builds without WPF references.
 
-- [ ] **Step 3: Add compatibility adapters**
+- [ ] **Step 2: Add neutral primitives**
 
-Where WPF types are currently part of model contracts, introduce neutral equivalents:
+Create `ThinkComposer.Core/Primitives/TcPoint.cs`:
 
 ```csharp
+namespace Instrumind.ThinkComposer.Core.Primitives;
+
 public readonly record struct TcPoint(double X, double Y);
+```
+
+Create `ThinkComposer.Core/Primitives/TcSize.cs`:
+
+```csharp
+namespace Instrumind.ThinkComposer.Core.Primitives;
+
 public readonly record struct TcSize(double Width, double Height);
+```
+
+Create `ThinkComposer.Core/Primitives/TcColor.cs`:
+
+```csharp
+namespace Instrumind.ThinkComposer.Core.Primitives;
+
 public readonly record struct TcColor(byte A, byte R, byte G, byte B);
 ```
 
-Expected: WinUI and WPF can each map these to their own UI types.
+- [ ] **Step 3: Add render DTOs**
+
+Create `ThinkComposer.Core/Rendering/CompositionNodeView.cs`:
+
+```csharp
+using Instrumind.ThinkComposer.Core.Primitives;
+
+namespace Instrumind.ThinkComposer.Core.Rendering;
+
+public sealed record CompositionNodeView(
+    string Id,
+    string Text,
+    TcPoint Position,
+    TcSize Size);
+```
+
+Create `ThinkComposer.Core/Rendering/CompositionConnectorView.cs`:
+
+```csharp
+namespace Instrumind.ThinkComposer.Core.Rendering;
+
+public sealed record CompositionConnectorView(
+    string Id,
+    string SourceId,
+    string TargetId);
+```
+
+- [ ] **Step 4: Verify no WPF references**
+
+Run:
+
+```powershell
+dotnet build ThinkComposer.Core\ThinkComposer.Core.csproj
+Select-String -Path ThinkComposer.Core\**\*.cs -Pattern "System.Windows|PresentationFramework|PresentationCore|WindowsBase"
+```
+
+Expected: build passes and search returns no matches.
+
+- [ ] **Step 5: Commit**
+
+Run:
+
+```powershell
+git add ThinkComposer.Core Instrumind_ThinkComposer.sln
+git commit -m "Create UI-neutral ThinkComposer core project"
+```
 
 ## Phase 2: Create Parallel WinUI Shell
 
@@ -91,117 +207,242 @@ Expected: WinUI and WPF can each map these to their own UI types.
 - Create: `ThinkComposer.WinUI/App.xaml.cs`
 - Create: `ThinkComposer.WinUI/MainWindow.xaml`
 - Create: `ThinkComposer.WinUI/MainWindow.xaml.cs`
+- Modify: `Instrumind_ThinkComposer.sln`
 
-- [ ] **Step 1: Add WinUI 3 project**
+- [ ] **Step 1: Create WinUI 3 project**
 
-Create a Windows App SDK / WinUI 3 desktop project targeting `net10.0-windows10.0.19041.0` or the supported target required by the installed Windows App SDK.
+Use Visual Studio's WinUI 3 desktop template if CLI templates are not installed. Target .NET 10 and Windows App SDK.
 
-- [ ] **Step 2: Implement shell only**
+Expected: `ThinkComposer.WinUI` opens a blank native WinUI window.
 
-Build the shell layout:
+- [ ] **Step 2: Add shell layout**
+
+Implement this structure:
 
 ```text
 TitleBar
 CommandBar
-NavigationView or custom activity rail
-TreeView explorer
-central canvas host
-InfoBar/messages panel
-right inspector panel
+Activity rail
+Explorer panel
+Composition canvas host
+Inspector panel
+Bottom messages/search/preview panel
+Status bar
 ```
 
-Expected: WinUI app opens without loading existing documents.
+Expected: the app visually matches `docs/ui-mockups/thinkcomposer-winui3-final-direction.html` at shell level.
 
-- [ ] **Step 3: Add light/dark theme**
+- [ ] **Step 3: Add collapsible panels**
 
-Use WinUI theme resources and `ActualTheme` support. Default to light. Add a theme toggle.
+Implement state for:
 
-Expected: theme changes without restarting.
+```text
+Explorer collapsed
+Inspector collapsed
+Bottom panel collapsed
+Focus mode
+```
 
-## Phase 3: Native Canvas Spike
+Expected: panel toggles behave like VS Code and content state is preserved.
+
+- [ ] **Step 4: Add light/dark theme**
+
+Use WinUI theme resources and runtime theme switching.
+
+Expected: app changes theme without restart.
+
+- [ ] **Step 5: Verify no WPF references**
+
+Run:
+
+```powershell
+Select-String -Path ThinkComposer.WinUI\**\*.* -Pattern "System.Windows|PresentationFramework|PresentationCore|WindowsBase|Windows.Controls"
+```
+
+Expected: no WPF references.
+
+## Phase 3: Build Native Win2D Canvas Spike
 
 **Files:**
 - Create: `ThinkComposer.WinUI/Canvas/CompositionCanvas.xaml`
 - Create: `ThinkComposer.WinUI/Canvas/CompositionCanvas.xaml.cs`
 - Create: `ThinkComposer.WinUI/Canvas/CompositionCanvasRenderer.cs`
+- Modify: `ThinkComposer.WinUI/ThinkComposer.WinUI.csproj`
 
 - [ ] **Step 1: Add Win2D package**
 
-Add `Microsoft.Graphics.Win2D` to the WinUI project.
+Add `Microsoft.Graphics.Win2D`.
 
-- [ ] **Step 2: Render a small diagram**
+Expected: WinUI project builds with Win2D available.
 
-Use `CanvasControl` or `CanvasVirtualControl` to draw:
+- [ ] **Step 2: Render fake composition**
+
+Draw:
 
 ```text
 3 nodes
 2 connectors
-selection rectangle
-zoom/pan transform
+selected node outline
+canvas grid
 ```
 
-Expected: smooth native rendering with no web runtime.
+Expected: drawing is native and not WPF-hosted.
 
-- [ ] **Step 3: Test interaction**
+- [ ] **Step 3: Add interaction**
 
 Implement:
 
 ```text
 pan
 zoom
-single selection
+select node
 drag selected node
 ```
 
-Expected: interaction feels at least as responsive as WPF.
+Expected: interaction feels fast and stable.
 
-## Phase 4: Bridge Real Data
+## Phase 4: Load Read-Only Real Composition
 
 **Files:**
-- Modify: `ThinkComposer.WinUI/MainWindow.xaml.cs`
+- Create or modify core adapters under `ThinkComposer.Core`
 - Modify: `ThinkComposer.WinUI/Canvas/CompositionCanvasRenderer.cs`
-- Modify: core model adapters from Phase 1.
 
-- [ ] **Step 1: Load a sample composition**
+- [ ] **Step 1: Map real model to DTOs**
 
-Load a real or generated composition through `ThinkComposer.Core`.
-
-- [ ] **Step 2: Map composition elements to render DTOs**
-
-Use DTOs that do not expose WPF or WinUI types:
+Expose composition data as:
 
 ```csharp
-public sealed record CompositionNodeView(string Id, string Text, TcPoint Position, TcSize Size);
-public sealed record CompositionConnectorView(string Id, string SourceId, string TargetId);
+IReadOnlyList<CompositionNodeView>
+IReadOnlyList<CompositionConnectorView>
 ```
 
-Expected: renderer consumes DTOs only.
+Expected: WinUI renderer consumes DTOs only.
 
-## Phase 5: Decide Go / No-Go
+- [ ] **Step 2: Render real composition read-only**
 
-Go only if all criteria pass:
+Load an existing or generated composition.
 
-- WinUI shell starts fast.
-- Canvas pan/zoom/select feels native and smooth.
-- Existing document/model logic can be consumed without dragging WPF dependencies.
-- Packaging/deployment is acceptable.
-- WPF app remains usable during migration.
+Expected: WinUI shows real data without WPF controls.
 
-No-go if:
+## Phase 5: Port Editing Workflows
 
-- Core extraction explodes into broad rewrites before a canvas spike works.
-- Win2D cannot support needed text/geometry fidelity.
-- Deployment overhead is unacceptable.
+**Files:**
+- Modify WinUI canvas, command handlers, inspector, and core application services as needed.
+
+- [ ] **Step 1: Concept editing**
+
+Implement:
+
+```text
+create concept
+select concept
+move concept
+edit concept text
+delete concept
+```
+
+- [ ] **Step 2: Relationship editing**
+
+Implement:
+
+```text
+create relationship
+select relationship
+delete relationship
+edit relationship properties
+```
+
+- [ ] **Step 3: Undo/redo**
+
+Connect edits to the existing command/undo model or create a neutral adapter if the current one is WPF-bound.
+
+Expected: edit history works in WinUI.
+
+## Phase 6: Port Panels And Commands
+
+**Files:**
+- Modify or create WinUI explorer, inspector, messages, search, preview, command palette, and settings views.
+
+- [ ] **Step 1: Explorer**
+
+Port composition/domain navigation.
+
+- [ ] **Step 2: Inspector**
+
+Port selected object properties and actions.
+
+- [ ] **Step 3: Messages/search/preview**
+
+Port bottom panel workflows.
+
+- [ ] **Step 4: Command search**
+
+Add command/object/view search.
+
+## Phase 7: Port Output And App Services
+
+**Files:**
+- Modify WinUI app services and core adapters as needed.
+
+- [ ] **Step 1: Open/save parity**
+
+Existing documents open and save correctly from WinUI.
+
+- [ ] **Step 2: Export/print parity**
+
+Port export and print workflows or define a supported replacement if current code is WPF-only.
+
+- [ ] **Step 3: Settings parity**
+
+Port workspace preferences and theme settings.
+
+## Phase 8: Cut Over To WinUI
+
+**Files:**
+- Modify solution/startup docs.
+- Modify packaging/deployment files.
+
+- [ ] **Step 1: Make WinUI primary executable**
+
+Expected: normal launch path starts WinUI, not WPF.
+
+- [ ] **Step 2: Run parity inventory**
+
+Use `docs/superpowers/specs/2026-05-07-thinkcomposer-parity-inventory.md`.
+
+Expected: all required parity items pass or have documented replacement behavior.
+
+## Phase 9: Remove WPF UI Dependency
+
+**Files:**
+- Remove or archive WPF app project after WinUI parity.
+- Keep reusable non-WPF libraries only.
+
+- [ ] **Step 1: Remove WPF startup app**
+
+Expected: final app does not require the old WPF shell.
+
+- [ ] **Step 2: Verify final WinUI app**
+
+Run:
+
+```powershell
+dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86
+```
+
+Expected: solution builds and WinUI is the primary app.
 
 ## First Concrete Milestone
 
-The first milestone is not a full app. It is:
+Build this before extracting large areas:
 
 ```text
 ThinkComposer.WinUI opens
-light/dark shell works
-Win2D canvas draws a small interactive fake composition
-no WPF dependency in the WinUI project
+native shell matches the mockup direction
+light/dark themes work
+explorer/inspector/bottom panels collapse
+Win2D canvas renders a fake interactive composition
+WinUI project has no WPF references
 ```
 
-This milestone proves whether the native WinUI path is worth continuing.
+If this milestone fails, stop and reassess before moving deeper into the migration.

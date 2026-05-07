@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkComposer WinUI 3 Final Direction</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f4f6f8;
+      color: #202428;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+      font-weight: 650;
+    }
+    p {
+      margin: 0;
+      color: #5a626b;
+      line-height: 1.45;
+    }
+    .summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+    .pillrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .pill {
+      border: 1px solid #c8d0d8;
+      background: #ffffff;
+      color: #2b3137;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .mockup {
+      border: 1px solid #cdd5dd;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(29, 37, 45, .12);
+    }
+    .app {
+      height: 780px;
+      display: grid;
+      grid-template-rows: 34px 44px 1fr 28px;
+      background: #ffffff;
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      background: #f7f8fa;
+      border-bottom: 1px solid #e1e5e9;
+      font-size: 12px;
+    }
+    .logo {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: #0078d4;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .brand { font-weight: 700; }
+    .path { color: #68717a; }
+    .spacer { flex: 1; }
+    .window-buttons { display: flex; gap: 12px; color: #6c747d; }
+    .commandbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      background: #ffffff;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    .tools { display: flex; gap: 4px; align-items: center; }
+    .tool {
+      width: 30px;
+      height: 30px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: #2f3740;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .tool.primary {
+      background: #0078d4;
+      color: #ffffff;
+    }
+    .search {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      color: #68717a;
+      border: 1px solid #c8d0d8;
+      border-radius: 6px;
+      background: #fbfcfd;
+      font-size: 13px;
+    }
+    .shell {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 50px 248px 1fr 286px;
+      background: #f5f7f9;
+    }
+    .rail {
+      background: #f8f9fb;
+      border-right: 1px solid #e1e5e9;
+      padding-top: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .railitem {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: #47515c;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .railitem.active {
+      background: #e7f2fd;
+      color: #005fb8;
+      box-shadow: inset 3px 0 0 #0078d4;
+    }
+    .panel {
+      min-height: 0;
+      border-right: 1px solid #e1e5e9;
+      background: #ffffff;
+      display: grid;
+      grid-template-rows: 34px auto 1fr;
+    }
+    .rightpanel {
+      border-left: 1px solid #e1e5e9;
+      border-right: none;
+    }
+    .panelhead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #4e5965;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 1px solid #edf0f3;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px 0;
+    }
+    .tab {
+      height: 28px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      border-radius: 6px 6px 0 0;
+      background: #f3f6f9;
+      color: #53606b;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: #ffffff;
+      color: #1f252b;
+      border: 1px solid #e1e5e9;
+      border-bottom-color: #ffffff;
+    }
+    .tree {
+      padding: 10px;
+      font-size: 13px;
+      color: #303840;
+    }
+    .tree .row {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 5px;
+      padding: 0 7px;
+    }
+    .tree .row.active { background: #e7f2fd; color: #005fb8; }
+    .sectionlabel {
+      margin: 14px 0 6px;
+      color: #717b86;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .workspace {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 36px 1fr 148px;
+      background: #f7f8fa;
+    }
+    .doctabs {
+      display: flex;
+      align-items: end;
+      gap: 1px;
+      padding-left: 10px;
+      background: #f2f4f7;
+      border-bottom: 1px solid #e1e5e9;
+    }
+    .doctab {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: #ffffff;
+      border: 1px solid #e1e5e9;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      color: #26313a;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .canvas {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(#eef2f6 1px, transparent 1px),
+        linear-gradient(90deg, #eef2f6 1px, transparent 1px),
+        #ffffff;
+      background-size: 24px 24px;
+    }
+    .canvasbar {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      background: rgba(255,255,255,.92);
+      border: 1px solid #d6dde5;
+      border-radius: 7px;
+      box-shadow: 0 8px 18px rgba(20, 30, 40, .08);
+    }
+    .zoom {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      background: rgba(255,255,255,.94);
+      border: 1px solid #d6dde5;
+      border-radius: 7px;
+      color: #53606b;
+      font-size: 12px;
+    }
+    .node {
+      position: absolute;
+      width: 158px;
+      min-height: 72px;
+      border: 1px solid #c7d3df;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 12px 22px rgba(20, 30, 40, .11);
+      padding: 10px;
+    }
+    .node.selected {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 3px rgba(0,120,212,.16), 0 12px 22px rgba(20, 30, 40, .11);
+    }
+    .nodetitle {
+      color: #1f252b;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .nodedesc {
+      color: #65707b;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .line {
+      position: absolute;
+      height: 2px;
+      background: #7aa7ce;
+      transform-origin: left center;
+      opacity: .9;
+    }
+    .bottom {
+      background: #ffffff;
+      border-top: 1px solid #e1e5e9;
+      display: grid;
+      grid-template-rows: 33px 1fr;
+    }
+    .bottomhead {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 12px;
+      color: #53606b;
+      font-size: 12px;
+      font-weight: 700;
+      border-bottom: 1px solid #edf0f3;
+    }
+    .log {
+      padding: 10px 12px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #38424c;
+      line-height: 1.6;
+      background: #fbfcfd;
+    }
+    .props {
+      padding: 10px;
+      overflow: hidden;
+    }
+    .propgroup {
+      border: 1px solid #e1e5e9;
+      border-radius: 7px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .prophead {
+      height: 30px;
+      padding: 0 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f7f8fa;
+      color: #3b444d;
+      font-size: 12px;
+      font-weight: 700;
+      border-bottom: 1px solid #e9edf1;
+    }
+    .propbody { padding: 9px; display: grid; gap: 7px; }
+    .field {
+      height: 28px;
+      border: 1px solid #ccd4dc;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      color: #303840;
+      background: #ffffff;
+      font-size: 12px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 10px;
+      background: #0078d4;
+      color: #ffffff;
+      font-size: 12px;
+    }
+    .stages {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .stage {
+      min-height: 94px;
+      border: 1px solid #cdd5dd;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 12px;
+    }
+    .stage strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #1f252b;
+      font-size: 13px;
+    }
+    .stage span {
+      color: #5f6a74;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    @media (max-width: 1100px) {
+      main { padding: 14px; }
+      .summary { align-items: start; flex-direction: column; }
+      .shell { grid-template-columns: 50px 210px 1fr; }
+      .rightpanel { display: none; }
+      .stages { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="summary">
+    <div>
+      <h1>ThinkComposer WinUI 3 final direction</h1>
+      <p>Native editor shell, central canvas, collapsible panels, fast Win2D rendering, final app without WPF UI dependency.</p>
+    </div>
+    <div class="pillrow">
+      <span class="pill">100% WinUI final</span>
+      <span class="pill">Win2D canvas</span>
+      <span class="pill">VS Code collapse</span>
+      <span class="pill">Light + dark theme</span>
+    </div>
+  </div>
+
+  <section class="mockup">
+    <div class="app">
+      <div class="titlebar">
+        <div class="logo">TC</div>
+        <div class="brand">ThinkComposer</div>
+        <div class="path">Workspace / Business Architecture / Composition 1</div>
+        <div class="spacer"></div>
+        <div class="window-buttons"><span>_</span><span>[]</span><span>X</span></div>
+      </div>
+
+      <div class="commandbar">
+        <div class="tools">
+          <div class="tool primary">+</div>
+          <div class="tool">S</div>
+          <div class="tool">Z</div>
+          <div class="tool">Y</div>
+          <div class="tool">E</div>
+        </div>
+        <div class="search">Find command, object, view...</div>
+        <div class="tools">
+          <div class="tool">L</div>
+          <div class="tool">D</div>
+          <div class="tool">?</div>
+        </div>
+      </div>
+
+      <div class="shell">
+        <nav class="rail">
+          <div class="railitem active">EX</div>
+          <div class="railitem">IN</div>
+          <div class="railitem">SR</div>
+          <div class="railitem">MS</div>
+          <div class="railitem">TH</div>
+          <div class="spacer"></div>
+          <div class="railitem">FS</div>
+        </nav>
+
+        <aside class="panel">
+          <div class="panelhead"><span>Explorer</span><span>&lt;</span></div>
+          <div class="tabs">
+            <div class="tab active">Content</div>
+            <div class="tab">Domain</div>
+          </div>
+          <div class="tree">
+            <div class="row active">v Composition 1</div>
+            <div class="row">- Customer Journey</div>
+            <div class="row">- Capabilities</div>
+            <div class="row">- System Map</div>
+            <div class="sectionlabel">Interpretations</div>
+            <div class="row">Pointed by...</div>
+            <div class="row">Pointing to...</div>
+            <div class="sectionlabel">Workspace</div>
+            <div class="row">Recent documents</div>
+            <div class="row">Templates</div>
+          </div>
+        </aside>
+
+        <section class="workspace">
+          <div class="doctabs">
+            <div class="doctab">Composition 1</div>
+          </div>
+          <div class="canvas">
+            <div class="canvasbar">
+              <div class="tool primary">P</div>
+              <div class="tool">N</div>
+              <div class="tool">R</div>
+              <div class="tool">T</div>
+              <div class="tool">F</div>
+            </div>
+            <div class="line" style="left: 326px; top: 244px; width: 204px; transform: rotate(12deg);"></div>
+            <div class="line" style="left: 536px; top: 281px; width: 220px; transform: rotate(-20deg);"></div>
+            <div class="node selected" style="left: 184px; top: 188px;">
+              <div class="nodetitle">Customer Need</div>
+              <div class="nodedesc">Selected concept with native handles and inspector sync.</div>
+            </div>
+            <div class="node" style="left: 528px; top: 254px;">
+              <div class="nodetitle">Business Capability</div>
+              <div class="nodedesc">Relationship endpoints render through Win2D DTOs.</div>
+            </div>
+            <div class="node" style="left: 780px; top: 154px;">
+              <div class="nodetitle">System Service</div>
+              <div class="nodedesc">Fast pan, zoom, select, drag, and edit flows.</div>
+            </div>
+            <div class="zoom">- 100% +</div>
+          </div>
+          <div class="bottom">
+            <div class="bottomhead">
+              <span>Messages</span>
+              <span>Search</span>
+              <span>Preview</span>
+              <span>Diagnostics</span>
+              <span class="spacer"></span>
+              <span>v</span>
+            </div>
+            <div class="log">
+              ThinkComposer WinUI shell loaded<br>
+              Canvas renderer: Win2D native surface<br>
+              Document compatibility: baseline comparison enabled
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel rightpanel">
+          <div class="panelhead"><span>Inspector</span><span>&gt;</span></div>
+          <div class="tabs">
+            <div class="tab active">Object</div>
+            <div class="tab">Style</div>
+          </div>
+          <div class="props">
+            <div class="propgroup">
+              <div class="prophead"><span>Concept</span><span>-</span></div>
+              <div class="propbody">
+                <div class="field">Name: Customer Need</div>
+                <div class="field">Kind: Concept</div>
+                <div class="field">Status: Draft</div>
+              </div>
+            </div>
+            <div class="propgroup">
+              <div class="prophead"><span>Layout</span><span>-</span></div>
+              <div class="propbody">
+                <div class="field">X: 184</div>
+                <div class="field">Y: 188</div>
+                <div class="field">Theme: Fluent Light</div>
+              </div>
+            </div>
+            <div class="propgroup">
+              <div class="prophead"><span>Relationships</span><span>-</span></div>
+              <div class="propbody">
+                <div class="field">Outgoing: 1</div>
+                <div class="field">Incoming: 0</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="status">
+        <span>Ready</span>
+        <span>WinUI migration target</span>
+        <span class="spacer"></span>
+        <span>Native canvas</span>
+      </footer>
+    </div>
+  </section>
+
+  <section class="stages">
+    <div class="stage"><strong>1. Freeze baseline</strong><span>Keep WPF as behavior reference while WinUI grows.</span></div>
+    <div class="stage"><strong>2. Extract core</strong><span>Move document/model logic behind UI-neutral contracts.</span></div>
+    <div class="stage"><strong>3. Native shell</strong><span>Build WinUI command center with collapsible panels.</span></div>
+    <div class="stage"><strong>4. Win2D canvas</strong><span>Pan, zoom, select, drag, render nodes and connectors.</span></div>
+    <div class="stage"><strong>5. Full cutover</strong><span>Reach parity, switch primary exe, remove WPF UI dependency.</span></div>
+  </section>
+</main>
+</body>
+</html>
