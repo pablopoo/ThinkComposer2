@@ -134,6 +134,11 @@ namespace Instrumind.ThinkComposer.Composer.Reporting
                 this.CurrentWorker.ReportProgress(100, "Generation complete.");
                 this.CurrentWorker = null;
             }
+            catch (OperationCanceledException)
+            {
+                this.CurrentWorker = null;
+                return OperationResult.Failure<int>("Cancelled by user.");
+            }
             catch (Exception Problem)
             {
                 this.CurrentWorker = null;

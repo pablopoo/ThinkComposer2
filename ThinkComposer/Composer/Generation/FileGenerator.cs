@@ -231,6 +231,11 @@ namespace Instrumind.ThinkComposer.Composer.Generation
                 this.CurrentWorker.ReportProgress(100, "Generation complete.");
                 this.CurrentWorker = null;
             }
+            catch (OperationCanceledException)
+            {
+                this.CurrentWorker = null;
+                return OperationResult.Failure<int>("Cancelled by user.", Result: GeneratedFiles);
+            }
             catch (Exception Problem)
             {
                 this.CurrentWorker = null;
@@ -244,6 +249,8 @@ namespace Instrumind.ThinkComposer.Composer.Generation
         public int GenerateIdeaFiles(Idea SourceIdea, IEnumerable<Idea> ExcludedIdeas, double ProgressPercentageStart, double ProgressPercentageEnd,
                                      string WorkingDirectory, ref bool WorkingDirExists, bool CreateContentDir = true)
         {
+            this.CurrentWorker.ThrowIfCancellationRequested();
+
             // Generate file, if selected
             var FilesGenerated = 0;
             var FileName = SourceIdea.TechName;

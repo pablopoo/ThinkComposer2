@@ -156,6 +156,11 @@ namespace Instrumind.ThinkComposer.Composer.Merging
                 this.CurrentWorker.ReportProgress(100, "Merge complete.");
                 this.CurrentWorker = null;
             }
+            catch (OperationCanceledException)
+            {
+                this.CurrentWorker = null;
+                return OperationResult.Failure<int>("Cancelled by user.", Result: MergedObjects);
+            }
             catch (Exception Problem)
             {
                 this.CurrentWorker = null;

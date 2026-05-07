@@ -16,6 +16,9 @@ namespace Instrumind.Common
     public class ThreadWorker<TResult>
     {
         private Thread WorkingThread = null;
+        private readonly object CompletionLock = new object();
+        private bool CompletionReported = false;
+        private volatile bool CancellationRequested = false;
 
         private Dispatcher OriginalThreadDispatcher { get; set; }
 
@@ -28,6 +31,7 @@ namespace Instrumind.Common
         public event Action<OperationResult<TResult>> ExecutionFinished;
 
         public bool IsBusy { get; private set; }
+        public bool IsCancellationRequested { get { return this.CancellationRequested; } }
 
         public ThreadWorker(Dispatcher SourceDispatcher)
         {
@@ -41,6 +45,9 @@ namespace Instrumind.Common
             General.ContractRequiresNotNull(WorkTask);
 
             this.WorkTask = WorkTask;
+            this.CancellationRequested = false;
+            this.CompletionReported = false;
+            this.IsBusy = true;
 
             this.WorkingThread = new Thread(Run);
             this.WorkingThread.SetApartmentState(ApartmentState.STA);
@@ -49,45 +56,75 @@ namespace Instrumind.Common
 
         private void Run()
         {
-            this.IsBusy = true;
+            OperationResult<TResult> TaskResult = null;
 
-            var TaskResult = this.WorkTask(this);
+            try
+            {
+                this.ThrowIfCancellationRequested();
+                TaskResult = this.WorkTask(this);
+            }
+            catch (OperationCanceledException)
+            {
+                TaskResult = OperationResult.Failure<TResult>("Cancelled by user.");
+            }
+            catch (Exception Problem)
+            {
+                TaskResult = OperationResult.Failure<TResult>("Operation failed.\nProblem: " + Problem.Message);
+            }
+            finally
+            {
+                this.IsBusy = false;
+            }
 
-            Thread.MemoryBarrier();
-            var Handler = this.ExecutionFinished;
-            Thread.MemoryBarrier();
-
-            this.IsBusy = false;
-
-            if (Handler != null)
-                this.OriginalThreadDispatcher.BeginInvoke(Handler, TaskResult);
+            this.ReportFinished(TaskResult);
         }
 
         // To be called by WPF UI
         public void Cancel()
         {
+            this.CancellationRequested = true;
             this.IsBusy = false;
-#if NETFRAMEWORK
-            this.WorkingThread.Abort();
-#endif
 
-            Thread.MemoryBarrier();
-            var Handler = this.ExecutionFinished;
-            Thread.MemoryBarrier();
+            this.ReportFinished(OperationResult.Failure<TResult>("Cancelled by user."));
+        }
 
-            if (Handler != null)
-                this.OriginalThreadDispatcher.BeginInvoke(Handler, OperationResult.Failure<TResult>("Cancelled by user."));
+        public void ThrowIfCancellationRequested()
+        {
+            if (this.CancellationRequested)
+                throw new OperationCanceledException();
         }
 
         // To be called by working task
         public void ReportProgress(int Percentage, string StatusMessage)
         {
+            this.ThrowIfCancellationRequested();
+
             Thread.MemoryBarrier();
             var Handler = ProgressChanged;
             Thread.MemoryBarrier();
 
             if (Handler != null)
                 this.OriginalThreadDispatcher.BeginInvoke(Handler, Percentage, StatusMessage);
+        }
+
+        private void ReportFinished(OperationResult<TResult> TaskResult)
+        {
+            Action<OperationResult<TResult>> Handler;
+
+            lock (this.CompletionLock)
+            {
+                if (this.CompletionReported)
+                    return;
+
+                this.CompletionReported = true;
+
+                Thread.MemoryBarrier();
+                Handler = this.ExecutionFinished;
+                Thread.MemoryBarrier();
+            }
+
+            if (Handler != null)
+                this.OriginalThreadDispatcher.BeginInvoke(Handler, TaskResult);
         }
 
         // -----------------------------------------------------------------------------------------
