@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Collections.Specialized;
 using System.Net;
-using System.IO;
+using System.Net.Http;
 
 namespace AdminUtils
 {
@@ -31,6 +31,7 @@ namespace AdminUtils
         private string PostUrl = string.Empty;
         private NameValueCollection PostValues = new NameValueCollection();
         private EPostKind PostKind = EPostKind.Get;
+        private static readonly HttpClient Client = new HttpClient();
         /// <summary>
         /// Default constructor.
         /// </summary>
@@ -146,37 +147,26 @@ namespace AdminUtils
         /// <returns>Returns indication of sucess, plus the response of the post (on sucess) or error message (on failure).</returns>
         private Tuple<bool,string> PostData(string Url, string PostData)
         {
-            HttpWebRequest Request = null;
-            if (PostKind == EPostKind.Post)
-            {
-                Uri Address = new Uri(Url);
-                Request = (HttpWebRequest)WebRequest.Create(Address);
-                Request.Method = "POST";
-                Request.ContentType = "application/x-www-form-urlencoded";
-                Request.ContentLength = PostData.Length;
-                using (Stream writeStream = Request.GetRequestStream())
-                {
-                    UTF8Encoding encoding = new UTF8Encoding();
-                    byte[] bytes = encoding.GetBytes(PostData);
-                    writeStream.Write(bytes, 0, bytes.Length);
-                }
-            }
-            else
-            {
-                Uri Address = new Uri(Url + "?" + PostData);
-                Request = (HttpWebRequest)WebRequest.Create(Address);
-                Request.Method = "GET";
-            }
-
             var Success = true;
             var Response = string.Empty;
 
             try
             {
-                using (HttpWebResponse response = (HttpWebResponse)Request.GetResponse())
-                    using (Stream responseStream = response.GetResponseStream())
-                        using (StreamReader readStream = new StreamReader(responseStream, Encoding.UTF8))
-                            Response = readStream.ReadToEnd();
+                HttpResponseMessage ResponseMessage;
+
+                if (PostKind == EPostKind.Post)
+                {
+                    using (var Content = new StringContent(PostData, Encoding.UTF8, "application/x-www-form-urlencoded"))
+                        ResponseMessage = Client.PostAsync(Url, Content).GetAwaiter().GetResult();
+                }
+                else
+                    ResponseMessage = Client.GetAsync(Url + "?" + PostData).GetAwaiter().GetResult();
+
+                using (ResponseMessage)
+                {
+                    ResponseMessage.EnsureSuccessStatusCode();
+                    Response = ResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                }
             }
             catch (Exception Problem)
             {

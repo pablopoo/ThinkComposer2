@@ -18,7 +18,7 @@
     <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net10.0-windows'">7.0</SupportedOSPlatformVersion>
     <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0011;SYSLIB0014;SYSLIB0050;SYSLIB0051;CA1416;CA2022;CA2200</NoWarn>
     <FileAlignment>512</FileAlignment>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget Condition="'$(TargetFramework)' == 'net48'">x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -51,6 +51,10 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>InstrumindThinkComposer_Key.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="ICSharpCode.AvalonEdit">
       <HintPath>..\bin\$(Configuration)\ICSharpCode.AvalonEdit.dll</HintPath>
@@ -74,7 +78,6 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Printing" />
     <Reference Include="System.Security" />
-    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq">

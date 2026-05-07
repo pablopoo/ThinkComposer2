@@ -318,9 +318,15 @@ namespace Instrumind.Common
             try
             {
                 // Other extractable info: "VersionString", "VersionMajor", "VersionMinor"
-                MsiGetProductInfo(ProductId, "InstallDate", TextBuilder, ref Length);
+                var Status = MsiGetProductInfo(ProductId, "InstallDate", TextBuilder, ref Length);
                 var CapturedDate = TextBuilder.ToString();
-                Result = DateTime.ParseExact(CapturedDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                DateTime ParsedDate;
+
+                if (Status == 0 && DateTime.TryParseExact(CapturedDate, "yyyyMMdd", CultureInfo.InvariantCulture,
+                                                           DateTimeStyles.None, out ParsedDate))
+                    Result = ParsedDate;
+                else
+                    Result = EMPTY_DATE;
             }
             catch (Exception Problem)
             {

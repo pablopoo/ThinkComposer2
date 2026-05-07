@@ -6,8 +6,6 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!--IMPORTANT: Remember to update the Aero assembly version if necessary.-->
-                <ResourceDictionary Source="/PresentationFramework.Aero;V4.0.30319.1;31bf3856ad364e35;component/themes/Aero.NormalColor.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Instrumind.Common;component/Themes/Generic.xaml"/>
                 <ResourceDictionary Source="ApplicationProduct/Cursors/AppCursors.xaml"/>
                 <ResourceDictionary Source="MetaModel/VisualMetaModel/DecoratorGeometries.xaml" />

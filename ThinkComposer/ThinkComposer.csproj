@@ -19,7 +19,7 @@
     <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0011;SYSLIB0014;SYSLIB0050;SYSLIB0051;CA1416;CA2022;CA2200</NoWarn>
     <FileAlignment>512</FileAlignment>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget Condition="'$(TargetFramework)' == 'net48'">x86</PlatformTarget>
     <ApplicationIcon>ApplicationProduct\Images\Instrumind_ThinkComposer.ico</ApplicationIcon>
     <IsWebBootstrapper>true</IsWebBootstrapper>
     <PublishUrl>Publish\</PublishUrl>
@@ -110,6 +110,10 @@
   <PropertyGroup>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="DotLiquid">
       <HintPath>..\DotLiquid\bin\$(Configuration)\DotLiquid.dll</HintPath>
@@ -123,7 +127,6 @@
       <HintPath>..\Common\bin\$(Configuration)\Instrumind.Common.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="PresentationFramework.Aero" />
     <Reference Include="ReachFramework" />
     <Reference Include="System" />
     <Reference Include="System.configuration" />
