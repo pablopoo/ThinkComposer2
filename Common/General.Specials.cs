@@ -26,6 +26,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
@@ -33,6 +34,8 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Documents;
 using System.Xml;
 using System.Xml.Linq;
@@ -113,34 +116,111 @@ namespace Instrumind.Common
         /// Plus, a progress-informer and progress-finisher can be specified.
         /// </summary>
         public static void DownloadFileAsync(System.Uri Source, string Target,
-                                             Func<System.Net.DownloadProgressChangedEventArgs, bool> ProgressInformer,
+                                             Func<int, bool> ProgressInformer,
                                              Action<OperationResult<bool>> ProgressFinisher)
         {
-            var Client = new System.Net.WebClient();
+            var CallingContext = SynchronizationContext.Current;
 
-            Client.DownloadProgressChanged +=
-                ((sender, evargs) =>
+            Task.Run(async () =>
+            {
+                try
                 {
-                    if (!ProgressInformer(evargs))
-                        Client.CancelAsync();
-                });
+                    await DownloadFileAsyncCore(Source, Target, ProgressInformer, CallingContext);
+                    NotifyDownloadFinished(CallingContext, ProgressFinisher, OperationResult.Success(true));
+                }
+                catch (OperationCanceledException)
+                {
+                    NotifyDownloadFinished(CallingContext, ProgressFinisher, OperationResult.Failure<bool>("Download Cancelled."));
+                }
+                catch (Exception Problem)
+                {
+                    NotifyDownloadFinished(CallingContext, ProgressFinisher,
+                                           OperationResult.Failure<bool>("Download Failed.\nProblem:" + Problem.Message));
+                }
+            });
+        }
 
-            Client.DownloadFileCompleted +=
-                ((sender, evargs) =>
+        private static async Task DownloadFileAsyncCore(System.Uri Source, string Target, Func<int, bool> ProgressInformer,
+                                                        SynchronizationContext CallingContext)
+        {
+            using (var Client = new HttpClient())
+            using (var Response = await Client.GetAsync(Source, HttpCompletionOption.ResponseHeadersRead))
+            {
+                Response.EnsureSuccessStatusCode();
+
+                var ContentLength = Response.Content.Headers.ContentLength;
+                using (var Input = await Response.Content.ReadAsStreamAsync())
+                using (var Output = new FileStream(Target, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    if (evargs.Cancelled || evargs.Error != null)
+                    var Buffer = new byte[81920];
+                    long TotalRead = 0;
+                    var LastProgress = -1;
+
+                    while (true)
                     {
-                        ProgressFinisher(OperationResult.Failure<bool>("Download " + (evargs.Error == null ? "Cancelled" : "Failed") + "." +
-                                                                (evargs.Error == null
-                                                                 ? "" :
-                                                                 "\nProblem:" + evargs.Error.Message)));
-                        return;
+                        var Read = await Input.ReadAsync(Buffer, 0, Buffer.Length);
+                        if (Read == 0)
+                            break;
+
+                        await Output.WriteAsync(Buffer, 0, Read);
+                        TotalRead += Read;
+
+                        var ProgressPercentage = ContentLength.HasValue && ContentLength.Value > 0
+                                                 ? (int)Math.Min(100, (TotalRead * 100L) / ContentLength.Value)
+                                                 : 0;
+
+                        if (ProgressPercentage != LastProgress)
+                        {
+                            LastProgress = ProgressPercentage;
+                            if (!NotifyDownloadProgress(CallingContext, ProgressInformer, ProgressPercentage))
+                                throw new OperationCanceledException();
+                        }
                     }
+                }
+            }
+        }
 
-                    ProgressFinisher(OperationResult.Success(true));
-                });
+        private static bool NotifyDownloadProgress(SynchronizationContext CallingContext, Func<int, bool> ProgressInformer,
+                                                   int ProgressPercentage)
+        {
+            if (ProgressInformer == null)
+                return true;
 
-            Client.DownloadFileAsync(Source, Target);
+            if (CallingContext == null)
+                return ProgressInformer(ProgressPercentage);
+
+            var ContinueDownload = true;
+            Exception Problem = null;
+
+            CallingContext.Send(_ =>
+            {
+                try
+                {
+                    ContinueDownload = ProgressInformer(ProgressPercentage);
+                }
+                catch (Exception Error)
+                {
+                    Problem = Error;
+                }
+            }, null);
+
+            if (Problem != null)
+                throw Problem;
+
+            return ContinueDownload;
+        }
+
+        private static void NotifyDownloadFinished(SynchronizationContext CallingContext,
+                                                   Action<OperationResult<bool>> ProgressFinisher,
+                                                   OperationResult<bool> Result)
+        {
+            if (ProgressFinisher == null)
+                return;
+
+            if (CallingContext == null)
+                ProgressFinisher(Result);
+            else
+                CallingContext.Post(_ => ProgressFinisher(Result), null);
         }
 
         //------------------------------------------------------------------------------------------

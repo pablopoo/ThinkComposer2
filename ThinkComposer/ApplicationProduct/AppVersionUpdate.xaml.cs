@@ -136,9 +136,9 @@ namespace Instrumind.ThinkComposer.ApplicationProduct
 
                 General.DownloadFileAsync(new Uri(ProductDirector.SetupSourceRemote, UriKind.Absolute),
                                           ProductDirector.SetupSourceLocal,
-                                          evargs =>
+                                          progressPercentage =>
                                           {
-                                              this.PgsStatus.Value = evargs.ProgressPercentage;
+                                              this.PgsStatus.Value = progressPercentage;
                                               return !this.IsCancelled;
                                           },
                                           result =>

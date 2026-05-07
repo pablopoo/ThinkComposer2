@@ -175,7 +175,7 @@ Exit criteria:
 
 ## Immediate Next Actions
 
-1. Replace or isolate runtime-risk APIs still present: `BinaryFormatter`, `WebClient` in Common download progress, and `System.Drawing`.
+1. Replace or isolate runtime-risk APIs still present: `BinaryFormatter` and `System.Drawing`.
 2. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
 3. Begin UI modernization with a modern WPF resource dictionary and main shell refresh.
 
@@ -192,6 +192,7 @@ Exit criteria:
 - 2026-05-07: Multi-targeted `PdfSharp-WPF` and `PdfSharp.Xps` to `net48;net10.0-windows`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Multi-targeted `Common`, `DotLiquid-2010`, `AdminUtils`, and `ThinkComposer` to `net48;net10.0-windows`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Set net10 builds to AnyCPU while preserving x86 for net48, removed `System.Web` from active projects, replaced AdminUtils `WebRequest` with `HttpClient`, removed hard-coded Aero theme loading, and smoke-tested `ThinkComposer\bin\Debug\net10.0-windows\Instrumind.ThinkComposer.exe`. The app starts and stays running with empty stdout/stderr; it is closed after the smoke-test.
+- 2026-05-07: Replaced the remaining active `WebClient` download helper with `HttpClient`, preserving progress/cancel callbacks on the caller synchronization context. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 
 ## References
 
