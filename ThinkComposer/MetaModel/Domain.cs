@@ -652,7 +652,7 @@ namespace Instrumind.ThinkComposer.MetaModel
         /// Initializes the instance for use after creation or deserialization.
         /// </summary>
         [OnDeserialized]
-        protected void Initialize(StreamingContext context = default(StreamingContext))
+        protected new void Initialize(StreamingContext context = default(StreamingContext))
         {
             if (this.TemplateComposition_ != null)
                 this.OwnerComposition_ = this.TemplateComposition_;

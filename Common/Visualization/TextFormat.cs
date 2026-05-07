@@ -411,7 +411,7 @@ namespace Instrumind.Common.Visualization
             var Result = new FormattedText(Text, CultureInfo.CurrentUICulture,
                                            (CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight),
                                            this.CurrentTypeface, ExplicitFontSize.NaNDefault(this.FontSize), this.ForegroundBrush,
-                                           null, DefaultFormattingMode);
+                                           null, DefaultFormattingMode, 1.0);
 
             Result.Trimming = TextTrimming.CharacterEllipsis;
             Result.TextAlignment = ExplicitAlignment;

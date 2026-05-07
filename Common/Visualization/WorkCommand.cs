@@ -85,7 +85,6 @@ namespace Instrumind.Common.Visualization
          /*- [field:NonSerialized]
          public event EventHandler CanExecuteChanged; */
         
-        [field:NonSerialized]
         public event EventHandler CanExecuteChanged
         { 
             add { CommandManager.RequerySuggested += value; } 
