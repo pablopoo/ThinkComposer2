@@ -17,7 +17,8 @@ Target runtime: `.NET 10 LTS` with `net10.0-windows` and WPF. WPF remains Window
 - UI: WPF
 - Build platform: mostly `x86`
 - Local SDK installed: `.NET SDK 10.0.203`
-- Current build state: Debug x86 solution builds on `.NET Framework 4.8`
+- Current build state: Debug x86 solution builds with 0 warnings and 0 errors
+- First modern target enabled: `ICSharpCode.AvalonEdit` builds for `net48;net10.0-windows`
 - `.NET Framework 4.8` reference assemblies are restored via NuGet package `Microsoft.NETFramework.ReferenceAssemblies.net48`
 - Local check: the global `.NET Framework 4.8` Developer Pack path was not found under `C:\Program Files (x86)\Reference Assemblies`
 
@@ -174,10 +175,11 @@ Exit criteria:
 
 ## Immediate Next Actions
 
-1. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
-2. Replace vendored dependencies one at a time.
-3. Begin `net10.0-windows` compatibility work in `Common`.
-4. Defer UI work until the project/runtime migration has a stable build.
+1. Multi-target leaf dependencies before `Common`: `PdfSharp-WPF` and `PdfSharp.Xps`.
+2. Then multi-target `Common` and resolve `System.Web`, `BinaryFormatter`, `System.Drawing`, and Windows-only APIs.
+3. Then multi-target `DotLiquid-2010`, because it depends on `Common`.
+4. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
+5. Defer UI work until the project/runtime migration has a stable build.
 
 ## Verification Log
 
@@ -187,6 +189,8 @@ Exit criteria:
 - 2026-05-07: `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 34 remaining code warnings and 0 errors.
 - 2026-05-07: Converted `Common/Common.csproj` to SDK-style while keeping `net48`, explicit WPF items, and legacy output paths. `dotnet clean` and `dotnet build` for `Instrumind_ThinkComposer.sln` both succeed with 34 warnings and 0 errors.
 - 2026-05-07: Converted all active solution `.csproj` projects to SDK-style: `AdminUtils`, `Common`, `DotLiquid-2010`, `ICSharpCode.AvalonEdit`, `PdfSharp-WPF`, `PdfSharp.Xps`, and `ThinkComposer`. Updated solution x86 mappings so external dependencies build after a clean. `dotnet clean` and `dotnet build` for `Instrumind_ThinkComposer.sln` both succeed with 37 warnings and 0 errors.
+- 2026-05-07: Cleaned active solution warnings and removed the missing `AllRules.ruleset` reference. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
+- 2026-05-07: Multi-targeted `ICSharpCode.AvalonEdit` to `net48;net10.0-windows`. `dotnet build ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors. Full solution build remains at 0 warnings and 0 errors.
 
 ## References
 

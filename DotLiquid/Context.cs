@@ -218,7 +218,7 @@ namespace DotLiquid
             // Ranges.
             match = Regex.Match(key, R.Q(@"^\((\S+)\.\.(\S+)\)$"));
             if (match.Success)
-                return Range.Inclusive(Convert.ToInt32(Resolve(match.Groups[1].Value)),
+                return DotLiquid.Util.Range.Inclusive(Convert.ToInt32(Resolve(match.Groups[1].Value)),
                     Convert.ToInt32(Resolve(match.Groups[2].Value)));
 
             // Floats.

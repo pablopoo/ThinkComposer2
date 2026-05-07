@@ -7,13 +7,13 @@
     <OutputType>Library</OutputType>
     <RootNamespace>ICSharpCode.AvalonEdit</RootNamespace>
     <AssemblyName>ICSharpCode.AvalonEdit</AssemblyName>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <EnableDefaultItems>false</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Deterministic>false</Deterministic>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendTargetFrameworkToOutputPath Condition="'$(TargetFramework)' == 'net48'">false</AppendTargetFrameworkToOutputPath>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <SourceAnalysisOverrideSettingsFile>"C:\Program Files\SharpDevelop\3.0\bin\..\AddIns\AddIns\Misc\SourceAnalysis\Settings.SourceAnalysis"</SourceAnalysisOverrideSettingsFile>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
@@ -29,6 +29,8 @@
     <OutputPath>..\bin\$(Configuration)</OutputPath>
     <DocumentationFile>..\bin\$(Configuration)\ICSharpCode.AvalonEdit.xml</DocumentationFile>
     <NoWarn>1607</NoWarn>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net10.0-windows'">7.0</SupportedOSPlatformVersion>
+    <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0050;SYSLIB0051</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -80,7 +82,7 @@
     <PlatformTarget>x86</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="PresentationCore">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
     </Reference>
@@ -116,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\GlobalAssemblyInfo.cs" />
+    <Compile Include="Properties\SupportedPlatforms.cs" />
     <Compile Include="AvalonEditCommands.cs" />
     <Compile Include="CodeCompletion\CompletionListBox.cs" />
     <Compile Include="CodeCompletion\CompletionWindowBase.cs" />
