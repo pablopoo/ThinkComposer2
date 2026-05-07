@@ -164,28 +164,6 @@ namespace ICSharpCode.AvalonEdit.Utils
 		}
 		#endregion
 		
-		#region System.Drawing <-> WPF conversions
-		public static System.Drawing.Point ToSystemDrawing(this Point p)
-		{
-			return new System.Drawing.Point((int)p.X, (int)p.Y);
-		}
-		
-		public static Point ToWpf(this System.Drawing.Point p)
-		{
-			return new Point(p.X, p.Y);
-		}
-		
-		public static Size ToWpf(this System.Drawing.Size s)
-		{
-			return new Size(s.Width, s.Height);
-		}
-		
-		public static Rect ToWpf(this System.Drawing.Rectangle rect)
-		{
-			return new Rect(rect.Location.ToWpf(), rect.Size.ToWpf());
-		}
-		#endregion
-		
 		[Conditional("DEBUG")]
 		public static void CheckIsFrozen(Freezable f)
 		{

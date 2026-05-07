@@ -322,7 +322,7 @@ namespace ICSharpCode.AvalonEdit.CodeCompletion
 			// Let's use device dependent units for everything
 			Size completionWindowSize = new Size(this.ActualWidth, this.ActualHeight).TransformToDevice(textView);
 			Rect bounds = new Rect(location, completionWindowSize);
-			Rect workingScreen = System.Windows.Forms.Screen.GetWorkingArea(location.ToSystemDrawing()).ToWpf();
+			Rect workingScreen = Win32.GetWorkingArea(location);
 			if (!workingScreen.Contains(bounds)) {
 				if (bounds.Left < workingScreen.Left) {
 					bounds.X = workingScreen.Left;

@@ -62,6 +62,67 @@ namespace ICSharpCode.AvalonEdit.Utils
 		{
 			return SafeNativeMethods.DestroyCaret();
 		}
+
+		public static Rect GetWorkingArea(Point devicePoint)
+		{
+			var point = new POINT((int)devicePoint.X, (int)devicePoint.Y);
+			IntPtr monitor = SafeNativeMethods.MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+			if (monitor != IntPtr.Zero) {
+				var monitorInfo = new MONITORINFO();
+				monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+				if (SafeNativeMethods.GetMonitorInfo(monitor, ref monitorInfo)) {
+					return monitorInfo.rcWork.ToRect();
+				}
+			}
+			
+			return new Rect(
+				SafeNativeMethods.GetSystemMetrics(SM_XVIRTUALSCREEN),
+				SafeNativeMethods.GetSystemMetrics(SM_YVIRTUALSCREEN),
+				SafeNativeMethods.GetSystemMetrics(SM_CXVIRTUALSCREEN),
+				SafeNativeMethods.GetSystemMetrics(SM_CYVIRTUALSCREEN));
+		}
+		
+		const int MONITOR_DEFAULTTONEAREST = 2;
+		const int SM_XVIRTUALSCREEN = 76;
+		const int SM_YVIRTUALSCREEN = 77;
+		const int SM_CXVIRTUALSCREEN = 78;
+		const int SM_CYVIRTUALSCREEN = 79;
+		
+		[StructLayout(LayoutKind.Sequential)]
+		struct POINT
+		{
+			public int X;
+			public int Y;
+			
+			public POINT(int x, int y)
+			{
+				X = x;
+				Y = y;
+			}
+		}
+		
+		[StructLayout(LayoutKind.Sequential)]
+		struct RECT
+		{
+			public int Left;
+			public int Top;
+			public int Right;
+			public int Bottom;
+			
+			public Rect ToRect()
+			{
+				return new Rect(Left, Top, Math.Max(0, Right - Left), Math.Max(0, Bottom - Top));
+			}
+		}
+		
+		[StructLayout(LayoutKind.Sequential)]
+		struct MONITORINFO
+		{
+			public int cbSize;
+			public RECT rcMonitor;
+			public RECT rcWork;
+			public int dwFlags;
+		}
 		
 		[SuppressUnmanagedCodeSecurity]
 		static class SafeNativeMethods
@@ -80,6 +141,16 @@ namespace ICSharpCode.AvalonEdit.Utils
 			[DllImport("user32.dll")]
 			[return: MarshalAs(UnmanagedType.Bool)]
 			public static extern bool DestroyCaret();
+			
+			[DllImport("user32.dll")]
+			public static extern IntPtr MonitorFromPoint(POINT pt, int dwFlags);
+			
+			[DllImport("user32.dll")]
+			[return: MarshalAs(UnmanagedType.Bool)]
+			public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+			
+			[DllImport("user32.dll")]
+			public static extern int GetSystemMetrics(int nIndex);
 		}
 	}
 }
