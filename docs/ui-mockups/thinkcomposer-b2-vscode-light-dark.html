@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkComposer B2 - VS Code Light/Dark Themes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f3f3;
+      color: #1f2328;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    main { max-width: 1480px; margin: 0 auto; padding: 26px; }
+    h1 { margin: 0 0 6px; font-size: 28px; font-weight: 650; letter-spacing: 0; }
+    p { margin: 0 0 18px; color: #5f6a72; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card {
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 14px 28px rgba(31, 35, 40, .08);
+    }
+    .card.dark { background: #1e1e1e; border-color: #3c3c3c; color: #cccccc; }
+    .head {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      border-bottom: 1px solid #d0d7de;
+      font-weight: 700;
+    }
+    .dark .head { border-bottom-color: #3c3c3c; color: #e7e7e7; }
+    .tag {
+      font-size: 12px;
+      color: #0969da;
+      background: #ddf4ff;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .dark .tag { color: #9cdcfe; background: #263b4a; }
+    .app {
+      height: 680px;
+      display: grid;
+      grid-template-rows: 35px 40px 1fr 28px;
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 11px;
+      font-size: 12px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .dark .titlebar { background: #3c3c3c; border-bottom-color: #2d2d2d; color: #cccccc; }
+    .logo {
+      width: 17px;
+      height: 17px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #007acc, #68217a);
+    }
+    .brand { font-weight: 750; }
+    .doc { color: #687076; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dark .doc { color: #a0a0a0; }
+    .win { margin-left: auto; display: flex; gap: 7px; }
+    .win span { width: 10px; height: 10px; border-radius: 50%; background: #b8b8b8; }
+    .dark .win span { background: #858585; }
+    .commandbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .dark .commandbar { background: #252526; border-bottom-color: #3c3c3c; }
+    .cmd {
+      height: 27px;
+      border: 1px solid #d0d7de;
+      border-radius: 5px;
+      background: #f6f8fa;
+    }
+    .cmd.icon { width: 27px; }
+    .cmd.wide { width: 76px; }
+    .cmd.hot { background: #007acc; border-color: #0069b0; }
+    .cmd.warn { background: #fff8c5; border-color: #d4a72c; }
+    .dark .cmd { background: #333333; border-color: #4b4b4b; }
+    .dark .cmd.hot { background: #007acc; border-color: #007acc; }
+    .dark .cmd.warn { background: #3f3214; border-color: #a67c00; }
+    .search {
+      margin-left: auto;
+      width: 260px;
+      height: 28px;
+      border: 1px solid #d0d7de;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #6e7781;
+      font-size: 12px;
+      padding: 7px 10px;
+    }
+    .dark .search { background: #3c3c3c; border-color: #555; color: #cccccc; }
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 50px 235px 1fr 248px;
+      grid-template-rows: 1fr 170px;
+    }
+    .activity {
+      grid-row: 1 / span 2;
+      background: #f3f3f3;
+      border-right: 1px solid #e5e5e5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding-top: 9px;
+    }
+    .dark .activity { background: #333333; border-right-color: #252526; }
+    .act { width: 32px; height: 32px; border-radius: 6px; background: #d8dee4; }
+    .act.active { background: #007acc; }
+    .dark .act { background: #4a4a4a; }
+    .dark .act.active { background: #007acc; }
+    .side, .inspect, .bottom {
+      min-width: 0;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .side { border-right: 1px solid #e5e5e5; }
+    .inspect { border-left: 1px solid #e5e5e5; }
+    .bottom {
+      grid-column: 2 / span 3;
+      border-top: 1px solid #e5e5e5;
+      background: #fafafa;
+    }
+    .dark .side, .dark .inspect { background: #252526; }
+    .dark .bottom { background: #1e1e1e; border-top-color: #3c3c3c; }
+    .dark .side { border-right-color: #3c3c3c; }
+    .dark .inspect { border-left-color: #3c3c3c; }
+    .panel-head {
+      height: 31px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      border-bottom: 1px solid #e5e5e5;
+      color: #57606a;
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .dark .panel-head { border-bottom-color: #3c3c3c; color: #bbbbbb; }
+    .line { height: 18px; margin: 8px; border-radius: 4px; background: #edf2f7; }
+    .line.mid { width: 72%; }
+    .line.short { width: 50%; }
+    .line.indent { margin-left: 22px; width: 72%; }
+    .dark .line { background: #37373d; }
+    .canvas {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(#edf2f7 1px, transparent 1px),
+        linear-gradient(90deg, #edf2f7 1px, transparent 1px),
+        #ffffff;
+      background-size: 24px 24px;
+    }
+    .dark .canvas {
+      background:
+        linear-gradient(#303030 1px, transparent 1px),
+        linear-gradient(90deg, #303030 1px, transparent 1px),
+        #1e1e1e;
+    }
+    .tabs { position: absolute; top: 12px; left: 14px; display: flex; gap: 8px; }
+    .tab {
+      height: 25px;
+      padding: 5px 10px;
+      border: 1px solid #d0d7de;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #57606a;
+      font-size: 11px;
+    }
+    .tab.active { border-color: #007acc; color: #0969da; font-weight: 700; }
+    .dark .tab { background: #252526; border-color: #3c3c3c; color: #cccccc; }
+    .dark .tab.active { border-color: #007acc; color: #9cdcfe; }
+    .node {
+      position: absolute;
+      border: 2px solid #007acc;
+      border-radius: 7px;
+      background: #ffffff;
+      box-shadow: 0 5px 14px rgba(31,35,40,.14);
+    }
+    .dark .node {
+      background: #252526;
+      box-shadow: 0 6px 18px rgba(0,0,0,.34);
+    }
+    .node span { display: block; height: 8px; margin: 11px; border-radius: 8px; background: #c8d1da; }
+    .dark .node span { background: #5f6468; }
+    .n1 { left: 18%; top: 27%; width: 122px; height: 58px; }
+    .n2 { left: 52%; top: 25%; width: 130px; height: 60px; border-color: #c69026; }
+    .n3 { left: 37%; top: 58%; width: 140px; height: 64px; border-color: #6a9955; }
+    .edge { position: absolute; height: 3px; background: #7d8590; border-radius: 999px; transform-origin: left center; }
+    .dark .edge { background: #858585; }
+    .e1 { left: 35%; top: 37%; width: 118px; transform: rotate(-7deg); }
+    .e2 { left: 50%; top: 48%; width: 94px; transform: rotate(55deg); }
+    .float {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      display: flex;
+      gap: 7px;
+      background: rgba(255,255,255,.96);
+      border: 1px solid #d0d7de;
+      border-radius: 7px;
+      padding: 7px;
+      box-shadow: 0 8px 20px rgba(31,35,40,.16);
+    }
+    .dark .float { background: rgba(37,37,38,.96); border-color: #3c3c3c; }
+    .tool { width: 28px; height: 28px; border-radius: 5px; background: #f6f8fa; border: 1px solid #d0d7de; }
+    .tool.hot { background: #007acc; border-color: #007acc; }
+    .dark .tool { background: #333333; border-color: #4b4b4b; }
+    .mini {
+      position: absolute;
+      right: 16px;
+      top: 58px;
+      width: 190px;
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(31,35,40,.14);
+    }
+    .dark .mini { background: #252526; border-color: #3c3c3c; }
+    .mini h3 {
+      height: 29px;
+      margin: 0;
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e5e5;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #57606a;
+    }
+    .dark .mini h3 { border-bottom-color: #3c3c3c; color: #bbbbbb; }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      color: #57606a;
+      background: #007acc;
+      color: white;
+    }
+    .dark .status { background: #007acc; color: white; }
+    .notes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .note {
+      border: 1px solid #d0d7de;
+      background: white;
+      border-radius: 6px;
+      padding: 11px 12px;
+      color: #57606a;
+      font-size: 13px;
+    }
+    .note b { display: block; color: #24292f; margin-bottom: 3px; }
+    @media (max-width: 1180px) {
+      .grid, .notes { grid-template-columns: 1fr; }
+      .app { height: 720px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>B2 con tema VS Code Light / Dark</h1>
+  <p>Mis mismos paneles colapsables, pero con una UI casi blanca limpia y una variante dark de editor.</p>
+
+  <section class="grid">
+    <article class="card">
+      <div class="head"><span>Light: Clean White</span><span class="tag">Almost white</span></div>
+      <div class="app">
+        <div class="titlebar"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+        <div class="commandbar"><span class="cmd icon hot"></span><span class="cmd icon"></span><span class="cmd icon"></span><span class="cmd wide"></span><span class="cmd wide"></span><span class="cmd icon warn"></span><div class="search">Find command, object, view...</div></div>
+        <div class="workspace">
+          <nav class="activity"><span class="act active"></span><span class="act"></span><span class="act"></span><span class="act"></span></nav>
+          <aside class="side"><div class="panel-head">Explorer</div><div class="line"></div><div class="line indent"></div><div class="line indent short"></div><div class="line"></div><div class="line mid"></div></aside>
+          <section class="canvas"><div class="tabs"><span class="tab active">Main View</span><span class="tab">Domain</span><span class="tab">Notes</span></div><div class="mini"><h3>Quick actions</h3><div class="line"></div><div class="line short"></div></div><div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div><div class="edge e1"></div><div class="edge e2"></div><div class="float"><span class="tool hot"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span></div></section>
+          <aside class="inspect"><div class="panel-head">Inspector</div><div class="line"></div><div class="line short"></div><div class="line"></div><div class="line mid"></div></aside>
+          <section class="bottom"><div class="panel-head">Messages / Search / Preview</div><div class="line"></div><div class="line mid"></div></section>
+        </div>
+        <div class="status"><span>Ready</span><span>Light theme</span></div>
+      </div>
+    </article>
+
+    <article class="card dark">
+      <div class="head"><span>Dark: Editor Mode</span><span class="tag">VS Code inspired</span></div>
+      <div class="app">
+        <div class="titlebar"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+        <div class="commandbar"><span class="cmd icon hot"></span><span class="cmd icon"></span><span class="cmd icon"></span><span class="cmd wide"></span><span class="cmd wide"></span><span class="cmd icon warn"></span><div class="search">Find command, object, view...</div></div>
+        <div class="workspace">
+          <nav class="activity"><span class="act active"></span><span class="act"></span><span class="act"></span><span class="act"></span></nav>
+          <aside class="side"><div class="panel-head">Explorer</div><div class="line"></div><div class="line indent"></div><div class="line indent short"></div><div class="line"></div><div class="line mid"></div></aside>
+          <section class="canvas"><div class="tabs"><span class="tab active">Main View</span><span class="tab">Domain</span><span class="tab">Notes</span></div><div class="mini"><h3>Quick actions</h3><div class="line"></div><div class="line short"></div></div><div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div><div class="edge e1"></div><div class="edge e2"></div><div class="float"><span class="tool hot"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span></div></section>
+          <aside class="inspect"><div class="panel-head">Inspector</div><div class="line"></div><div class="line short"></div><div class="line"></div><div class="line mid"></div></aside>
+          <section class="bottom"><div class="panel-head">Messages / Search / Preview</div><div class="line"></div><div class="line mid"></div></section>
+        </div>
+        <div class="status"><span>Ready</span><span>Dark theme</span></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="notes">
+    <div class="note"><b>Recommended default</b> Light casi blanco: mejor para diagramas, menos fatiga visual en documentos y canvas.</div>
+    <div class="note"><b>Secondary theme</b> Dark para usuarios avanzados o sesiones largas; requiere revisar contraste de iconos y nodos.</div>
+  </section>
+</main>
+</body>
+</html>

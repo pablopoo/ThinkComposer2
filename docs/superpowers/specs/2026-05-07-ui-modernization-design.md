@@ -10,6 +10,7 @@ Reference mockups:
 
 - `docs/ui-mockups/thinkcomposer-canvas-focus-iterations.html`
 - `docs/ui-mockups/thinkcomposer-b2-vscode-collapse.html`
+- `docs/ui-mockups/thinkcomposer-b2-vscode-light-dark.html`
 
 ## Goals
 
@@ -50,13 +51,13 @@ Preferred initial widths:
 
 ## Visual Style
 
-Use a restrained work-tool palette:
+Use VS Code-inspired light and dark themes:
 
-- Warm off-white canvas and panels.
-- Graphite activity rail.
-- Teal primary accent.
-- Amber secondary accent for active rail and warnings.
-- Minimal gradients; mostly solid fills and subtle borders.
+- Default theme: clean almost-white UI with white panels, very light borders, pale canvas grid, and blue command accent.
+- Secondary theme: dark editor UI with VS Code-like graphite panels, dark canvas grid, and the same blue command accent.
+- Keep accent color usage restrained: primary actions, active rail item, selected tab, and status bar.
+- Avoid warm beige/tan shell colors.
+- Minimal gradients; mostly solid fills, subtle borders, and clear contrast.
 
 Avoid decorative hero-style visuals. The product should feel like a dense editor, not a landing page.
 
