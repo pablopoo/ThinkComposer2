@@ -96,15 +96,15 @@ namespace Instrumind.ThinkComposer.Composer
                 return;
 
             // PENDING (?): APPLY THE SPECIFIED SETTINGS.
-            var SourceDocument = this.CurrentView.ToDocument(DialogResult.Item1.Landscape ? DialogResult.Item1.PrintableArea.Height : DialogResult.Item1.PrintableArea.Width,
-                                                             DialogResult.Item1.Landscape ? DialogResult.Item1.PrintableArea.Width : DialogResult.Item1.PrintableArea.Height,
+            var SourceDocument = this.CurrentView.ToDocument(DialogResult.PrintableAreaWidth,
+                                                             DialogResult.PrintableAreaHeight,
                                                              null, // Old (now can use Info-Card): this.CurrentView.OwnerCompositeContainer.OwnerComposition.Name,
                                                              null, // Old (now can use Info-Card): this.CurrentView.Name,
                                                              false,   // Borders are not necessary
-                                                             DialogResult.Item1.Margins.Left,
-                                                             DialogResult.Item1.Margins.Top,
-                                                             DialogResult.Item1.Margins.Right,
-                                                             DialogResult.Item1.Margins.Bottom);
+                                                             DialogResult.Margins.Left,
+                                                             DialogResult.Margins.Top,
+                                                             DialogResult.Margins.Right,
+                                                             DialogResult.Margins.Bottom);
 
             var DocTitle = this.CurrentView.OwnerCompositeContainer.OwnerComposition.Name + " - " + this.CurrentView.Name;
             PrintPreviewControl = new PrintPreviewer(SourceDocument, null, DocTitle);

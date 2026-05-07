@@ -32,6 +32,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Printing;
 
 using Instrumind.Common;
 using Instrumind.Common.EntityBase;
@@ -482,6 +483,7 @@ namespace Instrumind.Common.Visualization
             if (SelectedPath.IsAbsent())
                 SelectedPath = AppExec.GetConfiguration("Storage", Context, AppExec.UserDataDirectory);
 
+#if NETFRAMEWORK
             var Dialog = new System.Windows.Forms.FolderBrowserDialog();
             Dialog.Description = Title;
             Dialog.SelectedPath = SelectedPath;
@@ -490,9 +492,23 @@ namespace Instrumind.Common.Visualization
             if (Dialog.ShowDialog(Owner.GetIWin32Window()) != System.Windows.Forms.DialogResult.OK || Dialog.SelectedPath.Trim().IsAbsent())
                 return null;
 
-            var Result = new Uri(Dialog.SelectedPath);
+            var SelectedFolder = Dialog.SelectedPath;
+#else
+            var Dialog = new Microsoft.Win32.OpenFolderDialog();
+            Dialog.Title = Title;
+            Dialog.InitialDirectory = SelectedPath;
+            Dialog.Multiselect = false;
 
-            var AssignedDirectory = Path.GetDirectoryName(Dialog.SelectedPath) ?? "";
+            var Accepted = (Owner == null ? Dialog.ShowDialog() : Dialog.ShowDialog(Owner)).IsTrue();
+            if (!Accepted || Dialog.FolderName.Trim().IsAbsent())
+                return null;
+
+            var SelectedFolder = Dialog.FolderName;
+#endif
+
+            var Result = new Uri(SelectedFolder);
+
+            var AssignedDirectory = Path.GetDirectoryName(SelectedFolder) ?? "";
             AppExec.SetConfiguration("Storage", Context, AssignedDirectory, true);
 
             return Result;
@@ -522,11 +538,11 @@ namespace Instrumind.Common.Visualization
         /// <summary>
         /// Exposes a Page-Setup dialog, returning the updated settings (for page and printer) or null if cancelled.
         /// </summary>
-        public static Tuple<System.Drawing.Printing.PageSettings, System.Drawing.Printing.PrinterSettings>
-                      DialogPrintSetup(Window Owner = null)
+        public static PrintSetupResult DialogPrintSetup(Window Owner = null)
         {
             Owner = Owner.NullDefault(GetCurrentWindow());
 
+#if NETFRAMEWORK
             System.Windows.Forms.PageSetupDialog Dialog = new System.Windows.Forms.PageSetupDialog();
 
             Dialog.PageSettings = new System.Drawing.Printing.PageSettings();
@@ -539,7 +555,45 @@ namespace Instrumind.Common.Visualization
             if (DialogResult != System.Windows.Forms.DialogResult.OK)
                 return null;
 
-            return Tuple.Create(Dialog.PageSettings, Dialog.PrinterSettings);
+            var PageSettings = Dialog.PageSettings;
+            return new PrintSetupResult(PageSettings.Landscape ? PageSettings.PrintableArea.Height : PageSettings.PrintableArea.Width,
+                                        PageSettings.Landscape ? PageSettings.PrintableArea.Width : PageSettings.PrintableArea.Height,
+                                        PageSettings.Landscape,
+                                        new Thickness(PageSettings.Margins.Left,
+                                                      PageSettings.Margins.Top,
+                                                      PageSettings.Margins.Right,
+                                                      PageSettings.Margins.Bottom));
+#else
+            var Dialog = new PrintDialog();
+            var Accepted = Dialog.ShowDialog();
+
+            if (!Accepted.IsTrue())
+                return null;
+
+            var Orientation = Dialog.PrintTicket == null ? null : Dialog.PrintTicket.PageOrientation;
+            var IsLandscape = Orientation == PageOrientation.Landscape || Orientation == PageOrientation.ReverseLandscape;
+
+            return new PrintSetupResult(Dialog.PrintableAreaWidth,
+                                        Dialog.PrintableAreaHeight,
+                                        IsLandscape,
+                                        new Thickness(10.0));
+#endif
+        }
+
+        public sealed class PrintSetupResult
+        {
+            internal PrintSetupResult(double printableAreaWidth, double printableAreaHeight, bool landscape, Thickness margins)
+            {
+                PrintableAreaWidth = printableAreaWidth;
+                PrintableAreaHeight = printableAreaHeight;
+                Landscape = landscape;
+                Margins = margins;
+            }
+
+            public double PrintableAreaWidth { get; private set; }
+            public double PrintableAreaHeight { get; private set; }
+            public bool Landscape { get; private set; }
+            public Thickness Margins { get; private set; }
         }
 
         /// <summary>
@@ -1162,7 +1216,8 @@ namespace Instrumind.Common.Visualization
         /// <summary>
         /// For this supplied WPF Visual, creates and returns a Win-32 compatible Window.
         /// </summary>
-        public static System.Windows.Forms.IWin32Window GetIWin32Window(this Visual visual)
+#if NETFRAMEWORK
+        private static System.Windows.Forms.IWin32Window GetIWin32Window(this Visual visual)
         {
             var SourceAsHwnd = System.Windows.PresentationSource.FromVisual(visual) as System.Windows.Interop.HwndSource;
             System.Windows.Forms.IWin32Window InteropWindow = new Win32Window(SourceAsHwnd.Handle);
@@ -1187,6 +1242,7 @@ namespace Instrumind.Common.Visualization
             }
             #endregion
         }
+#endif
 
         #endregion
     }

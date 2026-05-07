@@ -1189,12 +1189,14 @@ namespace Instrumind.Common.Visualization
         /// <summary>
         /// Converts this GDI+ Bitmap to WPF BitmapSource.
         /// </summary>
+#if NETFRAMEWORK
         public static BitmapSource ConvertToBitmapSource(this System.Drawing.Bitmap Picture)
         {
             var Result = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(Picture.GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty,
                                                                                       BitmapSizeOptions.FromWidthAndHeight(Picture.Width, Picture.Height));
             return Result;
         }
+#endif
 
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         /// <summary>
@@ -1205,6 +1207,7 @@ namespace Instrumind.Common.Visualization
             if (SourceWebURL.IsAbsent() || Width < 1 || Height < 1 || Setter == null)
                 return;
 
+#if NETFRAMEWORK
             var Browser = WorkingWebBrowser.NullDefault(new System.Windows.Forms.WebBrowser());
 
             Browser.DocumentCompleted +=
@@ -1224,8 +1227,13 @@ namespace Instrumind.Common.Visualization
                 };
 
             Browser.Navigate(SourceWebURL);
+#else
+            throw new PlatformNotSupportedException("WebBrowser screenshot capture is only available on .NET Framework.");
+#endif
         }
+#if NETFRAMEWORK
         private static System.Windows.Forms.WebBrowser WorkingWebBrowser = null;
+#endif
 
         // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         /// <summary>
