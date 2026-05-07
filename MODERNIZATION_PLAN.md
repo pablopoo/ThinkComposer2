@@ -201,6 +201,7 @@ Exit criteria:
 - 2026-05-07: Fixed the `Common` GDI bitmap conversion helper to release the HBITMAP handle and dispose the temporary screenshot bitmap. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Replaced `Thread.Abort` cancellation in `ThreadWorker` with cooperative cancellation, guarded completion callbacks against duplicate notifications, and added cancellation handling to generation, reporting, and merging workflows. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Removed stale `SYSLIB0011`/`SYSLIB0014` suppressions from `Common` and `ThinkComposer`; `SimpleSynthSerializer` no longer implements obsolete `IFormatter`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
+- 2026-05-07: Smoke-tested `ThinkComposer\bin\Debug\net10.0-windows\Instrumind.ThinkComposer.exe`; startup initially hit a `BinaryFormatter` path when generating `DrawingImage` bytes for predefined plugs. `DrawingImage` storage now uses compressed XAML text with a `net48` legacy fallback. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors, and the `net10.0-windows` app starts, responds, closes via `WM_CLOSE`, and exits with code 0.
 
 ## References
 

@@ -464,7 +464,13 @@ namespace Instrumind.Common.Visualization
                 if (ImageType == IMAGETYPE_DRAWING)
                 {
                     var SerializedResult = BytesHandling.Decompress(Source);
-                    var XamlResult = BytesHandling.DeserializeFromBytes<string>(SerializedResult);
+                    var XamlResult = SerializedResult.BytesToStringUnicode();
+
+#if NETFRAMEWORK
+                    if (XamlResult.IsAbsent() || !XamlResult.TrimStart().StartsWith("<"))
+                        XamlResult = BytesHandling.DeserializeFromBytes<string>(SerializedResult);
+#endif
+
                     var ObjectResult = XamlReader.Parse(XamlResult);
                     var Result = ObjectResult as DrawingImage;
 
@@ -520,7 +526,7 @@ namespace Instrumind.Common.Visualization
                 if (DrawingSource != null)
                 {
                     var XamlResult = XamlWriter.Save(DrawingSource);
-                    var SerializedResult = BytesHandling.SerializeToBytes(XamlResult);
+                    var SerializedResult = XamlResult.StringToBytesUnicode();
                     Result = BytesHandling.Compress(SerializedResult);
                     Prefix = IMAGETYPE_DRAWING;
                 }
