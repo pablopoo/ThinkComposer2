@@ -88,6 +88,7 @@ namespace ICSharpCode.AvalonEdit.Utils
 			if (foreground == null)
 				foreground = TextBlock.GetForeground(element);
 			#if DOTNET4
+			var pixelsPerDip = VisualTreeHelper.GetDpi(element).PixelsPerDip;
 			return new FormattedText(
 				text,
 				CultureInfo.CurrentCulture,
@@ -96,7 +97,8 @@ namespace ICSharpCode.AvalonEdit.Utils
 				emSize.Value,
 				foreground,
 				null,
-				TextOptions.GetTextFormattingMode(element)
+				TextOptions.GetTextFormattingMode(element),
+				pixelsPerDip
 			);
 			#else
 			if (TextFormattingModeProperty != null) {

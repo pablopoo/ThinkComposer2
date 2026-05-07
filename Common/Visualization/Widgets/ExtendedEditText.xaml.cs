@@ -93,7 +93,7 @@ namespace Instrumind.Common.Visualization.Widgets
                 if (this.ParentWindow != null)
                     this.ParentWindow.KeyDown -= WhenKeyPressed;
             }
-            catch (Exception Problem)
+            catch (Exception)
             {
                 // this happens when the Loaded event was never fired, hence no event handler was attached nor parent-window was populated.
             }

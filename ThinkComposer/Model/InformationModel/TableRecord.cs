@@ -270,7 +270,7 @@ namespace Instrumind.ThinkComposer.Model.InformationModel
                                     {
                                         Result = ((IFormattable)Value).ToString(BasicKind.DisplayFormat, null);
                                     }
-                                    catch (Exception Problem)
+                                    catch (Exception)
                                     {
                                         Result = Value.ToStringAlways();
                                     }

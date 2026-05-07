@@ -197,11 +197,13 @@ namespace Instrumind.ThinkComposer.ApplicationProduct.Widgets
 
         public IModelEntity AssociatedEntity { get { return this.WorkingEntity; } }
 
+        #pragma warning disable CS0067
         public event Action EntityExposedForView;
 
         public bool ShowAdvancedMembers { get { return true; } }
 
         public event Action<bool> ShowAdvancedMembersChanged;
+        #pragma warning restore CS0067
 
         public void ShowMessage(string Title, string Message, EMessageType MessageType = EMessageType.Information, IDictionary<string, object> AttachedData = null)
         {

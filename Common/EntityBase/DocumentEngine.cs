@@ -501,7 +501,9 @@ namespace Instrumind.Common.EntityBase
         /// </summary>
         public abstract void ReactToViewChanged(IDocumentView NewView);
 
+        #pragma warning disable CS0067
         [field:NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
+        #pragma warning restore CS0067
     }
 }

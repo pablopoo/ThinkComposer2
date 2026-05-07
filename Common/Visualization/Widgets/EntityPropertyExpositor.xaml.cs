@@ -194,7 +194,7 @@ namespace Instrumind.Common.Visualization.Widgets
                         this.MemberController.InstanceController.ControlledInstance.PropertyChanged -= WorkingEntityObject_PropertyChanged;
                 }
             }
-            catch (Exception Problem)
+            catch (Exception)
             {
                 // this happens when the Loaded event was never fired, hence no event handler was attached nor parent-window was populated.
             }

@@ -68,7 +68,7 @@ namespace Instrumind.ThinkComposer.Definitor.DefinitorUI.Widgets
             {
                 this.RelationshipDef.PropertyChanged -= OnDefinitionPropChanged;
             }
-            catch (Exception Problem)
+            catch (Exception)
             {
                 // this happens when the Loaded event was never fired, hence no event handler was attached nor parent-window was populated.
             }

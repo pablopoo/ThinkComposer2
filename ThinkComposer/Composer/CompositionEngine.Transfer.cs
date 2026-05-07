@@ -81,7 +81,7 @@ namespace Instrumind.ThinkComposer.Composer
                 Result = (Result || Clipboard.GetDataObject() != null);
                 return Result;
             }
-            catch (Exception Problem)
+            catch (Exception)
             {
                 Console.WriteLine("Cannot access Windows Clipboard!");
             }

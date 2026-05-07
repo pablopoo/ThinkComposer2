@@ -1815,7 +1815,7 @@ namespace Instrumind.ThinkComposer.Model.VisualModel
                                                             new Point(Canvas.GetLeft(ebx) + (ebx.ActualWidth / 2.0),
                                                                       Canvas.GetTop(ebx) + (ebx.ActualHeight / 2.0)));
                     }
-                    catch (Exception Problem)
+                    catch (Exception)
                     {
                         /*? if (TryAgainIfFailed)
                         {

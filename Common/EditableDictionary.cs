@@ -487,8 +487,10 @@ namespace Instrumind.Common
 
         #region INotifyPropertyChanged Members
 
+        #pragma warning disable CS0067
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
+        #pragma warning restore CS0067
 
         #endregion
 

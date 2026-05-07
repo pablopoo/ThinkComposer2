@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 using Instrumind.Common;
 using Instrumind.Common.Visualization;
@@ -40,7 +39,6 @@ namespace Instrumind.ThinkComposer.Composer.ComposerUI.Widgets
 
         protected static string TempFolder;
         protected static FileSystemWatcher FilesWatcher;
-        protected static Dispatcher MainWindowDispatcher;
 
         /// <summary>
         /// Collection of exposed attachments as temporal files, where Key=FileName and Value=Attachment.

@@ -583,7 +583,7 @@ namespace Instrumind.Common
             {
                 Result = new Tuple<bool, object>(PropertyData != null, PropertyData != null ? PropertyData.GetValue(SourceObject, null) : null);
             }
-            catch(Exception Problem)
+            catch(Exception)
             {
                 if (Required)
                     throw;
