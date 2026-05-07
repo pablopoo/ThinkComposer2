@@ -175,7 +175,7 @@ Exit criteria:
 
 ## Immediate Next Actions
 
-1. Replace or isolate runtime-risk APIs still present: `System.Drawing`.
+1. Continue replacing or isolating runtime-risk `System.Drawing` usage that remains in shared rendering/PDF code.
 2. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
 3. Begin UI modernization with a modern WPF resource dictionary and main shell refresh.
 
@@ -194,6 +194,7 @@ Exit criteria:
 - 2026-05-07: Set net10 builds to AnyCPU while preserving x86 for net48, removed `System.Web` from active projects, replaced AdminUtils `WebRequest` with `HttpClient`, removed hard-coded Aero theme loading, and smoke-tested `ThinkComposer\bin\Debug\net10.0-windows\Instrumind.ThinkComposer.exe`. The app starts and stays running with empty stdout/stderr; it is closed after the smoke-test.
 - 2026-05-07: Replaced the remaining active `WebClient` download helper with `HttpClient`, preserving progress/cancel callbacks on the caller synchronization context. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Isolated `BinaryFormatter` helper usage to `net48`; modern .NET now fails fast with explicit `PlatformNotSupportedException` instead of invoking formatter-based serialization. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
+- 2026-05-07: Removed unused active `System.Drawing` references from `AdminUtils` and `ThinkComposer`, and removed unnecessary WinForms targeting from `ThinkComposer`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 
 ## References
 
