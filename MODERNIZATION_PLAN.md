@@ -18,7 +18,7 @@ Target runtime: `.NET 10 LTS` with `net10.0-windows` and WPF. WPF remains Window
 - Build platform: mostly `x86`
 - Local SDK installed: `.NET SDK 10.0.203`
 - Current build state: Debug x86 solution builds with 0 warnings and 0 errors
-- First modern targets enabled: `ICSharpCode.AvalonEdit`, `PdfSharp-WPF`, and `PdfSharp.Xps` build for `net48;net10.0-windows`
+- Active solution projects build for `net48;net10.0-windows`; net48 keeps the legacy output paths.
 - `.NET Framework 4.8` reference assemblies are restored via NuGet package `Microsoft.NETFramework.ReferenceAssemblies.net48`
 - Local check: the global `.NET Framework 4.8` Developer Pack path was not found under `C:\Program Files (x86)\Reference Assemblies`
 
@@ -175,11 +175,10 @@ Exit criteria:
 
 ## Immediate Next Actions
 
-1. Multi-target `Common` and resolve `System.Web`, `BinaryFormatter`, `System.Drawing`, and Windows-only APIs.
-2. Then multi-target `DotLiquid-2010`, because it depends on `Common`.
-3. Then multi-target `AdminUtils` and `ThinkComposer`.
-4. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
-5. Defer UI work until the project/runtime migration has a stable build.
+1. Run and smoke-test `ThinkComposer\bin\Debug\net10.0-windows\Instrumind.ThinkComposer.dll`.
+2. Replace or isolate runtime-risk APIs still present: `BinaryFormatter`, `Thread.Abort` legacy path, `WebClient`/`WebRequest`, `System.Drawing`, and old theme resources.
+3. Decide whether to delete or archive legacy unused project variants (`DotLiquid-2008`, `DotLiquid`, `PdfSharp`, `PdfSharp-Hybrid`, `PdfSharp-ag`).
+4. Begin UI modernization after the net10 app smoke-test passes.
 
 ## Verification Log
 
@@ -192,6 +191,7 @@ Exit criteria:
 - 2026-05-07: Cleaned active solution warnings and removed the missing `AllRules.ruleset` reference. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 - 2026-05-07: Multi-targeted `ICSharpCode.AvalonEdit` to `net48;net10.0-windows`. `dotnet build ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors. Full solution build remains at 0 warnings and 0 errors.
 - 2026-05-07: Multi-targeted `PdfSharp-WPF` and `PdfSharp.Xps` to `net48;net10.0-windows`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
+- 2026-05-07: Multi-targeted `Common`, `DotLiquid-2010`, `AdminUtils`, and `ThinkComposer` to `net48;net10.0-windows`. `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86` succeeds with 0 warnings and 0 errors.
 
 ## References
 

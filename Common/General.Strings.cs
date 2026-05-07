@@ -24,9 +24,9 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Web;
 using System.Windows.Documents;
 
 using Microsoft.Win32;
@@ -115,7 +115,7 @@ namespace Instrumind.Common
         /// </summary>
         public static string ToHtmlEncoded(this string Source)
         {
-            var Chars = HttpUtility.HtmlEncode(Source).ToCharArray();
+            var Chars = WebUtility.HtmlEncode(Source).ToCharArray();
             var Text = new StringBuilder((int)((double)Source.Length * 1.1));
             var Previous = 0;
 

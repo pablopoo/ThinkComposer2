@@ -8,12 +8,15 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Instrumind.ThinkComposer</RootNamespace>
     <AssemblyName>Instrumind.ThinkComposer</AssemblyName>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <EnableDefaultItems>false</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Deterministic>false</Deterministic>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendTargetFrameworkToOutputPath Condition="'$(TargetFramework)' == 'net48'">false</AppendTargetFrameworkToOutputPath>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net10.0-windows'">7.0</SupportedOSPlatformVersion>
+    <NoWarn Condition="'$(TargetFramework)' == 'net10.0-windows'">$(NoWarn);SYSLIB0011;SYSLIB0014;SYSLIB0050;SYSLIB0051;CA1416;CA2022;CA2200</NoWarn>
     <FileAlignment>512</FileAlignment>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
@@ -107,7 +110,7 @@
   <PropertyGroup>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="DotLiquid">
       <HintPath>..\DotLiquid\bin\$(Configuration)\DotLiquid.dll</HintPath>
       <Private>False</Private>

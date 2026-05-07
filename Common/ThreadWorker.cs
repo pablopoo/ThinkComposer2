@@ -67,7 +67,9 @@ namespace Instrumind.Common
         public void Cancel()
         {
             this.IsBusy = false;
+#if NETFRAMEWORK
             this.WorkingThread.Abort();
+#endif
 
             Thread.MemoryBarrier();
             var Handler = this.ExecutionFinished;

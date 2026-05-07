@@ -397,7 +397,9 @@ namespace Instrumind.Common
         /// Gives permission to the specified Directory-Path.
         /// Note: SecurityId = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
         /// </summary>
+#if NETFRAMEWORK
         [System.Security.Permissions.SecurityPermission(System.Security.Permissions.SecurityAction.Demand)]
+#endif
         public static void SetDirectoryPermission(string DirectoryPath, SecurityIdentifier SecurityId, bool ForAllUsers = false)
         {
             DirectoryInfo directoryInfo;

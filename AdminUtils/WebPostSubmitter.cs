@@ -5,7 +5,6 @@ using System.Text;
 using System.Collections.Specialized;
 using System.Net;
 using System.IO;
-using System.Web;
 
 namespace AdminUtils
 {
@@ -212,7 +211,7 @@ namespace AdminUtils
             }
             BaseRequest.Append(Key);
             BaseRequest.Append("=");
-            BaseRequest.Append(HttpUtility.UrlEncode(DataItem));
+            BaseRequest.Append(WebUtility.UrlEncode(DataItem));
         }
     }
 }
