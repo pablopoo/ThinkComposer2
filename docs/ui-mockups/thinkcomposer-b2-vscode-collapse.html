@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkComposer B2 - VS Code Collapsible Panels</title>
+  <style>
+    :root {
+      --page:#f3f2ee; --ink:#222725; --muted:#65706b; --line:#d8d3c7;
+      --panel:#fffdf8; --shell:#343733; --shell2:#444943; --canvas:#fffefa;
+      --accent:#0f8b8d; --accent2:#d28b19; --green:#6a963f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--page);font-family:"Segoe UI",Arial,sans-serif;color:var(--ink)}
+    main{max-width:1320px;margin:0 auto;padding:28px}
+    h1{margin:0 0 6px;font-size:28px;font-weight:650;letter-spacing:0}
+    p{margin:0 0 18px;color:var(--muted)}
+    .frame{border:1px solid #c9c4b8;border-radius:8px;background:white;box-shadow:0 14px 32px rgba(32,34,30,.1);overflow:hidden}
+    .app{height:720px;display:grid;grid-template-rows:40px 42px 1fr 30px;background:var(--panel)}
+    .titlebar{display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line);background:#fff;font-size:12px}
+    .logo{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+    .brand{font-weight:750}.doc{color:var(--muted)}.win{margin-left:auto;display:flex;gap:7px}.win span{width:10px;height:10px;border-radius:50%;background:#b8b5ac}
+    .commandbar{display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--line);background:#f7f5ee}
+    .cmd{height:27px;border:1px solid #d3cec2;border-radius:6px;background:white}
+    .cmd.icon{width:27px}.cmd.wide{width:78px}.cmd.hot{background:var(--accent);border-color:#0c686a}.cmd.warn{background:#fff0d4;border-color:#e4ba69}
+    .search{margin-left:auto;width:260px;height:28px;border:1px solid #d3cec2;border-radius:6px;background:white;color:#7a837e;font-size:12px;padding:7px 10px}
+    .workspace{min-height:0;display:grid;grid-template-columns:54px 240px 1fr 250px;grid-template-rows:1fr 180px;transition:grid-template-columns .18s ease,grid-template-rows .18s ease}
+    .activity{grid-row:1 / span 2;background:var(--shell);display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:10px}
+    button{font:inherit}
+    .act{width:32px;height:32px;border:0;border-radius:7px;background:#5b6058;cursor:pointer}
+    .act.active{background:var(--accent2)}
+    .act:hover{outline:2px solid rgba(255,255,255,.18)}
+    .side,.inspect,.bottom{background:#fffaf0;min-width:0;overflow:hidden}
+    .side{border-right:1px solid var(--line)}
+    .inspect{border-left:1px solid var(--line)}
+    .bottom{grid-column:2 / span 3;border-top:1px solid var(--line);background:#fbf7ee}
+    .panel-head{height:32px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #e4ded1;color:#4d5855;font-size:11px;text-transform:uppercase;font-weight:750;letter-spacing:.04em;white-space:nowrap}
+    .collapse{margin-left:auto;width:22px;height:22px;border:0;border-radius:5px;background:#eee7db;color:#4d5855;cursor:pointer}
+    .line{height:18px;margin:8px;border-radius:4px;background:#ece7dc}.line.mid{width:72%}.line.short{width:50%}.line.indent{margin-left:22px;width:72%}
+    .canvas{position:relative;min-width:0;grid-row:1;background:linear-gradient(#e9e4da 1px,transparent 1px),linear-gradient(90deg,#e9e4da 1px,transparent 1px),var(--canvas);background-size:24px 24px;overflow:hidden}
+    .tabs{position:absolute;top:12px;left:14px;display:flex;gap:8px}
+    .tab{height:25px;padding:5px 10px;border:1px solid #d3cec2;border-radius:5px;background:white;color:#4a5552;font-size:11px}.tab.active{border-color:var(--accent);color:#086765;font-weight:700}
+    .node{position:absolute;border:2px solid var(--accent);border-radius:7px;background:white;box-shadow:0 4px 12px rgba(43,43,38,.14)}
+    .node span{display:block;height:8px;margin:11px;border-radius:8px;background:#bec6bd}
+    .n1{left:18%;top:27%;width:122px;height:58px}.n2{left:52%;top:25%;width:130px;height:60px;border-color:var(--accent2)}.n3{left:37%;top:58%;width:140px;height:64px;border-color:var(--green)}
+    .edge{position:absolute;height:3px;background:#707b76;border-radius:999px;transform-origin:left center}.e1{left:35%;top:37%;width:118px;transform:rotate(-7deg)}.e2{left:50%;top:48%;width:94px;transform:rotate(55deg)}
+    .float{position:absolute;left:16px;bottom:16px;display:flex;gap:7px;background:rgba(255,255,255,.95);border:1px solid #d4cec0;border-radius:8px;padding:7px;box-shadow:0 8px 20px rgba(45,42,34,.16)}
+    .tool{width:28px;height:28px;border-radius:6px;background:#eef1ed;border:1px solid #cfd5cc}.tool.hot{background:var(--accent);border-color:#0b696a}
+    .mini-actions{position:absolute;right:16px;top:58px;width:190px;background:white;border:1px solid #d4cec0;border-radius:8px;box-shadow:0 10px 24px rgba(45,42,34,.14);overflow:hidden}
+    .mini-actions h3{height:29px;margin:0;padding:8px 10px;background:#fbfaf6;border-bottom:1px solid #e4ded1;font-size:11px;text-transform:uppercase}
+    .status{display:flex;justify-content:space-between;align-items:center;padding:0 10px;border-top:1px solid var(--line);background:#f7f5ee;color:#5b645f;font-size:11px}
+    .workspace.left-closed{grid-template-columns:54px 0 1fr 250px}
+    .workspace.right-closed{grid-template-columns:54px 240px 1fr 0}
+    .workspace.bottom-closed{grid-template-rows:1fr 0}
+    .workspace.left-closed.right-closed{grid-template-columns:54px 0 1fr 0}
+    .workspace.left-closed .side,.workspace.right-closed .inspect,.workspace.bottom-closed .bottom{border:0}
+    .workspace.left-closed .side>*,.workspace.right-closed .inspect>*,.workspace.bottom-closed .bottom>*{display:none}
+    .tips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .tip{border:1px solid var(--line);border-radius:6px;background:white;padding:10px;font-size:13px;color:var(--muted)}
+    .tip b{display:block;color:var(--ink);margin-bottom:3px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>B2 con paneles colapsables tipo VS Code</h1>
+  <p>Click en los botones del rail o en los chevrons de cada panel para probar estados colapsados.</p>
+  <section class="frame">
+    <div class="app">
+      <div class="titlebar"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+      <div class="commandbar">
+        <span class="cmd icon hot"></span><span class="cmd icon"></span><span class="cmd icon"></span><span class="cmd wide"></span><span class="cmd wide"></span><span class="cmd icon warn"></span><span class="cmd icon"></span>
+        <div class="search">Find command, object, view...</div>
+      </div>
+      <div id="workspace" class="workspace">
+        <nav class="activity">
+          <button class="act active" title="Explorer" onclick="togglePanel('left')"></button>
+          <button class="act" title="Inspector" onclick="togglePanel('right')"></button>
+          <button class="act" title="Output" onclick="togglePanel('bottom')"></button>
+          <button class="act" title="Focus" onclick="focusCanvas()"></button>
+        </nav>
+        <aside class="side">
+          <div class="panel-head">Map Explorer <button class="collapse" onclick="togglePanel('left')">‹</button></div>
+          <div class="line"></div><div class="line indent"></div><div class="line indent short"></div><div class="line"></div><div class="line mid"></div>
+        </aside>
+        <section class="canvas">
+          <div class="tabs"><span class="tab active">Main View</span><span class="tab">Domain</span><span class="tab">Notes</span></div>
+          <div class="mini-actions"><h3>Quick actions</h3><div class="line"></div><div class="line short"></div></div>
+          <div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div>
+          <div class="edge e1"></div><div class="edge e2"></div>
+          <div class="float"><span class="tool hot"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span></div>
+        </section>
+        <aside class="inspect">
+          <div class="panel-head">Inspector <button class="collapse" onclick="togglePanel('right')">›</button></div>
+          <div class="line"></div><div class="line short"></div><div class="line"></div><div class="line mid"></div><div class="line"></div>
+        </aside>
+        <section class="bottom">
+          <div class="panel-head">Messages / Search / Preview <button class="collapse" onclick="togglePanel('bottom')">⌄</button></div>
+          <div class="line"></div><div class="line mid"></div><div class="line short"></div>
+        </section>
+      </div>
+      <div class="status"><span>Ready</span><span>Explorer / Inspector / Bottom panel can collapse</span></div>
+    </div>
+  </section>
+  <div class="tips">
+    <div class="tip"><b>Base UX</b> Figma-like: canvas central, inspector derecho, estructura izquierda.</div>
+    <div class="tip"><b>VS Code behavior</b> Activity rail siempre visible; paneles se abren/cierran sin perder contexto.</div>
+    <div class="tip"><b>Implementacion WPF</b> Primero shell + estilos; luego shortcuts y command palette.</div>
+  </div>
+</main>
+<script>
+  function togglePanel(panel) {
+    const ws = document.getElementById('workspace');
+    ws.classList.toggle(panel + '-closed');
+  }
+  function focusCanvas() {
+    const ws = document.getElementById('workspace');
+    ws.classList.add('left-closed', 'right-closed', 'bottom-closed');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkComposer Canvas Focus Iterations</title>
+  <style>
+    :root {
+      --page:#f3f2ee; --ink:#232726; --muted:#66716c; --line:#d7d4ca;
+      --panel:#fffdf8; --dark:#343733; --dark2:#454943; --accent:#0f8b8d;
+      --accent2:#d28b19; --green:#6a963f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--page);font-family:"Segoe UI",Arial,sans-serif;color:var(--ink)}
+    main{max-width:1540px;margin:0 auto;padding:26px}
+    h1{margin:0 0 6px;font-size:28px;font-weight:650;letter-spacing:0}
+    p{margin:0;color:var(--muted)}
+    .intro{display:flex;justify-content:space-between;gap:22px;align-items:flex-end;margin-bottom:18px}
+    .hint{background:white;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13px;min-width:280px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+    .card{background:white;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 10px 24px rgba(32,34,30,.08)}
+    .head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);background:#fbfaf6}
+    .title{display:flex;align-items:center;gap:9px;font-weight:700}
+    .badge{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--dark);color:white;font-weight:700;font-size:13px}
+    .tag{font-size:12px;font-weight:700;color:#11645f;background:#e2f2ed;border-radius:999px;padding:4px 8px}
+    .body{padding:12px}
+    .screen{height:500px;border:1px solid #c8c5ba;border-radius:6px;overflow:hidden;background:#fffdf8;display:grid;grid-template-rows:40px 1fr 28px}
+    .top{display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #ddd6c8;background:white;font-size:12px}
+    .logo{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+    .brand{font-weight:750}.doc{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .win{margin-left:auto;display:flex;gap:6px}.win span{width:10px;height:10px;border-radius:50%;background:#b7b7ae}
+    .status{display:flex;justify-content:space-between;align-items:center;padding:0 10px;border-top:1px solid #ddd6c8;background:#f7f5ee;color:#59625e;font-size:11px}
+    .workspace{min-height:0;display:grid}
+    .rail{background:var(--dark);display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:10px}
+    .rail .dot{width:30px;height:30px;border-radius:7px;background:#5a5f58}.rail .dot.hot{background:var(--accent2)}
+    .canvas{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#e8e3da 1px,transparent 1px),linear-gradient(90deg,#e8e3da 1px,transparent 1px),#fffdf8;background-size:24px 24px}
+    .side{background:#fffaf0;border-left:1px solid #ddd6c8;min-width:0}
+    .side h3,.panel h3{height:30px;margin:0;padding:8px 10px;border-bottom:1px solid #e2dbce;color:#4e5a57;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+    .line{height:18px;margin:8px;border-radius:4px;background:#ece7dc}.line.short{width:55%}.line.mid{width:74%}
+    .tabs{position:absolute;top:12px;left:14px;display:flex;gap:8px}
+    .tab{height:25px;padding:5px 10px;border:1px solid #d3cec3;border-radius:5px;background:white;color:#4a5552;font-size:11px}.tab.active{border-color:var(--accent);color:#086765;font-weight:700}
+    .node{position:absolute;border:2px solid var(--accent);border-radius:7px;background:white;box-shadow:0 4px 12px rgba(43,43,38,.14)}
+    .node span{display:block;height:8px;margin:11px;border-radius:8px;background:#bec6bd}.n1{left:17%;top:29%;width:118px;height:56px}.n2{left:50%;top:25%;width:126px;height:58px;border-color:var(--accent2)}.n3{left:34%;top:58%;width:136px;height:62px;border-color:var(--green)}
+    .edge{position:absolute;height:3px;background:#717c77;border-radius:999px;transform-origin:left center}.e1{left:34%;top:38%;width:112px;transform:rotate(-8deg)}.e2{left:48%;top:48%;width:90px;transform:rotate(55deg)}
+    .floating{position:absolute;left:16px;bottom:16px;display:flex;gap:7px;background:rgba(255,255,255,.94);border:1px solid #d5d0c4;border-radius:8px;padding:7px;box-shadow:0 8px 20px rgba(45,42,34,.16)}
+    .tool{width:27px;height:27px;border-radius:6px;background:#eef1ed;border:1px solid #cfd5cc}.tool.hot{background:var(--accent);border-color:#0b696a}
+    .search{position:absolute;top:12px;right:14px;width:220px;height:30px;border:1px solid #d3cec3;border-radius:6px;background:white;color:#77817d;font-size:12px;padding:7px 10px}
+    .panel{background:#fffaf0;border-left:1px solid #ddd6c8;border-right:1px solid #ddd6c8}
+    .context{position:absolute;right:16px;top:58px;width:190px;background:white;border:1px solid #d5d0c4;border-radius:8px;box-shadow:0 10px 24px rgba(45,42,34,.16);overflow:hidden}
+    .context h3{height:29px;margin:0;padding:8px 10px;background:#fbfaf6;border-bottom:1px solid #e2dbce;font-size:11px;text-transform:uppercase}
+    .mini{height:20px;margin:8px;border-radius:4px;background:#ebe7dc}
+    .choice{margin:10px 2px 2px;color:var(--muted);font-size:13px}
+    .b1 .workspace{grid-template-columns:54px 1fr 228px}
+    .b2 .screen{grid-template-rows:40px 42px 1fr 28px}.b2 .workspace{grid-template-columns:54px 240px 1fr 220px}.b2 .cmdbar{display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #ddd6c8;background:#f7f5ee}.cmd{width:27px;height:27px;border:1px solid #d4cfc4;border-radius:6px;background:white}.cmd.wide{width:74px}.cmd.hot{background:var(--accent);border-color:#0b696a}
+    .b3 .screen{grid-template-rows:40px 1fr 28px}.b3 .workspace{grid-template-columns:54px 1fr}.b3 .canvas{background-size:26px 26px}.b3 .focus-pill{position:absolute;top:12px;left:14px;height:30px;padding:7px 12px;border-radius:999px;background:var(--dark);color:white;font-size:12px}.b3 .context{right:18px;top:18px}
+    @media(max-width:1180px){.grid{grid-template-columns:1fr}.screen{height:560px}.intro{display:block}.hint{margin-top:12px}}
+  </style>
+</head>
+<body>
+<main>
+  <section class="intro">
+    <div>
+      <h1>Canvas Focus: iteracion B</h1>
+      <p>Tres variantes mas concretas para un cambio radical pero usable: menos ruido, mas canvas y herramientas contextuales.</p>
+    </div>
+    <div class="hint">Elige B1, B2 o B3. Mi recomendacion: B2 si queremos UX fuerte sin esconder demasiado.</div>
+  </section>
+
+  <section class="grid">
+    <article class="card b1">
+      <div class="head"><div class="title"><span class="badge">B1</span> Rail + Inspector</div><span class="tag">Seguro</span></div>
+      <div class="body">
+        <div class="screen">
+          <div class="top"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+          <div class="workspace">
+            <nav class="rail"><span class="dot hot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></nav>
+            <section class="canvas"><div class="tabs"><span class="tab active">Main View</span><span class="tab">Domain</span></div><div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div><div class="edge e1"></div><div class="edge e2"></div><div class="floating"><span class="tool hot"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span></div></section>
+            <aside class="side"><h3>Context</h3><div class="line"></div><div class="line mid"></div><div class="line short"></div><div class="line"></div><div class="line mid"></div></aside>
+          </div>
+          <div class="status"><span>Selection: Concept</span><span>Canvas 100%</span></div>
+        </div>
+        <p class="choice">Buen primer salto: conserva inspector fijo y reduce la complejidad del header.</p>
+      </div>
+    </article>
+
+    <article class="card b2">
+      <div class="head"><div class="title"><span class="badge">B2</span> Command Center</div><span class="tag">Recomendado</span></div>
+      <div class="body">
+        <div class="screen">
+          <div class="top"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+          <div class="cmdbar"><span class="cmd hot"></span><span class="cmd"></span><span class="cmd"></span><span class="cmd wide"></span><span class="cmd wide"></span><span class="cmd"></span><span class="cmd"></span></div>
+          <div class="workspace">
+            <nav class="rail"><span class="dot hot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></nav>
+            <aside class="panel"><h3>Map</h3><div class="line"></div><div class="line mid"></div><div class="line short"></div><div class="line"></div></aside>
+            <section class="canvas"><div class="tabs"><span class="tab active">Main View</span><span class="tab">Notes</span></div><div class="search">Find command or object</div><div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div><div class="edge e1"></div><div class="edge e2"></div></section>
+            <aside class="side"><h3>Inspector</h3><div class="line"></div><div class="line short"></div><div class="line"></div><div class="line mid"></div></aside>
+          </div>
+          <div class="status"><span>Ready</span><span>Command search + panels</span></div>
+        </div>
+        <p class="choice">Mas completo: agrega busqueda de comandos/objetos y mantiene paneles visibles para aprender rapido.</p>
+      </div>
+    </article>
+
+    <article class="card b3">
+      <div class="head"><div class="title"><span class="badge">B3</span> Immersive Canvas</div><span class="tag">Radical</span></div>
+      <div class="body">
+        <div class="screen">
+          <div class="top"><span class="logo"></span><span class="brand">ThinkComposer</span><span class="doc">Strategy Map.tc</span><div class="win"><span></span><span></span><span></span></div></div>
+          <div class="workspace">
+            <nav class="rail"><span class="dot hot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></nav>
+            <section class="canvas"><div class="focus-pill">Focus Mode: Main View</div><div class="context"><h3>Selected</h3><div class="mini"></div><div class="mini"></div><div class="mini"></div></div><div class="node n1"><span></span><span></span></div><div class="node n2"><span></span><span></span></div><div class="node n3"><span></span><span></span></div><div class="edge e1"></div><div class="edge e2"></div><div class="floating"><span class="tool hot"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span><span class="tool"></span></div></section>
+          </div>
+          <div class="status"><span>Panels hidden</span><span>Space / Ctrl+K for commands</span></div>
+        </div>
+        <p class="choice">Maximo foco. Potente, pero necesita mejores atajos, overlays y estados para no perder discoverability.</p>
+      </div>
+    </article>
+  </section>
+</main>
+</body>
+</html>

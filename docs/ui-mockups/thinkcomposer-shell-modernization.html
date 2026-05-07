@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkComposer UI Modernization Mockups</title>
+  <style>
+    :root {
+      --page: #f2f3f0;
+      --ink: #1f2428;
+      --muted: #657078;
+      --line: #d6dad6;
+      --panel: #ffffff;
+      --soft: #eef1ec;
+      --teal: #0f8b8d;
+      --teal-dark: #0a5d5f;
+      --amber: #d18b17;
+      --green: #5f8f3a;
+      --graphite: #2f3434;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.4;
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .intro p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      color: #4b565c;
+      font-size: 13px;
+      min-width: 270px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .option {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(28, 32, 30, 0.08);
+    }
+
+    .option-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fafbf8;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 650;
+    }
+
+    .letter {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--graphite);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tag {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #e6f3ef;
+      color: #13635c;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .option-body { padding: 12px; }
+
+    .screen {
+      height: 470px;
+      border: 1px solid #cbd0ca;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f8faf7;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+
+    .topbar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--teal), var(--amber));
+    }
+
+    .doc-title {
+      color: var(--muted);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .window-buttons {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+    }
+
+    .window-buttons span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #b8beb7;
+    }
+
+    .command-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .cmd-group {
+      display: flex;
+      gap: 5px;
+      padding-right: 9px;
+      border-right: 1px solid rgba(0,0,0,0.12);
+    }
+
+    .cmd {
+      width: 25px;
+      height: 25px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 5px;
+      background: white;
+    }
+
+    .cmd.wide { width: 58px; }
+    .cmd.hot { background: var(--teal); border-color: var(--teal-dark); }
+    .cmd.warn { background: #fff1d6; border-color: #e3ba69; }
+
+    .workspace {
+      display: grid;
+      min-height: 0;
+    }
+
+    .pane {
+      min-width: 0;
+      border-right: 1px solid rgba(0,0,0,0.08);
+      background: #fbfcfa;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane.right { border-right: 0; border-left: 1px solid rgba(0,0,0,0.08); }
+
+    .pane-title {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      color: #4e5c5e;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tree, .props { padding: 8px; }
+    .tree-line, .prop-line {
+      height: 18px;
+      margin-bottom: 6px;
+      border-radius: 4px;
+      background: #e8ede8;
+    }
+    .tree-line.short { width: 68%; }
+    .tree-line.indent { width: 78%; margin-left: 14px; }
+    .prop-line { background: #eef1ed; }
+    .prop-line.half { width: 52%; }
+
+    .canvas {
+      position: relative;
+      min-width: 0;
+      background:
+        linear-gradient(#e7ebe5 1px, transparent 1px),
+        linear-gradient(90deg, #e7ebe5 1px, transparent 1px),
+        #ffffff;
+      background-size: 22px 22px;
+      overflow: hidden;
+    }
+
+    .tabline {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .tab {
+      height: 24px;
+      padding: 5px 10px;
+      border: 1px solid #cfd6cf;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #485252;
+    }
+
+    .tab.active {
+      border-color: var(--teal);
+      color: var(--teal-dark);
+      font-weight: 700;
+    }
+
+    .node {
+      position: absolute;
+      border-radius: 7px;
+      border: 2px solid #2f3434;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(38,43,42,0.12);
+    }
+
+    .node span {
+      display: block;
+      height: 8px;
+      margin: 11px;
+      border-radius: 8px;
+      background: #bac4bc;
+    }
+
+    .n1 { left: 15%; top: 29%; width: 112px; height: 54px; border-color: var(--teal); }
+    .n2 { left: 50%; top: 24%; width: 124px; height: 58px; border-color: var(--amber); }
+    .n3 { left: 34%; top: 57%; width: 132px; height: 62px; border-color: var(--green); }
+    .line {
+      position: absolute;
+      height: 3px;
+      background: #7a8580;
+      transform-origin: left center;
+      border-radius: 999px;
+    }
+    .l1 { left: 33%; top: 38%; width: 110px; transform: rotate(-8deg); }
+    .l2 { left: 47%; top: 48%; width: 88px; transform: rotate(55deg); }
+
+    .status {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #59635f;
+      font-size: 11px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      background: #f5f7f3;
+    }
+
+    .summary {
+      margin: 10px 2px 2px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Option A */
+    .a .topbar { background: #fbfcfa; }
+    .a .command-strip { background: #eef3ee; }
+    .a .workspace { grid-template-columns: 23% 1fr 25%; }
+
+    /* Option B */
+    .b .screen {
+      background: #f6f4ef;
+      grid-template-rows: auto 1fr auto;
+    }
+    .b .topbar {
+      background: #ffffff;
+      border-bottom-color: #d8d1c2;
+    }
+    .b .workspace {
+      grid-template-columns: 52px 1fr 220px;
+    }
+    .b .rail {
+      background: #383a35;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding-top: 10px;
+    }
+    .b .rail-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #60655d;
+    }
+    .b .rail-dot.active { background: var(--amber); }
+    .b .canvas {
+      background:
+        linear-gradient(#e8e3da 1px, transparent 1px),
+        linear-gradient(90deg, #e8e3da 1px, transparent 1px),
+        #fffdf7;
+      background-size: 24px 24px;
+    }
+    .b .pane.right { background: #fffaf0; }
+
+    /* Option C */
+    .c .screen {
+      color: #ece9df;
+      background: #2d2e2a;
+      border-color: #494b45;
+    }
+    .c .topbar {
+      background: #2d2e2a;
+      border-bottom-color: #494b45;
+    }
+    .c .doc-title { color: #c7c2b4; }
+    .c .command-strip {
+      background: #383a35;
+      border-bottom-color: #494b45;
+    }
+    .c .cmd { background: #494d46; border-color: #5d6259; }
+    .c .cmd.hot { background: #1d8b84; }
+    .c .cmd.warn { background: #8a641f; border-color: #b88d38; }
+    .c .workspace { grid-template-columns: 18% 1fr 22%; }
+    .c .pane {
+      background: #343630;
+      border-color: #4c5048;
+    }
+    .c .pane-title {
+      color: #d8d1c2;
+      border-bottom-color: #4c5048;
+    }
+    .c .tree-line, .c .prop-line { background: #4d5149; }
+    .c .canvas {
+      background:
+        linear-gradient(#dcd8cc 1px, transparent 1px),
+        linear-gradient(90deg, #dcd8cc 1px, transparent 1px),
+        #fbfaf6;
+      background-size: 22px 22px;
+    }
+    .c .tab { background: #f8f6ef; border-color: #d6d0c4; }
+    .c .status {
+      background: #2d2e2a;
+      color: #d8d1c2;
+      border-top-color: #494b45;
+    }
+
+    @media (max-width: 1180px) {
+      .grid { grid-template-columns: 1fr; }
+      .screen { height: 560px; }
+      .intro { display: block; }
+      .note { margin-top: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="intro">
+      <div>
+        <h1>ThinkComposer UI modernization mockups</h1>
+        <p>Primeras direcciones visuales para modernizar el shell sin reescribir el editor. Mira densidad, jerarquia, foco en canvas y compatibilidad con paneles existentes.</p>
+      </div>
+      <div class="note">Responde con A, B o C, y que cambiarias: color, densidad, barras, paneles o foco del canvas.</div>
+    </section>
+
+    <section class="grid">
+      <article class="option a">
+        <div class="option-head">
+          <div class="option-title"><span class="letter">A</span> Studio Light</div>
+          <span class="tag">Recomendado</span>
+        </div>
+        <div class="option-body">
+          <div class="screen">
+            <div class="topbar">
+              <div class="brand"><span class="brand-mark"></span>ThinkComposer</div>
+              <div class="doc-title">Strategy Map.tc</div>
+              <div class="window-buttons"><span></span><span></span><span></span></div>
+            </div>
+            <div class="command-strip">
+              <div class="cmd-group"><span class="cmd hot"></span><span class="cmd"></span><span class="cmd"></span></div>
+              <div class="cmd-group"><span class="cmd"></span><span class="cmd"></span><span class="cmd warn"></span><span class="cmd"></span></div>
+              <div class="cmd-group"><span class="cmd wide"></span><span class="cmd wide"></span></div>
+            </div>
+            <div class="workspace">
+              <aside class="pane">
+                <div class="pane-title">Explorer</div>
+                <div class="tree">
+                  <div class="tree-line"></div><div class="tree-line indent"></div><div class="tree-line indent short"></div>
+                  <div class="tree-line"></div><div class="tree-line indent"></div>
+                </div>
+              </aside>
+              <section class="canvas">
+                <div class="tabline"><span class="tab active">Main View</span><span class="tab">Domain</span></div>
+                <div class="node n1"><span></span><span></span></div>
+                <div class="node n2"><span></span><span></span></div>
+                <div class="node n3"><span></span><span></span></div>
+                <div class="line l1"></div><div class="line l2"></div>
+              </section>
+              <aside class="pane right">
+                <div class="pane-title">Inspector</div>
+                <div class="props">
+                  <div class="prop-line"></div><div class="prop-line half"></div><div class="prop-line"></div>
+                  <div class="prop-line"></div><div class="prop-line half"></div>
+                </div>
+              </aside>
+            </div>
+            <div class="status"><span>Ready</span><span>100%  Grid on</span></div>
+          </div>
+          <p class="summary">Moderniza sin cambiar la logica: colores neutros, toolbar compacto, paneles reconocibles y canvas claro.</p>
+        </div>
+      </article>
+
+      <article class="option b">
+        <div class="option-head">
+          <div class="option-title"><span class="letter">B</span> Canvas Focus</div>
+          <span class="tag">Mas espacio</span>
+        </div>
+        <div class="option-body">
+          <div class="screen">
+            <div class="topbar">
+              <div class="brand"><span class="brand-mark"></span>ThinkComposer</div>
+              <div class="doc-title">Strategy Map.tc</div>
+              <div class="window-buttons"><span></span><span></span><span></span></div>
+            </div>
+            <div class="workspace">
+              <nav class="rail">
+                <span class="rail-dot active"></span><span class="rail-dot"></span><span class="rail-dot"></span><span class="rail-dot"></span>
+              </nav>
+              <section class="canvas">
+                <div class="tabline"><span class="tab active">Main View</span><span class="tab">Notes</span></div>
+                <div class="node n1"><span></span><span></span></div>
+                <div class="node n2"><span></span><span></span></div>
+                <div class="node n3"><span></span><span></span></div>
+                <div class="line l1"></div><div class="line l2"></div>
+              </section>
+              <aside class="pane right">
+                <div class="pane-title">Context</div>
+                <div class="props">
+                  <div class="prop-line"></div><div class="prop-line"></div><div class="prop-line half"></div>
+                  <div class="prop-line"></div><div class="prop-line half"></div>
+                </div>
+              </aside>
+            </div>
+            <div class="status"><span>Selection: Concept</span><span>Quick actions visible</span></div>
+          </div>
+          <p class="summary">Reduce paneles laterales y da prioridad al canvas. Requiere mas cambios de interaccion.</p>
+        </div>
+      </article>
+
+      <article class="option c">
+        <div class="option-head">
+          <div class="option-title"><span class="letter">C</span> Graphite Workshop</div>
+          <span class="tag">Contraste</span>
+        </div>
+        <div class="option-body">
+          <div class="screen">
+            <div class="topbar">
+              <div class="brand"><span class="brand-mark"></span>ThinkComposer</div>
+              <div class="doc-title">Strategy Map.tc</div>
+              <div class="window-buttons"><span></span><span></span><span></span></div>
+            </div>
+            <div class="command-strip">
+              <div class="cmd-group"><span class="cmd hot"></span><span class="cmd"></span><span class="cmd"></span></div>
+              <div class="cmd-group"><span class="cmd"></span><span class="cmd warn"></span><span class="cmd"></span></div>
+              <div class="cmd-group"><span class="cmd wide"></span></div>
+            </div>
+            <div class="workspace">
+              <aside class="pane">
+                <div class="pane-title">Map</div>
+                <div class="tree"><div class="tree-line"></div><div class="tree-line indent"></div><div class="tree-line indent short"></div><div class="tree-line"></div></div>
+              </aside>
+              <section class="canvas">
+                <div class="tabline"><span class="tab active">Main View</span><span class="tab">Domain</span></div>
+                <div class="node n1"><span></span><span></span></div>
+                <div class="node n2"><span></span><span></span></div>
+                <div class="node n3"><span></span><span></span></div>
+                <div class="line l1"></div><div class="line l2"></div>
+              </section>
+              <aside class="pane right">
+                <div class="pane-title">Properties</div>
+                <div class="props"><div class="prop-line"></div><div class="prop-line half"></div><div class="prop-line"></div><div class="prop-line"></div></div>
+              </aside>
+            </div>
+            <div class="status"><span>Ready</span><span>High contrast shell</span></div>
+          </div>
+          <p class="summary">Mas moderno visualmente, pero puede sentirse pesado para uso diario y requiere mas ajustes de contraste.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
