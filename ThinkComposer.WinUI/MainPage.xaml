@@ -201,12 +201,12 @@
                         BorderBrush="{ThemeResource ShellBorderBrush}"
                         BorderThickness="1,1,1,0"
                         CornerRadius="6,6,0,0">
-                        <TextBlock Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="Composition 1" />
+                        <TextBlock x:Name="CompositionTitleText" Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="Composition 1" />
                     </Border>
                 </Grid>
 
                 <Grid Grid.Row="1" Background="{ThemeResource CanvasBackgroundBrush}">
-                    <canvas:CompositionCanvas />
+                    <canvas:CompositionCanvas x:Name="CanvasView" />
                 </Grid>
             </Grid>
 
@@ -366,6 +366,7 @@
                             ToolTipService.ToolTip="Collapse bottom panel" />
                     </Grid>
                     <TextBlock
+                        x:Name="MessagesText"
                         Grid.Row="1"
                         Padding="12,8"
                         FontFamily="Consolas"
@@ -382,7 +383,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="Ready" />
-            <TextBlock Grid.Column="1" Margin="18,0" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="WinUI migration shell" />
+            <TextBlock x:Name="StatusContextText" Grid.Column="1" Margin="18,0" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="WinUI migration shell" />
             <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="Native app" />
         </Grid>
     </Grid>

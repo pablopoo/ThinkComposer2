@@ -1,3 +1,4 @@
+using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -17,6 +18,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        LoadStartupSnapshot();
     }
 
     public event EventHandler<ElementTheme>? AppThemeChanged;
@@ -65,5 +67,69 @@ public sealed partial class MainPage : Page
         ExplorerPanel.Visibility = _isExplorerVisible ? Visibility.Visible : Visibility.Collapsed;
         InspectorPanel.Visibility = _isInspectorVisible ? Visibility.Visible : Visibility.Collapsed;
         BottomPanel.Visibility = _isBottomVisible ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void LoadStartupSnapshot()
+    {
+        var snapshotPath = FindStartupSnapshotPath();
+        if (snapshotPath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = CompositionViewSnapshotXmlStore.Load(snapshotPath);
+            CanvasView.LoadSnapshot(snapshot);
+            CompositionTitleText.Text = snapshot.Title;
+            StatusContextText.Text = $"Loaded {Path.GetFileName(snapshotPath)}";
+            MessagesText.Text =
+                $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
+                $"Canvas renderer: loaded .tcview snapshot{Environment.NewLine}" +
+                $"Document: {snapshot.Title}{Environment.NewLine}" +
+                $"Nodes: {snapshot.Nodes.Count}, connectors: {snapshot.Connectors.Count}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
+                $"Canvas renderer: Core snapshot DTOs{Environment.NewLine}" +
+                $"Could not load snapshot: {problem.Message}";
+        }
+    }
+
+    private static string? FindStartupSnapshotPath()
+    {
+        var commandLineSnapshot = Environment.GetCommandLineArgs()
+            .Skip(1)
+            .FirstOrDefault(IsExistingSnapshotPath);
+
+        if (commandLineSnapshot is not null)
+        {
+            return Path.GetFullPath(commandLineSnapshot);
+        }
+
+        return EnumerateAncestorDirectories(AppContext.BaseDirectory)
+            .Concat(EnumerateAncestorDirectories(Environment.CurrentDirectory))
+            .SelectMany(directory => new[]
+            {
+                Path.Combine(directory, "docs", "generated", "All-Purpose.tcview"),
+                Path.Combine(directory, "PredefinedContent", "All-Purpose.tcview")
+            })
+            .FirstOrDefault(File.Exists);
+    }
+
+    private static IEnumerable<string> EnumerateAncestorDirectories(string startDirectory)
+    {
+        for (var directory = new DirectoryInfo(startDirectory); directory is not null; directory = directory.Parent)
+        {
+            yield return directory.FullName;
+        }
+    }
+
+    private static bool IsExistingSnapshotPath(string path)
+    {
+        return string.Equals(Path.GetExtension(path), ".tcview", StringComparison.OrdinalIgnoreCase)
+            && File.Exists(path);
     }
 }

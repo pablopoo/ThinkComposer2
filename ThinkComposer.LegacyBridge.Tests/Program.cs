@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Instrumind.ThinkComposer.Core.Rendering;
 using Instrumind.ThinkComposer.LegacyBridge;
 
 var domainPath = Path.GetFullPath(Path.Combine(
@@ -19,6 +20,25 @@ foreach (var connector in snapshot.Connectors)
 {
     AssertTrue(nodeIds.Contains(connector.SourceId), $"connector {connector.Id} source exists");
     AssertTrue(nodeIds.Contains(connector.TargetId), $"connector {connector.Id} target exists");
+}
+
+var exportPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-export-{Guid.NewGuid():N}.tcview");
+try
+{
+    LegacyCompositionSnapshotExporter.ExportToFile(domainPath, exportPath);
+    var exported = CompositionViewSnapshotXmlStore.Load(exportPath);
+
+    AssertEqual(snapshot.Id, exported.Id, "exported id");
+    AssertEqual(snapshot.Title, exported.Title, "exported title");
+    AssertEqual(snapshot.Nodes.Count, exported.Nodes.Count, "exported node count");
+    AssertEqual(snapshot.Connectors.Count, exported.Connectors.Count, "exported connector count");
+}
+finally
+{
+    if (File.Exists(exportPath))
+    {
+        File.Delete(exportPath);
+    }
 }
 
 static void AssertEqual<T>(T expected, T actual, string name)

@@ -336,6 +336,12 @@ Load legacy `.tdom`/`.tcom` packages through an isolated .NET Framework bridge a
 
 Implementation note: added `LegacyCompositionSnapshotMapper` in `ThinkComposer.Core` using reflection so Core stays WPF-free, plus `ThinkComposer.LegacyBridge` targeting `net48` for BinaryFormatter package compatibility. `ThinkComposer.WinUI` does not reference the bridge or legacy WPF project; the next step is deciding whether WinUI consumes exported snapshots or a migrated modern document format.
 
+- [x] **Step 4: Consume exported legacy snapshot in WinUI**
+
+Export a `.tdom`/`.tcom` package to a UI-neutral `.tcview` snapshot and load that file in WinUI.
+
+Implementation note: added `CompositionViewSnapshotXmlStore`, `ThinkComposer.LegacyBridge.Tool`, and a generated `docs/generated/All-Purpose.tcview` smoke fixture. WinUI now loads a `.tcview` path passed on the command line, or the generated default fixture if present, without referencing WPF or the legacy bridge.
+
 ## Phase 5: Port Editing Workflows
 
 **Files:**

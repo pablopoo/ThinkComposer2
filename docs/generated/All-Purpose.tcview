@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CompositionViewSnapshot id="a4f24540-f6ae-4bac-a3b1-e8bb9a78185d" title="All-Purpose">
+  <Nodes>
+    <Node id="8179eb19-65bb-4453-8cfa-968bc57906c5" text="Flow (Idea 22)" x="8070" y="5757.5" width="80" height="20" />
+    <Node id="64f6eaca-ab60-4428-a449-73fa96f310ef" text="Operates (Idea 32)" x="7910.15625" y="5992.646484375" width="80" height="30" />
+    <Node id="3c3b860a-5784-468e-a204-8687ba7ebf81" text="Operates (Idea 31)" x="7837.01171875" y="5991.328125" width="80" height="30" />
+    <Node id="b8be414f-5586-4aac-89be-61094ffb7399" text="Operates (Idea 30)" x="7918.59375" y="5890" width="80" height="30" />
+    <Node id="280080d9-72e7-4430-8c6f-b3496ef09a3f" text="Operates (Idea 29)" x="7853.1005859375" y="5835.234375" width="80" height="30" />
+    <Node id="59bc8a52-b6ae-4aed-9a57-2fcdcbd7790f" text="Operates (Idea 28)" x="7911.5625" y="5807.3046875" width="80" height="30" />
+    <Node id="91d70203-8feb-449f-bbde-1939a80c69ef" text="Operates (Idea 27)" x="7918.75" y="5710" width="80" height="30" />
+    <Node id="6fc9db72-015d-4892-8533-09888cfbb84f" text="Flow (Idea 26)" x="8012.5" y="5785" width="80" height="20" />
+    <Node id="e659e5bc-1e39-4f79-8464-53f4f935536e" text="Send Product" x="7693.505859375" y="6025" width="80" height="30" />
+    <Node id="a456fb71-b0d3-47c6-a6b1-403177c706eb" text="Flow (Idea 24)" x="8008.88671875" y="6035" width="80" height="20" />
+    <Node id="8f8e71c1-9ec8-4117-afe8-8c387a11b834" text="Flow (Idea 23)" x="8070" y="5847.5" width="80" height="20" />
+    <Node id="f3d145a6-2427-4eff-b4fa-324d4cb15107" text="Is Valid?" x="8070.3515625" y="5940.0551748275757" width="80" height="40" />
+    <Node id="e60237cb-3e6a-4779-a02c-30f43acf02ff" text="Recycle" x="7950" y="5845" width="90" height="40" />
+    <Node id="2a442adc-c440-4bb7-b716-76dd27342903" text="Delivery" x="7925" y="6025" width="90" height="40" />
+    <Node id="b5107339-f12d-44c4-94e3-1c5d9df32561" text="Packaging" x="8065" y="6025" width="90" height="40" />
+    <Node id="ac18987e-788c-465c-a2d8-9a20e5d6c555" text="Quality Assurance" x="8065" y="5885" width="90" height="40" />
+    <Node id="3d084ebd-a847-4479-b31e-e5e68f87bac0" text="Mixing" x="8065" y="5790" width="90" height="40" />
+    <Node id="3909629e-950d-4700-95b0-18e6a601d128" text="Accept Raw Materials" x="8065" y="5705" width="90" height="40" />
+    <Node id="3425a0b7-c76a-4429-85aa-eaf7ba98410e" text="Dependency (Idea 14)" x="7685" y="5770" width="80" height="20" />
+    <Node id="f8d6b771-59a7-499d-a288-ef5f7ae1d27c" text="Dependency (Idea 13)" x="7693.505859375" y="5825" width="80" height="20" />
+    <Node id="f3d49f60-d68d-4e53-be06-11d8fb0dd5db" text="Dependency (Idea 12)" x="7685.76171875" y="5860.41015625" width="80" height="20" />
+    <Node id="e27e2a80-4973-4967-9f7d-30d4154164f0" text="Dependency (Idea 11)" x="7685" y="5892.5" width="80" height="20" />
+    <Node id="32630918-858d-4aa6-91c2-97d4d642b3e5" text="Dependency (Idea 10)" x="7620" y="5892.5" width="80" height="20" />
+    <Node id="d1311c54-5b20-4023-a618-ac1e89bc3fdd" text="Tester" x="7745" y="5890" width="90" height="30" />
+    <Node id="1379d3d7-2658-4a91-bf75-1e281096f277" text="Manager" x="7615" y="5820" width="90" height="30" />
+    <Node id="5519e9e7-1424-4d5d-b7da-35db77a9f8cc" text="Seller" x="7615" y="5955" width="90" height="30" />
+    <Node id="6b542bd5-9be7-4164-ae74-da12a661572e" text="Dispatcher" x="7745" y="5955" width="90" height="30" />
+    <Node id="2ddcf492-d81f-443a-9e7d-bd2e11134a5f" text="Controller" x="7745" y="5820" width="90" height="30" />
+    <Node id="33b30a0b-5555-4406-9fcc-e515ee607408" text="Receiver" x="7745" y="5710" width="90" height="30" />
+    <Node id="147ebe91-8048-4636-b43e-3070d678b7d6" text="Fabrication" x="7975" y="5665" width="120" height="26" />
+    <Node id="796b0b16-c8b7-4fa1-9d96-8252815cac75" text="Team" x="7665" y="5665" width="120" height="26" />
+  </Nodes>
+  <Connectors>
+    <Connector id="b83fc2e6-f55c-47dc-b367-82d0e89bf96e" sourceId="8179eb19-65bb-4453-8cfa-968bc57906c5" targetId="3d084ebd-a847-4479-b31e-e5e68f87bac0" />
+    <Connector id="d34b3dfc-81da-445f-998b-f2a7f44e8c2c" sourceId="3909629e-950d-4700-95b0-18e6a601d128" targetId="8179eb19-65bb-4453-8cfa-968bc57906c5" />
+    <Connector id="c5c4687a-8a2d-4427-af95-2aa84adbfc2a" sourceId="64f6eaca-ab60-4428-a449-73fa96f310ef" targetId="b5107339-f12d-44c4-94e3-1c5d9df32561" />
+    <Connector id="ae28a5c3-113f-4bb7-a3ee-9df2b98cff7e" sourceId="6b542bd5-9be7-4164-ae74-da12a661572e" targetId="64f6eaca-ab60-4428-a449-73fa96f310ef" />
+    <Connector id="a855239a-7f2f-4a99-9e73-e833c4f21c76" sourceId="3c3b860a-5784-468e-a204-8687ba7ebf81" targetId="2a442adc-c440-4bb7-b716-76dd27342903" />
+    <Connector id="f7e08e7c-b398-4671-9cda-b39f6504db38" sourceId="6b542bd5-9be7-4164-ae74-da12a661572e" targetId="3c3b860a-5784-468e-a204-8687ba7ebf81" />
+    <Connector id="658e2ec0-c234-49d0-ba60-83bdfa30c734" sourceId="b8be414f-5586-4aac-89be-61094ffb7399" targetId="ac18987e-788c-465c-a2d8-9a20e5d6c555" />
+    <Connector id="58ccda68-9332-4f93-af35-47acdcaf6cca" sourceId="d1311c54-5b20-4023-a618-ac1e89bc3fdd" targetId="b8be414f-5586-4aac-89be-61094ffb7399" />
+    <Connector id="61481994-b1d5-42a9-9e9f-0776853d7235" sourceId="280080d9-72e7-4430-8c6f-b3496ef09a3f" targetId="e60237cb-3e6a-4779-a02c-30f43acf02ff" />
+    <Connector id="7220342e-df82-4e3b-932b-0e853d872d25" sourceId="2ddcf492-d81f-443a-9e7d-bd2e11134a5f" targetId="280080d9-72e7-4430-8c6f-b3496ef09a3f" />
+    <Connector id="c010914b-e2ca-4ca6-a842-b3baf62085ba" sourceId="59bc8a52-b6ae-4aed-9a57-2fcdcbd7790f" targetId="3d084ebd-a847-4479-b31e-e5e68f87bac0" />
+    <Connector id="c37ea64e-3a98-4e29-bc2c-5d4d403fa04f" sourceId="2ddcf492-d81f-443a-9e7d-bd2e11134a5f" targetId="59bc8a52-b6ae-4aed-9a57-2fcdcbd7790f" />
+    <Connector id="217cc9b6-4e47-4f17-b427-f619e97f61a3" sourceId="91d70203-8feb-449f-bbde-1939a80c69ef" targetId="3909629e-950d-4700-95b0-18e6a601d128" />
+    <Connector id="79ba05db-621f-42c8-975b-5eba6ab5b1ec" sourceId="33b30a0b-5555-4406-9fcc-e515ee607408" targetId="91d70203-8feb-449f-bbde-1939a80c69ef" />
+    <Connector id="7cd34a7b-e1aa-4db7-8c36-1a4ef8b4f07f" sourceId="6fc9db72-015d-4892-8533-09888cfbb84f" targetId="3909629e-950d-4700-95b0-18e6a601d128" />
+    <Connector id="c29a504b-e17d-46ad-9ccd-a7e77a17cdf1" sourceId="e60237cb-3e6a-4779-a02c-30f43acf02ff" targetId="6fc9db72-015d-4892-8533-09888cfbb84f" />
+    <Connector id="393e778a-bc5f-4801-ba90-dd846d8c9f05" sourceId="e659e5bc-1e39-4f79-8464-53f4f935536e" targetId="6b542bd5-9be7-4164-ae74-da12a661572e" />
+    <Connector id="9f72bb43-599a-447c-89f6-13653e9ef40c" sourceId="5519e9e7-1424-4d5d-b7da-35db77a9f8cc" targetId="e659e5bc-1e39-4f79-8464-53f4f935536e" />
+    <Connector id="94c82981-3188-4670-8eda-397b70a91eb5" sourceId="a456fb71-b0d3-47c6-a6b1-403177c706eb" targetId="2a442adc-c440-4bb7-b716-76dd27342903" />
+    <Connector id="d7221186-0661-4a0d-9a65-600bd5ce0766" sourceId="b5107339-f12d-44c4-94e3-1c5d9df32561" targetId="a456fb71-b0d3-47c6-a6b1-403177c706eb" />
+    <Connector id="15a6128b-591f-477e-ae89-12c48a22d544" sourceId="8f8e71c1-9ec8-4117-afe8-8c387a11b834" targetId="ac18987e-788c-465c-a2d8-9a20e5d6c555" />
+    <Connector id="b82cccab-74d9-4a0f-9d03-c1f6362c0d15" sourceId="3d084ebd-a847-4479-b31e-e5e68f87bac0" targetId="8f8e71c1-9ec8-4117-afe8-8c387a11b834" />
+    <Connector id="9ac1d3b9-9460-43ef-819d-efd4e43fcf36" sourceId="f3d145a6-2427-4eff-b4fa-324d4cb15107" targetId="e60237cb-3e6a-4779-a02c-30f43acf02ff" />
+    <Connector id="bfa1b815-b08a-463d-b5d2-9dc6c9c260fb" sourceId="f3d145a6-2427-4eff-b4fa-324d4cb15107" targetId="b5107339-f12d-44c4-94e3-1c5d9df32561" />
+    <Connector id="bb7437f2-d1fb-4587-92a3-af4b10e57c7e" sourceId="ac18987e-788c-465c-a2d8-9a20e5d6c555" targetId="f3d145a6-2427-4eff-b4fa-324d4cb15107" />
+    <Connector id="bf67a998-da77-44aa-ad2a-541d50f1f2eb" sourceId="3425a0b7-c76a-4429-85aa-eaf7ba98410e" targetId="1379d3d7-2658-4a91-bf75-1e281096f277" />
+    <Connector id="1d0717b2-1d28-4f7b-b936-a8ea0429162a" sourceId="33b30a0b-5555-4406-9fcc-e515ee607408" targetId="3425a0b7-c76a-4429-85aa-eaf7ba98410e" />
+    <Connector id="1a663349-8dfd-449a-a245-d74f57b48865" sourceId="f8d6b771-59a7-499d-a288-ef5f7ae1d27c" targetId="1379d3d7-2658-4a91-bf75-1e281096f277" />
+    <Connector id="2bf3bdf4-5c87-4029-bf6c-8e0bcbea60af" sourceId="2ddcf492-d81f-443a-9e7d-bd2e11134a5f" targetId="f8d6b771-59a7-499d-a288-ef5f7ae1d27c" />
+    <Connector id="6984b11e-5a7b-4c05-b9c8-7642d12d7e78" sourceId="f3d49f60-d68d-4e53-be06-11d8fb0dd5db" targetId="1379d3d7-2658-4a91-bf75-1e281096f277" />
+    <Connector id="a0b6aa51-bfb5-4b48-b77c-ca3e4958db18" sourceId="d1311c54-5b20-4023-a618-ac1e89bc3fdd" targetId="f3d49f60-d68d-4e53-be06-11d8fb0dd5db" />
+    <Connector id="2389dec2-7a78-4b96-a5cf-66128a084c90" sourceId="e27e2a80-4973-4967-9f7d-30d4154164f0" targetId="1379d3d7-2658-4a91-bf75-1e281096f277" />
+    <Connector id="877399cf-5be3-4293-a178-4b0ca1f935e9" sourceId="6b542bd5-9be7-4164-ae74-da12a661572e" targetId="e27e2a80-4973-4967-9f7d-30d4154164f0" />
+    <Connector id="7f2eb057-17bf-4605-a0b4-859470339d68" sourceId="32630918-858d-4aa6-91c2-97d4d642b3e5" targetId="1379d3d7-2658-4a91-bf75-1e281096f277" />
+    <Connector id="5db86d06-c951-4217-959d-0376940cd0b8" sourceId="5519e9e7-1424-4d5d-b7da-35db77a9f8cc" targetId="32630918-858d-4aa6-91c2-97d4d642b3e5" />
+  </Connectors>
+</CompositionViewSnapshot>

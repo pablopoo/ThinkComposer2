@@ -63,6 +63,30 @@ AssertEqual("33333333-3333-3333-3333-333333333333", legacyConnector.Id, "legacy 
 AssertEqual(sourceSymbol.GlobalId.ToString(), legacyConnector.SourceId, "legacy connector source");
 AssertEqual(targetSymbol.GlobalId.ToString(), legacyConnector.TargetId, "legacy connector target");
 
+var snapshotPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-{Guid.NewGuid():N}.tcview");
+try
+{
+    CompositionViewSnapshotXmlStore.Save(legacySnapshot, snapshotPath);
+    var roundTripSnapshot = CompositionViewSnapshotXmlStore.Load(snapshotPath);
+
+    AssertEqual(legacySnapshot.Id, roundTripSnapshot.Id, "roundtrip id");
+    AssertEqual(legacySnapshot.Title, roundTripSnapshot.Title, "roundtrip title");
+    AssertEqual(legacySnapshot.Nodes.Count, roundTripSnapshot.Nodes.Count, "roundtrip node count");
+    AssertEqual(legacySnapshot.Connectors.Count, roundTripSnapshot.Connectors.Count, "roundtrip connector count");
+
+    var roundTripNode = roundTripSnapshot.Nodes.Single(node => node.Id == sourceNode.Id);
+    AssertEqual(sourceNode.Text, roundTripNode.Text, "roundtrip node text");
+    AssertEqual(sourceNode.Position.X, roundTripNode.Position.X, "roundtrip node x");
+    AssertEqual(sourceNode.Size.Width, roundTripNode.Size.Width, "roundtrip node width");
+}
+finally
+{
+    if (File.Exists(snapshotPath))
+    {
+        File.Delete(snapshotPath);
+    }
+}
+
 static void AssertEqual<T>(T expected, T actual, string name)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))

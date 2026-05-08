@@ -41,7 +41,24 @@ public sealed partial class CompositionCanvas : UserControl
         _connectors.AddRange(snapshot.Connectors);
 
         _selectedNode = _nodes.FirstOrDefault();
+        FitContentToOrigin();
         DrawingSurface?.Invalidate();
+    }
+
+    private void FitContentToOrigin()
+    {
+        _zoom = 1.0;
+
+        if (_nodes.Count == 0)
+        {
+            _pan = Vector2.Zero;
+            return;
+        }
+
+        const float margin = 56;
+        var left = _nodes.Min(node => node.Bounds.Left);
+        var top = _nodes.Min(node => node.Bounds.Top);
+        _pan = new Vector2((float)(margin - left), (float)(margin - top));
     }
 
     private void DrawingSurface_Draw(CanvasControl sender, CanvasDrawEventArgs args)
