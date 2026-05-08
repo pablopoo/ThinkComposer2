@@ -41,6 +41,49 @@ finally
     }
 }
 
+var documentExportPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-export-{Guid.NewGuid():N}.tcdoc");
+try
+{
+    var document = LegacyCompositionDocumentExporter.ExportToFile(domainPath, documentExportPath);
+    var reloadedDocument = CompositionDocumentSnapshotXmlStore.Load(documentExportPath);
+
+    AssertEqual(document.Id, reloadedDocument.Id, "document exported id");
+    AssertEqual("All-Purpose", reloadedDocument.Title, "document exported title");
+    AssertEqual("All-Purpose", reloadedDocument.Domain.Name, "document exported domain");
+    AssertTrue(reloadedDocument.Domain.ConceptDefinitions.Count > 0, "document concept definitions");
+    AssertTrue(reloadedDocument.Domain.RelationshipDefinitions.Count > 0, "document relationship definitions");
+    AssertTrue(reloadedDocument.Domain.MarkerDefinitions.Count > 0, "document marker definitions");
+    AssertTrue(reloadedDocument.Domain.TableDefinitions.Count > 0, "document table definitions");
+    AssertEqual(snapshot.Nodes.Count, reloadedDocument.Ideas.Count, "document idea count");
+    AssertEqual(snapshot.Connectors.Count, reloadedDocument.Relationships.Count, "document relationship count");
+    AssertEqual(1, reloadedDocument.Views.Count, "document view count");
+    AssertTrue(reloadedDocument.Extensions.Any(extension => extension.Key == "legacy.package.base64"), "document preserves legacy package");
+    AssertTrue(reloadedDocument.Extensions.Any(extension => extension.Key == "legacy.source.extension"), "document preserves legacy extension");
+}
+finally
+{
+    if (File.Exists(documentExportPath))
+    {
+        File.Delete(documentExportPath);
+    }
+}
+
+var dispatchedDocumentPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-dispatch-{Guid.NewGuid():N}.tcdoc");
+try
+{
+    var dispatchedKind = LegacyCompositionExportDispatcher.ExportToFile(domainPath, dispatchedDocumentPath);
+    AssertEqual(CompositionDocumentFileKind.ModernDocument, dispatchedKind, "dispatch modern kind");
+    AssertTrue(File.Exists(dispatchedDocumentPath), "dispatch modern file exists");
+    AssertEqual("All-Purpose", CompositionDocumentSnapshotXmlStore.Load(dispatchedDocumentPath).Title, "dispatch modern title");
+}
+finally
+{
+    if (File.Exists(dispatchedDocumentPath))
+    {
+        File.Delete(dispatchedDocumentPath);
+    }
+}
+
 static void AssertEqual<T>(T expected, T actual, string name)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))

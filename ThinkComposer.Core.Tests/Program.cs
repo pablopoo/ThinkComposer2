@@ -13,6 +13,7 @@ AssertEqual(0, emptyDocument.Nodes.Count, "empty document nodes");
 AssertEqual(0, emptyDocument.Connectors.Count, "empty document connectors");
 AssertTrue(Guid.TryParse(emptyDocument.Id, out _), "empty document id is guid");
 AssertEqual(CompositionDocumentFileKind.Snapshot, CompositionDocumentFileKindDetector.FromPath("sample.tcview"), "snapshot extension");
+AssertEqual(CompositionDocumentFileKind.ModernDocument, CompositionDocumentFileKindDetector.FromPath("sample.tcdoc"), "modern document extension");
 AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKindDetector.FromPath("sample.tdom"), "tdom extension");
 AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKindDetector.FromPath("sample.tcom"), "tcom extension");
 AssertEqual(CompositionDocumentFileKind.Unknown, CompositionDocumentFileKindDetector.FromPath("sample.txt"), "unknown extension");

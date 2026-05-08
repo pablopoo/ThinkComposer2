@@ -109,6 +109,6 @@ dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86
 
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `Project modern documents to WinUI snapshots`.
