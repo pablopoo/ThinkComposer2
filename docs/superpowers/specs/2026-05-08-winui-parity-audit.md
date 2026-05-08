@@ -23,7 +23,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
-- Hardening: full migration check script verifies WinUI/Core WPF boundaries and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
+- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script coverage, and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
 
 ## Remaining Gaps
 
@@ -50,12 +50,12 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 ### P2 - Product/Release Hardening
 
 - Self-contained publish output is scripted; installer, signing, and update channel remain to be defined.
-- Automated UI smoke tests should be added around launch, theme switching, open/save, create/edit, and report/generation.
+- Automated UI smoke covers launch, optional startup documents, and main-window creation; broader workflow automation should cover theme switching, open/save, create/edit, and report/generation.
 - Product options/licensing checks remain a product decision.
 
 ## Recommended Backlog
 
 1. Build a spreadsheet-like grid editor for table details and base-table records.
 2. Add PDF/XPS or an explicit supported replacement path.
-3. Add UI automation smoke tests around launch, theme switching, open/save, create/edit, and report/generation.
+3. Add UI automation smoke tests around theme switching, open/save, create/edit, and report/generation.
 4. Define installer, signing, and update-channel packaging.
