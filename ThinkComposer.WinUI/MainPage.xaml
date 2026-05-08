@@ -370,7 +370,7 @@
                         Padding="12,8"
                         FontFamily="Consolas"
                         FontSize="12"
-                        Text="ThinkComposer WinUI shell loaded&#x0a;Canvas renderer: placeholder, Win2D next&#x0a;Document compatibility: baseline inventory ready" />
+                        Text="ThinkComposer WinUI shell loaded&#x0a;Canvas renderer: Core snapshot DTOs&#x0a;Document compatibility: read-only migration path" />
                 </Grid>
             </Border>
         </Grid>

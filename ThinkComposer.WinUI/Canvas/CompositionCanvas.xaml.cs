@@ -1,4 +1,5 @@
 using System.Numerics;
+using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
@@ -12,25 +13,12 @@ namespace Instrumind.ThinkComposer.WinUI.Canvas;
 
 public sealed partial class CompositionCanvas : UserControl
 {
-    private readonly List<CanvasNode> _nodes =
-    [
-        new("customer", "Customer Need", "Selected concept", new Rect(120, 132, 164, 82)),
-        new("capability", "Business Capability", "Native Win2D surface", new Rect(420, 190, 184, 86)),
-        new("service", "System Service", "Fast pan, zoom, select, drag", new Rect(690, 104, 176, 88))
-    ];
-
-    private readonly List<(string Source, string Target)> _connectors =
-    [
-        ("customer", "capability"),
-        ("capability", "service")
-    ];
+    private readonly List<CanvasNode> _nodes = [];
+    private readonly List<CompositionConnectorView> _connectors = [];
 
     private Vector2 _pan = new(0, 0);
     private double _zoom = 1.0;
     private CanvasNode? _selectedNode;
-    private CanvasNode? _draggedNode;
-    private Point _dragStartWorld;
-    private Rect _dragStartBounds;
     private bool _isPanning;
     private Point _panStartScreen;
     private Vector2 _panStart;
@@ -38,8 +26,22 @@ public sealed partial class CompositionCanvas : UserControl
     public CompositionCanvas()
     {
         InitializeComponent();
-        _selectedNode = _nodes[0];
+        LoadSnapshot(DemoCompositionViewSource.CreateSnapshot());
         ActualThemeChanged += (_, _) => DrawingSurface.Invalidate();
+    }
+
+    public void LoadSnapshot(CompositionViewSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        _nodes.Clear();
+        _nodes.AddRange(snapshot.Nodes.Select(CanvasNode.FromView));
+
+        _connectors.Clear();
+        _connectors.AddRange(snapshot.Connectors);
+
+        _selectedNode = _nodes.FirstOrDefault();
+        DrawingSurface?.Invalidate();
     }
 
     private void DrawingSurface_Draw(CanvasControl sender, CanvasDrawEventArgs args)
@@ -76,8 +78,16 @@ public sealed partial class CompositionCanvas : UserControl
     {
         foreach (var connector in _connectors)
         {
-            var source = _nodes.First(node => node.Id == connector.Source).Center;
-            var target = _nodes.First(node => node.Id == connector.Target).Center;
+            var sourceNode = _nodes.FirstOrDefault(node => node.Id == connector.SourceId);
+            var targetNode = _nodes.FirstOrDefault(node => node.Id == connector.TargetId);
+
+            if (sourceNode is null || targetNode is null)
+            {
+                continue;
+            }
+
+            var source = sourceNode.Center;
+            var target = targetNode.Center;
             session.DrawLine((float)source.X, (float)source.Y, (float)target.X, (float)target.Y, palette.Connector, 2);
         }
     }
@@ -109,15 +119,10 @@ public sealed partial class CompositionCanvas : UserControl
     {
         var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
         var worldPoint = ToWorld(screenPoint);
-        _draggedNode = HitTest(worldPoint);
-        _selectedNode = _draggedNode ?? _selectedNode;
+        var hitNode = HitTest(worldPoint);
+        _selectedNode = hitNode ?? _selectedNode;
 
-        if (_draggedNode is not null)
-        {
-            _dragStartWorld = worldPoint;
-            _dragStartBounds = _draggedNode.Bounds;
-        }
-        else
+        if (hitNode is null)
         {
             _isPanning = true;
             _panStartScreen = screenPoint;
@@ -132,18 +137,6 @@ public sealed partial class CompositionCanvas : UserControl
     {
         var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
 
-        if (_draggedNode is not null)
-        {
-            var worldPoint = ToWorld(screenPoint);
-            _draggedNode.Bounds = new Rect(
-                _dragStartBounds.X + worldPoint.X - _dragStartWorld.X,
-                _dragStartBounds.Y + worldPoint.Y - _dragStartWorld.Y,
-                _dragStartBounds.Width,
-                _dragStartBounds.Height);
-            DrawingSurface.Invalidate();
-            return;
-        }
-
         if (_isPanning)
         {
             _pan = new Vector2(
@@ -155,7 +148,6 @@ public sealed partial class CompositionCanvas : UserControl
 
     private void DrawingSurface_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        _draggedNode = null;
         _isPanning = false;
         DrawingSurface.ReleasePointerCapture(e.Pointer);
     }
@@ -203,6 +195,15 @@ public sealed partial class CompositionCanvas : UserControl
         public string Subtitle { get; } = subtitle;
         public Rect Bounds { get; set; } = bounds;
         public Point Center => new(Bounds.X + Bounds.Width / 2, Bounds.Y + Bounds.Height / 2);
+
+        public static CanvasNode FromView(CompositionNodeView node)
+        {
+            return new CanvasNode(
+                node.Id,
+                node.Text,
+                "Read-only snapshot",
+                new Rect(node.Position.X, node.Position.Y, node.Size.Width, node.Size.Height));
+        }
     }
 
     private sealed record CanvasPalette(

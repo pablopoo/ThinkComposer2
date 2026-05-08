@@ -309,7 +309,7 @@ Expected: interaction feels fast and stable.
 - Create or modify core adapters under `ThinkComposer.Core`
 - Modify: `ThinkComposer.WinUI/Canvas/CompositionCanvasRenderer.cs`
 
-- [ ] **Step 1: Map real model to DTOs**
+- [x] **Step 1: Map generated composition source to DTOs**
 
 Expose composition data as:
 
@@ -320,11 +320,15 @@ IReadOnlyList<CompositionConnectorView>
 
 Expected: WinUI renderer consumes DTOs only.
 
-- [ ] **Step 2: Render real composition read-only**
+Implementation note: added `CompositionViewSnapshot` plus `DemoCompositionViewSource` in `ThinkComposer.Core`, with `ThinkComposer.Core.Tests` covering node/connector snapshot shape. The legacy `.tcom` model adapter remains the next deeper document-loading step and must target this same DTO contract.
+
+- [x] **Step 2: Render generated composition read-only**
 
 Load an existing or generated composition.
 
 Expected: WinUI shows real data without WPF controls.
+
+Implementation note: `ThinkComposer.WinUI` now renders `CompositionViewSnapshot` data from Core instead of private hardcoded canvas data. Canvas remains read-only for model data: select, pan, and zoom are allowed; model writeback is deferred to Phase 5.
 
 ## Phase 5: Port Editing Workflows
 
