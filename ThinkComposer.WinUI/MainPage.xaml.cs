@@ -14,12 +14,16 @@ public sealed partial class MainPage : Page
     private bool _isInspectorVisible = true;
     private bool _isBottomVisible = true;
     private bool _isDarkTheme;
+    private bool _isDirty;
+    private string? _snapshotPath;
+    private CompositionViewSnapshot? _currentSnapshot;
     private CompositionSnapshotIndex? _snapshotIndex;
 
     public MainPage()
     {
         InitializeComponent();
         CanvasView.SelectedNodeChanged += CanvasView_SelectedNodeChanged;
+        CanvasView.NodeMoved += CanvasView_NodeMoved;
         LoadStartupSnapshot();
     }
 
@@ -61,6 +65,40 @@ public sealed partial class MainPage : Page
         AppThemeChanged?.Invoke(this, theme);
     }
 
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_snapshotPath))
+        {
+            MessagesText.Text =
+                $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
+                "No snapshot is available to save.";
+            return;
+        }
+
+        if (!_isDirty)
+        {
+            StatusContextText.Text = $"No changes {Path.GetFileName(_snapshotPath)}";
+            return;
+        }
+
+        try
+        {
+            CompositionViewSnapshotXmlStore.Save(_currentSnapshot, _snapshotPath);
+            _isDirty = false;
+            StatusContextText.Text = $"Saved {Path.GetFileName(_snapshotPath)}";
+            MessagesText.Text =
+                $"Snapshot saved{Environment.NewLine}" +
+                $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
+                $"Path: {_snapshotPath}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not save snapshot{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
     private void ApplyPanelState()
     {
         ExplorerColumn.Width = _isExplorerVisible ? ExplorerWidth : new GridLength(0);
@@ -96,6 +134,9 @@ public sealed partial class MainPage : Page
 
     private void ApplySnapshot(CompositionViewSnapshot snapshot, string snapshotPath)
     {
+        _currentSnapshot = snapshot;
+        _snapshotPath = snapshotPath;
+        _isDirty = false;
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
 
         UpdateExplorer(snapshot);
@@ -141,6 +182,24 @@ public sealed partial class MainPage : Page
     private void CanvasView_SelectedNodeChanged(object? sender, CompositionNodeView? node)
     {
         ApplySelectedNode(node);
+    }
+
+    private void CanvasView_NodeMoved(object? sender, CompositionNodeView node)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        _currentSnapshot = CompositionSnapshotEditor.MoveNode(_currentSnapshot, node.Id, node.Position);
+        _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(_currentSnapshot);
+        _isDirty = true;
+        ApplySelectedNode(node);
+
+        if (!string.IsNullOrWhiteSpace(_snapshotPath))
+        {
+            StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
+        }
     }
 
     private void ApplySelectedNode(CompositionNodeView? node)

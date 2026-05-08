@@ -1,4 +1,5 @@
 using System.Numerics;
+using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Text;
@@ -24,6 +25,9 @@ public sealed partial class CompositionCanvas : UserControl
     private bool _isPanning;
     private Point _panStartScreen;
     private Vector2 _panStart;
+    private CanvasNode? _draggedNode;
+    private Point _dragStartWorld;
+    private Rect _dragStartBounds;
 
     public CompositionCanvas()
     {
@@ -40,6 +44,7 @@ public sealed partial class CompositionCanvas : UserControl
     }
 
     public event EventHandler<CompositionNodeView?>? SelectedNodeChanged;
+    public event EventHandler<CompositionNodeView>? NodeMoved;
 
     public CompositionNodeView? SelectedNode => _selectedNode?.Source;
 
@@ -193,6 +198,9 @@ public sealed partial class CompositionCanvas : UserControl
         if (hitNode is not null)
         {
             SetSelectedNode(hitNode);
+            _draggedNode = hitNode;
+            _dragStartWorld = worldPoint;
+            _dragStartBounds = hitNode.Bounds;
         }
 
         if (hitNode is null)
@@ -210,6 +218,18 @@ public sealed partial class CompositionCanvas : UserControl
     {
         var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
 
+        if (_draggedNode is not null)
+        {
+            var worldPoint = ToWorld(screenPoint);
+            _draggedNode.MoveTo(
+                _dragStartBounds.X + worldPoint.X - _dragStartWorld.X,
+                _dragStartBounds.Y + worldPoint.Y - _dragStartWorld.Y);
+
+            NodeMoved?.Invoke(this, _draggedNode.Source);
+            DrawingSurface.Invalidate();
+            return;
+        }
+
         if (_isPanning)
         {
             _pan = new Vector2(
@@ -222,6 +242,7 @@ public sealed partial class CompositionCanvas : UserControl
     private void DrawingSurface_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
         _isPanning = false;
+        _draggedNode = null;
         DrawingSurface.ReleasePointerCapture(e.Pointer);
     }
 
@@ -289,8 +310,14 @@ public sealed partial class CompositionCanvas : UserControl
         public string Title { get; } = title;
         public string Subtitle { get; } = subtitle;
         public Rect Bounds { get; set; } = bounds;
-        public CompositionNodeView Source { get; } = source;
+        public CompositionNodeView Source { get; private set; } = source;
         public Point Center => new(Bounds.X + Bounds.Width / 2, Bounds.Y + Bounds.Height / 2);
+
+        public void MoveTo(double x, double y)
+        {
+            Bounds = new Rect(x, y, Bounds.Width, Bounds.Height);
+            Source = Source with { Position = new TcPoint(x, y) };
+        }
 
         public static CanvasNode FromView(CompositionNodeView node)
         {

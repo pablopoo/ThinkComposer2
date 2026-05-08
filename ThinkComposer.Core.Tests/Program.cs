@@ -129,6 +129,37 @@ AssertEqual(1, index.CountOutgoing("left"), "left outgoing");
 AssertEqual(1, index.CountIncoming("left"), "left incoming");
 AssertEqual(0, index.CountIncoming("missing"), "missing incoming");
 
+var movedSnapshot = CompositionSnapshotEditor.MoveNode(indexedSnapshot, "left", new TcPoint(42, 84));
+var movedLeft = movedSnapshot.Nodes.Single(node => node.Id == "left");
+var unmovedRight = movedSnapshot.Nodes.Single(node => node.Id == "right");
+AssertEqual(42.0, movedLeft.Position.X, "moved left x");
+AssertEqual(84.0, movedLeft.Position.Y, "moved left y");
+AssertEqual(100.0, movedLeft.Size.Width, "moved left width");
+AssertEqual(300.0, unmovedRight.Position.X, "unmoved right x");
+AssertEqual(indexedSnapshot.Connectors.Count, movedSnapshot.Connectors.Count, "move preserves connectors");
+AssertEqual(100.0, indexedSnapshot.Nodes.Single(node => node.Id == "left").Position.X, "move leaves original x");
+AssertThrows<InvalidOperationException>(
+    () => CompositionSnapshotEditor.MoveNode(indexedSnapshot, "missing", new TcPoint(0, 0)),
+    "move missing node");
+
+var movedSnapshotPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-moved-{Guid.NewGuid():N}.tcview");
+try
+{
+    CompositionViewSnapshotXmlStore.Save(movedSnapshot, movedSnapshotPath);
+    var reloadedMovedSnapshot = CompositionViewSnapshotXmlStore.Load(movedSnapshotPath);
+    var reloadedMovedLeft = reloadedMovedSnapshot.Nodes.Single(node => node.Id == "left");
+
+    AssertEqual(42.0, reloadedMovedLeft.Position.X, "moved roundtrip x");
+    AssertEqual(84.0, reloadedMovedLeft.Position.Y, "moved roundtrip y");
+}
+finally
+{
+    if (File.Exists(movedSnapshotPath))
+    {
+        File.Delete(movedSnapshotPath);
+    }
+}
+
 static void AssertEqual<T>(T expected, T actual, string name)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
@@ -143,6 +174,21 @@ static void AssertTrue(bool condition, string name)
     {
         throw new InvalidOperationException($"{name}: expected true");
     }
+}
+
+static void AssertThrows<TException>(Action action, string name)
+    where TException : Exception
+{
+    try
+    {
+        action();
+    }
+    catch (TException)
+    {
+        return;
+    }
+
+    throw new InvalidOperationException($"{name}: expected {typeof(TException).Name}");
 }
 
 public sealed class LegacyComposition(Guid globalId, string name, LegacyView activeView)
