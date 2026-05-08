@@ -150,6 +150,17 @@ AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
 
+var modernReportHtml = CompositionDocumentReportHtmlExporter.Export(modernDocument);
+AssertTrue(modernReportHtml.Contains("<!doctype html>", StringComparison.OrdinalIgnoreCase), "modern report doctype");
+AssertTrue(modernReportHtml.Contains("Modern Document", StringComparison.Ordinal), "modern report title");
+AssertTrue(modernReportHtml.Contains("Domain: All Purpose", StringComparison.Ordinal), "modern report domain");
+AssertTrue(modernReportHtml.Contains("Customer Need", StringComparison.Ordinal), "modern report idea");
+AssertTrue(modernReportHtml.Contains("Spec", StringComparison.Ordinal), "modern report idea detail");
+AssertTrue(modernReportHtml.Contains("Addresses", StringComparison.Ordinal), "modern report relationship");
+AssertTrue(modernReportHtml.Contains("Source: Customer Need", StringComparison.Ordinal), "modern report source");
+AssertTrue(modernReportHtml.Contains("<svg", StringComparison.Ordinal), "modern report view svg");
+AssertTrue(modernReportHtml.Contains("Checklist", StringComparison.Ordinal), "modern report table definition");
+
 var modernDocumentPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-modern-{Guid.NewGuid():N}.tcdoc");
 try
 {
@@ -232,6 +243,7 @@ finally
 var commandEntries = CompositionCommandCatalog.ForSnapshot(snapshot);
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.Open), "command catalog open");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ExportHtml), "command catalog export");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ReportHtml), "command catalog report");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.PrintPreview), "command catalog print preview");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
 AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");

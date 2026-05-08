@@ -293,6 +293,42 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void ReportButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var picker = new FileSavePicker();
+        InitializePicker(picker);
+        picker.FileTypeChoices.Add("Document report HTML", [".html"]);
+        picker.SuggestedFileName = $"{(_currentSnapshot.Title.Length == 0 ? "Untitled" : _currentSnapshot.Title)}-report";
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var document = BuildCurrentDocument();
+            await FileIO.WriteTextAsync(file, CompositionDocumentReportHtmlExporter.Export(document));
+            StatusContextText.Text = $"Report exported {Path.GetFileName(file.Path)}";
+            MessagesText.Text =
+                $"Document report exported{Environment.NewLine}" +
+                $"Path: {file.Path}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not export report{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
     private async void PrintPreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -1552,6 +1588,9 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandIds.ExportHtml:
                 ExportButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.ReportHtml:
+                ReportButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.PrintPreview:
                 PrintPreviewButton_Click(this, new RoutedEventArgs());
