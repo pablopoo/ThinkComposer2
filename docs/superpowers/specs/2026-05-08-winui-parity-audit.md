@@ -4,9 +4,9 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, and migration checks.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, deeper composite/shortcut authoring, presentation/multi-sheet print, PDF/XPS output, release packaging, and automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, deeper composite/shortcut authoring, presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -22,7 +22,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
-- Hardening: full migration check script verifies WinUI/Core WPF boundaries and solution build.
+- Hardening: full migration check script verifies WinUI/Core WPF boundaries and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
 
 ## Remaining Gaps
 
@@ -49,7 +49,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ### P2 - Product/Release Hardening
 
-- Installer/release packaging remains to be defined.
+- Self-contained publish output is scripted; installer, signing, and update channel remain to be defined.
 - Automated UI smoke tests should be added around launch, theme switching, open/save, create/edit, and report/generation.
 - Product options/licensing checks remain a product decision.
 

@@ -2,6 +2,7 @@ param(
     [string]$Configuration = "Release",
     [string]$Platform = "x64",
     [switch]$NoPublish,
+    [string]$ExecutablePath = "",
     [int]$StartupSeconds = 5
 )
 
@@ -11,10 +12,15 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $rid = "win-$($Platform.ToLowerInvariant())"
 $project = Join-Path $repoRoot "ThinkComposer.WinUI\ThinkComposer.WinUI.csproj"
 $publishDir = Join-Path $repoRoot "ThinkComposer.WinUI\bin\$Configuration\net10.0-windows10.0.26100.0\$rid\publish"
-$exePath = Join-Path $publishDir "ThinkComposer.WinUI.exe"
+$exePath = if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    Join-Path $publishDir "ThinkComposer.WinUI.exe"
+}
+else {
+    $ExecutablePath
+}
 $process = $null
 
-if (-not $NoPublish) {
+if (-not $NoPublish -and [string]::IsNullOrWhiteSpace($ExecutablePath)) {
     Push-Location $repoRoot
     try {
         dotnet publish $project -p:Configuration=$Configuration -p:Platform=$Platform -p:PublishProfile=$rid --no-restore
