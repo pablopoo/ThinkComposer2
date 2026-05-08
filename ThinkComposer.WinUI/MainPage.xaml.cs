@@ -75,6 +75,7 @@ public sealed partial class MainPage : Page
     private CompositionDefinitionGroup? _selectedDefinitionGroup;
     private string? _selectedTemplateKey;
     private string? _pendingRelationshipSourceId;
+    private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
@@ -515,6 +516,14 @@ public sealed partial class MainPage : Page
 
     private void NewRelationshipButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_selectedDefinitionGroup == CompositionDefinitionGroup.Relationship)
+        {
+            _pendingRelationshipDefinitionId = _selectedDefinitionId;
+            _pendingRelationshipSourceId = null;
+            StatusContextText.Text = "Select source concept";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_selectedNodeId))
         {
             StatusContextText.Text = "Select a source concept first";
@@ -522,6 +531,7 @@ public sealed partial class MainPage : Page
         }
 
         _pendingRelationshipSourceId = _selectedNodeId;
+        _pendingRelationshipDefinitionId = null;
         StatusContextText.Text = "Select target concept";
     }
 
@@ -2429,10 +2439,21 @@ public sealed partial class MainPage : Page
     private bool TryCompletePendingRelationship(CompositionNodeView? targetNode)
     {
         if (_currentSnapshot is null ||
-            targetNode is null ||
-            string.IsNullOrWhiteSpace(_pendingRelationshipSourceId))
+            targetNode is null)
         {
             return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_pendingRelationshipSourceId))
+        {
+            if (string.IsNullOrWhiteSpace(_pendingRelationshipDefinitionId))
+            {
+                return false;
+            }
+
+            _pendingRelationshipSourceId = targetNode.Id;
+            StatusContextText.Text = "Select target concept";
+            return true;
         }
 
         if (string.Equals(_pendingRelationshipSourceId, targetNode.Id, StringComparison.Ordinal))
@@ -2441,17 +2462,35 @@ public sealed partial class MainPage : Page
             return true;
         }
 
+        var relationshipDefinitionId = _pendingRelationshipDefinitionId;
+        var relationshipDefinition = string.IsNullOrWhiteSpace(relationshipDefinitionId)
+            ? null
+            : FindDefinition(CompositionDefinitionGroup.Relationship, relationshipDefinitionId);
         var connector = new CompositionConnectorView(
             Guid.NewGuid().ToString(),
             _pendingRelationshipSourceId,
             targetNode.Id,
-            "Relationship");
+            relationshipDefinition?.Name ?? "Relationship",
+            relationshipDefinition?.Style ?? new CompositionStyleSnapshot());
         _pendingRelationshipSourceId = null;
+        _pendingRelationshipDefinitionId = null;
         ApplyEditedSnapshot(
             CompositionSnapshotEditor.CreateConnector(_currentSnapshot, connector),
             selectedNodeId: null,
             fitToViewport: false,
             selectedConnectorId: connector.Id);
+        if (!string.IsNullOrWhiteSpace(relationshipDefinitionId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(
+                EnsureCurrentDocument(),
+                connector.Id,
+                relationshipDefinitionId);
+            RefreshCurrentSelectionInspector();
+            RefreshCommandCatalog();
+            RefreshBottomPanelContent();
+            StatusContextText.Text = $"Created {relationshipDefinition?.Name ?? "relationship"}";
+        }
+
         return true;
     }
 
