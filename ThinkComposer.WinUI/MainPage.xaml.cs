@@ -711,7 +711,7 @@ public sealed partial class MainPage : Page
     {
         PreviewText.Text = _currentSnapshot is null
             ? "No document loaded."
-            : CompositionSnapshotPreviewTextBuilder.Build(_currentSnapshot);
+            : CompositionDocumentPreviewTextBuilder.Build(BuildCurrentDocument());
     }
 
     private void RefreshDiagnostics()

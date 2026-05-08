@@ -184,6 +184,15 @@ AssertTrue(generatedConceptFile.Content.Contains("Definition=Concept", StringCom
 AssertTrue(generatedConceptFile.Content.Contains("Spec=spec.pdf", StringComparison.Ordinal), "modern generation detail");
 var generatedRelationshipFile = generatedFiles.Files.Single(file => file.RelativePath == "Addresses.rel.txt");
 AssertTrue(generatedRelationshipFile.Content.Contains("Customer Need -> Customer Need: Addresses", StringComparison.Ordinal), "modern generation relationship");
+var documentPreviewText = CompositionDocumentPreviewTextBuilder.Build(generationDocument);
+AssertTrue(documentPreviewText.Contains("Modern Document", StringComparison.Ordinal), "document preview title");
+AssertTrue(documentPreviewText.Contains("Domain: All Purpose", StringComparison.Ordinal), "document preview domain");
+AssertTrue(documentPreviewText.Contains("Concept: Customer Need", StringComparison.Ordinal), "document preview idea");
+AssertTrue(documentPreviewText.Contains("Marker: Risk", StringComparison.Ordinal), "document preview marker");
+AssertTrue(documentPreviewText.Contains("Detail: Spec = spec.pdf", StringComparison.Ordinal), "document preview detail");
+AssertTrue(documentPreviewText.Contains("Generated files (2)", StringComparison.Ordinal), "document preview generated count");
+AssertTrue(documentPreviewText.Contains("Customer Need.md", StringComparison.Ordinal), "document preview generated concept file");
+AssertTrue(documentPreviewText.Contains("Addresses.rel.txt", StringComparison.Ordinal), "document preview generated relationship file");
 var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
     modernDocument,
     new CompositionExtensionSnapshot(
