@@ -56,11 +56,13 @@
                 DefaultLabelPosition="Collapsed"
                 Foreground="{ThemeResource ChromeForegroundBrush}"
                 IsOpen="False">
-                <AppBarButton Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Add" Label="New" ToolTipService.ToolTip="New composition" />
+                <AppBarButton Click="NewConceptButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Add" Label="New concept" ToolTipService.ToolTip="New concept" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
                 <AppBarSeparator />
-                <AppBarButton Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Undo" Label="Undo" ToolTipService.ToolTip="Undo" />
-                <AppBarButton Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Redo" Label="Redo" ToolTipService.ToolTip="Redo" />
+                <AppBarButton Click="UndoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Undo" Label="Undo" ToolTipService.ToolTip="Undo" />
+                <AppBarButton Click="RedoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Redo" Label="Redo" ToolTipService.ToolTip="Redo" />
+                <AppBarSeparator />
+                <AppBarButton Click="DeleteButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Delete" Label="Delete" ToolTipService.ToolTip="Delete selected concept" />
             </CommandBar>
 
             <AutoSuggestBox
@@ -274,7 +276,8 @@
                                         x:Name="InspectorNameBox"
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
-                                        IsReadOnly="True"
+                                        KeyDown="InspectorNameBox_KeyDown"
+                                        LostFocus="InspectorNameBox_LostFocus"
                                         Text="Customer Need" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Kind" />
@@ -322,6 +325,7 @@
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
                                         SpinButtonPlacementMode="Compact"
+                                        ValueChanged="InspectorLayoutBox_ValueChanged"
                                         Value="120" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Y" />
@@ -331,6 +335,7 @@
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
                                         SpinButtonPlacementMode="Compact"
+                                        ValueChanged="InspectorLayoutBox_ValueChanged"
                                         Value="132" />
 
                                     <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Width" />
@@ -340,6 +345,7 @@
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
                                         SpinButtonPlacementMode="Compact"
+                                        ValueChanged="InspectorLayoutBox_ValueChanged"
                                         Value="164" />
 
                                     <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Height" />
@@ -349,6 +355,7 @@
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
                                         SpinButtonPlacementMode="Compact"
+                                        ValueChanged="InspectorLayoutBox_ValueChanged"
                                         Value="82" />
                                 </Grid>
                             </Expander>

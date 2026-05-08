@@ -1,6 +1,9 @@
+using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 
 namespace Instrumind.ThinkComposer.WinUI;
 
@@ -17,13 +20,17 @@ public sealed partial class MainPage : Page
     private bool _isDirty;
     private string? _snapshotPath;
     private CompositionViewSnapshot? _currentSnapshot;
+    private CompositionEditingSession? _editingSession;
     private CompositionSnapshotIndex? _snapshotIndex;
+    private string? _selectedNodeId;
+    private bool _isApplyingInspector;
 
     public MainPage()
     {
         InitializeComponent();
         CanvasView.SelectedNodeChanged += CanvasView_SelectedNodeChanged;
         CanvasView.NodeMoved += CanvasView_NodeMoved;
+        CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
         LoadStartupSnapshot();
     }
 
@@ -99,6 +106,59 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void NewConceptButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var center = CanvasView.GetViewportCenter();
+        var size = new TcSize(160, 70);
+        var node = new CompositionNodeView(
+            Guid.NewGuid().ToString(),
+            "New Concept",
+            new TcPoint(center.X - size.Width / 2, center.Y - size.Height / 2),
+            size);
+        ApplyEditedSnapshot(CompositionSnapshotEditor.CreateNode(_currentSnapshot, node), node.Id, fitToViewport: false);
+    }
+
+    private void DeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            return;
+        }
+
+        var remainingNodeId = _currentSnapshot.Nodes.FirstOrDefault(node => node.Id != _selectedNodeId)?.Id;
+        ApplyEditedSnapshot(
+            CompositionSnapshotEditor.DeleteNode(_currentSnapshot, _selectedNodeId),
+            remainingNodeId,
+            fitToViewport: false);
+    }
+
+    private void UndoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editingSession is null || !_editingSession.CanUndo)
+        {
+            return;
+        }
+
+        ApplySessionSnapshot(_editingSession.Undo(), _selectedNodeId, markDirty: true, fitToViewport: false);
+        SetStatusModified();
+    }
+
+    private void RedoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editingSession is null || !_editingSession.CanRedo)
+        {
+            return;
+        }
+
+        ApplySessionSnapshot(_editingSession.Redo(), _selectedNodeId, markDirty: true, fitToViewport: false);
+        SetStatusModified();
+    }
+
     private void ApplyPanelState()
     {
         ExplorerColumn.Width = _isExplorerVisible ? ExplorerWidth : new GridLength(0);
@@ -134,14 +194,9 @@ public sealed partial class MainPage : Page
 
     private void ApplySnapshot(CompositionViewSnapshot snapshot, string snapshotPath)
     {
-        _currentSnapshot = snapshot;
+        _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = snapshotPath;
-        _isDirty = false;
-        _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
-
-        UpdateExplorer(snapshot);
-        CanvasView.LoadSnapshot(snapshot);
-        ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
+        ApplySessionSnapshot(snapshot, selectedNodeId: null, markDirty: false, fitToViewport: true);
 
         CompositionTitleText.Text = snapshot.Title;
         StatusContextText.Text = $"Loaded {Path.GetFileName(snapshotPath)}";
@@ -150,6 +205,21 @@ public sealed partial class MainPage : Page
             $"Canvas renderer: loaded .tcview snapshot{Environment.NewLine}" +
             $"Document: {snapshot.Title}{Environment.NewLine}" +
             $"Nodes: {snapshot.Nodes.Count}, connectors: {snapshot.Connectors.Count}";
+    }
+
+    private void ApplySessionSnapshot(
+        CompositionViewSnapshot snapshot,
+        string? selectedNodeId,
+        bool markDirty,
+        bool fitToViewport)
+    {
+        _currentSnapshot = snapshot;
+        _isDirty = markDirty;
+        _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
+
+        UpdateExplorer(snapshot);
+        CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport);
+        ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
     }
 
     private void UpdateExplorer(CompositionViewSnapshot snapshot)
@@ -195,18 +265,54 @@ public sealed partial class MainPage : Page
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(_currentSnapshot);
         _isDirty = true;
         ApplySelectedNode(node);
+        SetStatusModified();
+    }
 
-        if (!string.IsNullOrWhiteSpace(_snapshotPath))
+    private void CanvasView_NodeMoveCompleted(object? sender, CompositionNodeView node)
+    {
+        if (_editingSession is null || _currentSnapshot is null)
         {
-            StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
+            return;
         }
+
+        _editingSession.Apply(_currentSnapshot);
+    }
+
+    private void InspectorNameBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyInspectorName();
+    }
+
+    private void InspectorNameBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter)
+        {
+            return;
+        }
+
+        ApplyInspectorName();
+        e.Handled = true;
+    }
+
+    private void InspectorLayoutBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        ApplyInspectorLayout();
     }
 
     private void ApplySelectedNode(CompositionNodeView? node)
     {
+        _isApplyingInspector = true;
+        try
+        {
         if (node is null)
         {
+            _selectedNodeId = null;
             InspectorNameBox.Text = "No selection";
+            InspectorNameBox.IsEnabled = false;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
@@ -216,6 +322,12 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        _selectedNodeId = node.Id;
+        InspectorNameBox.IsEnabled = true;
+        InspectorXBox.IsEnabled = true;
+        InspectorYBox.IsEnabled = true;
+        InspectorWidthBox.IsEnabled = true;
+        InspectorHeightBox.IsEnabled = true;
         InspectorNameBox.Text = GetNodeTitle(node);
         InspectorKindBox.SelectedIndex = 0;
         InspectorStatusBox.SelectedIndex = 0;
@@ -225,6 +337,95 @@ public sealed partial class MainPage : Page
         InspectorHeightBox.Value = Math.Round(node.Size.Height, 1);
         OutgoingText.Text = (_snapshotIndex?.CountOutgoing(node.Id) ?? 0).ToString();
         IncomingText.Text = (_snapshotIndex?.CountIncoming(node.Id) ?? 0).ToString();
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+        }
+    }
+
+    private void ApplyInspectorName()
+    {
+        if (_isApplyingInspector || _currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            return;
+        }
+
+        var currentNode = FindNode(_selectedNodeId);
+        var nextText = InspectorNameBox.Text.Trim();
+        if (currentNode is null || string.Equals(currentNode.Text, nextText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotEditor.RenameNode(_currentSnapshot, _selectedNodeId, nextText),
+            _selectedNodeId,
+            fitToViewport: false);
+    }
+
+    private void ApplyInspectorLayout()
+    {
+        if (_isApplyingInspector || _currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            return;
+        }
+
+        if (double.IsNaN(InspectorXBox.Value) ||
+            double.IsNaN(InspectorYBox.Value) ||
+            double.IsNaN(InspectorWidthBox.Value) ||
+            double.IsNaN(InspectorHeightBox.Value))
+        {
+            return;
+        }
+
+        var currentNode = FindNode(_selectedNodeId);
+        if (currentNode is null)
+        {
+            return;
+        }
+
+        var position = new TcPoint(InspectorXBox.Value, InspectorYBox.Value);
+        var size = new TcSize(InspectorWidthBox.Value, InspectorHeightBox.Value);
+        var nextSnapshot = _currentSnapshot;
+
+        if (!currentNode.Position.Equals(position))
+        {
+            nextSnapshot = CompositionSnapshotEditor.MoveNode(nextSnapshot, _selectedNodeId, position);
+        }
+
+        if (!currentNode.Size.Equals(size))
+        {
+            nextSnapshot = CompositionSnapshotEditor.ResizeNode(nextSnapshot, _selectedNodeId, size);
+        }
+
+        if (!ReferenceEquals(nextSnapshot, _currentSnapshot))
+        {
+            ApplyEditedSnapshot(nextSnapshot, _selectedNodeId, fitToViewport: false);
+        }
+    }
+
+    private void ApplyEditedSnapshot(
+        CompositionViewSnapshot snapshot,
+        string? selectedNodeId,
+        bool fitToViewport)
+    {
+        _editingSession?.Apply(snapshot);
+        ApplySessionSnapshot(snapshot, selectedNodeId, markDirty: true, fitToViewport);
+        SetStatusModified();
+    }
+
+    private CompositionNodeView? FindNode(string nodeId)
+    {
+        return _currentSnapshot?.Nodes.FirstOrDefault(node => string.Equals(node.Id, nodeId, StringComparison.Ordinal));
+    }
+
+    private void SetStatusModified()
+    {
+        if (!string.IsNullOrWhiteSpace(_snapshotPath))
+        {
+            StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
+        }
     }
 
     private static string GetNodeTitle(CompositionNodeView node)

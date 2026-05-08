@@ -347,7 +347,7 @@ Implementation note: added `CompositionViewSnapshotXmlStore`, `ThinkComposer.Leg
 **Files:**
 - Modify WinUI canvas, command handlers, inspector, and core application services as needed.
 
-- [ ] **Step 1: Concept editing**
+- [x] **Step 1: Concept editing**
 
 Implement:
 
@@ -358,6 +358,8 @@ move concept
 edit concept text
 delete concept
 ```
+
+Implementation note: WinUI can create concepts, select them, drag/move them on the canvas, edit name/layout through the inspector, delete selected concepts, and save the edited `.tcview` snapshot. Core editing operations are covered by `ThinkComposer.Core.Tests`.
 
 - [ ] **Step 2: Relationship editing**
 
@@ -375,6 +377,8 @@ edit relationship properties
 Connect edits to the existing command/undo model or create a neutral adapter if the current one is WPF-bound.
 
 Expected: edit history works in WinUI.
+
+Implementation note: a neutral `CompositionEditingSession` now provides undo/redo for snapshot edits made by the WinUI shell. Relationship-specific undo/redo remains tied to Step 2.
 
 ## Phase 6: Port Panels And Commands
 

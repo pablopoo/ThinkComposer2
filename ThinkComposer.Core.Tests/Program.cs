@@ -163,6 +163,38 @@ AssertEqual(100.0, movedLeft.Size.Width, "moved left width");
 AssertEqual(300.0, unmovedRight.Position.X, "unmoved right x");
 AssertEqual(indexedSnapshot.Connectors.Count, movedSnapshot.Connectors.Count, "move preserves connectors");
 AssertEqual(100.0, indexedSnapshot.Nodes.Single(node => node.Id == "left").Position.X, "move leaves original x");
+
+var renamedSnapshot = CompositionSnapshotEditor.RenameNode(indexedSnapshot, "left", "Renamed Left");
+AssertEqual("Renamed Left", renamedSnapshot.Nodes.Single(node => node.Id == "left").Text, "rename node");
+AssertEqual("Left", indexedSnapshot.Nodes.Single(node => node.Id == "left").Text, "rename leaves original");
+
+var resizedSnapshot = CompositionSnapshotEditor.ResizeNode(indexedSnapshot, "left", new TcSize(180, 90));
+var resizedLeft = resizedSnapshot.Nodes.Single(node => node.Id == "left");
+AssertEqual(180.0, resizedLeft.Size.Width, "resize width");
+AssertEqual(90.0, resizedLeft.Size.Height, "resize height");
+
+var createdSnapshot = CompositionSnapshotEditor.CreateNode(
+    indexedSnapshot,
+    new CompositionNodeView("created", "Created", new TcPoint(10, 20), new TcSize(120, 60)));
+AssertEqual(3, createdSnapshot.Nodes.Count, "create node count");
+AssertEqual("Created", createdSnapshot.Nodes.Single(node => node.Id == "created").Text, "create node text");
+AssertThrows<InvalidOperationException>(
+    () => CompositionSnapshotEditor.CreateNode(indexedSnapshot, fitNodes[0]),
+    "create duplicate node");
+
+var deletedSnapshot = CompositionSnapshotEditor.DeleteNode(indexedSnapshot, "left");
+AssertEqual(1, deletedSnapshot.Nodes.Count, "delete node count");
+AssertEqual(0, deletedSnapshot.Connectors.Count, "delete connected connectors");
+
+var editSession = new CompositionEditingSession(indexedSnapshot);
+editSession.Apply(renamedSnapshot);
+AssertEqual(true, editSession.CanUndo, "session can undo");
+AssertEqual(false, editSession.CanRedo, "session cannot redo after apply");
+AssertEqual("Renamed Left", editSession.CurrentSnapshot.Nodes.Single(node => node.Id == "left").Text, "session apply");
+AssertEqual("Left", editSession.Undo().Nodes.Single(node => node.Id == "left").Text, "session undo");
+AssertEqual(true, editSession.CanRedo, "session can redo");
+AssertEqual("Renamed Left", editSession.Redo().Nodes.Single(node => node.Id == "left").Text, "session redo");
+
 AssertThrows<InvalidOperationException>(
     () => CompositionSnapshotEditor.MoveNode(indexedSnapshot, "missing", new TcPoint(0, 0)),
     "move missing node");

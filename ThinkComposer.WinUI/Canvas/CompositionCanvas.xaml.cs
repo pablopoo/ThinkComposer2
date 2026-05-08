@@ -45,10 +45,14 @@ public sealed partial class CompositionCanvas : UserControl
 
     public event EventHandler<CompositionNodeView?>? SelectedNodeChanged;
     public event EventHandler<CompositionNodeView>? NodeMoved;
+    public event EventHandler<CompositionNodeView>? NodeMoveCompleted;
 
     public CompositionNodeView? SelectedNode => _selectedNode?.Source;
 
-    public void LoadSnapshot(CompositionViewSnapshot snapshot)
+    public void LoadSnapshot(
+        CompositionViewSnapshot snapshot,
+        string? selectedNodeId = null,
+        bool fitToViewport = true)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -63,9 +67,24 @@ public sealed partial class CompositionCanvas : UserControl
         _connectors.Clear();
         _connectors.AddRange(snapshot.Connectors);
 
-        SetSelectedNode(_nodes.FirstOrDefault());
-        _needsInitialFit = true;
-        FitSnapshotToViewport();
+        SetSelectedNode(FindNode(selectedNodeId) ?? _nodes.FirstOrDefault());
+        if (fitToViewport)
+        {
+            _needsInitialFit = true;
+            FitSnapshotToViewport();
+        }
+        else
+        {
+            _needsInitialFit = false;
+            DrawingSurface.Invalidate();
+        }
+    }
+
+    public TcPoint GetViewportCenter()
+    {
+        var screenPoint = new Point(DrawingSurface.ActualWidth / 2, DrawingSurface.ActualHeight / 2);
+        var worldPoint = ToWorld(screenPoint);
+        return new TcPoint(worldPoint.X, worldPoint.Y);
     }
 
     public void FitSnapshotToViewport()
@@ -246,8 +265,14 @@ public sealed partial class CompositionCanvas : UserControl
 
     private void DrawingSurface_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
+        var movedNode = _draggedNode;
         _isPanning = false;
         _draggedNode = null;
+        if (movedNode is not null)
+        {
+            NodeMoveCompleted?.Invoke(this, movedNode.Source);
+        }
+
         DrawingSurface.ReleasePointerCapture(e.Pointer);
     }
 
@@ -274,6 +299,11 @@ public sealed partial class CompositionCanvas : UserControl
     private CanvasNode? HitTest(Point worldPoint)
     {
         return _nodes.LastOrDefault(node => node.Bounds.Contains(worldPoint));
+    }
+
+    private CanvasNode? FindNode(string? nodeId)
+    {
+        return string.IsNullOrWhiteSpace(nodeId) ? null : _nodesById.GetValueOrDefault(nodeId);
     }
 
     private void SetSelectedNode(CanvasNode? node)
