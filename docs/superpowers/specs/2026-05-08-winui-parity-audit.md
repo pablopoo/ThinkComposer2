@@ -6,7 +6,7 @@ Date: 2026-05-08
 
 The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: legacy presentation output, native PDF/XPS generation, installer/signing, and broader automated UI smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -20,7 +20,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
 - Details: custom fields, links, attachments, CSV table details with a structured row editor.
 - Base tables: table definitions persist and edit row records, with records included in preview/report output.
-- Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
+- Output: SVG/HTML export, full document HTML report, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
 - Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script coverage, and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
@@ -44,7 +44,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 ### P1 - Output Parity
 
 - HTML report and generation are implemented.
-- PDF/XPS report export and multi-sheet print preview are not ported.
+- Native PDF/XPS report export is not ported; the supported replacement path is the full-document printable HTML preview plus browser print/save-to-PDF.
 - Presentation command is not ported.
 
 ### P2 - Product/Release Hardening
@@ -56,6 +56,6 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 ## Recommended Backlog
 
 1. Build a spreadsheet-like grid editor for table details and base-table records.
-2. Add PDF/XPS or an explicit supported replacement path.
+2. Add native PDF/XPS only if printable HTML plus browser save-to-PDF is not sufficient.
 3. Add UI automation smoke tests around theme switching, open/save, create/edit, and report/generation.
 4. Define installer, signing, and update-channel packaging.

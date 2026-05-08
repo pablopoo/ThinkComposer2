@@ -506,17 +506,24 @@ public sealed partial class MainPage : Page
 
         try
         {
+            var document = BuildCurrentDocument();
+            if (!CanUseDocumentForOutput(document))
+            {
+                return;
+            }
+
             var previewPath = Path.Combine(
                 Path.GetTempPath(),
-                $"thinkcomposer-print-preview-{Guid.NewGuid():N}.html");
-            File.WriteAllText(previewPath, CompositionSnapshotHtmlExporter.Export(_currentSnapshot));
+                $"thinkcomposer-document-print-preview-{Guid.NewGuid():N}.html");
+            File.WriteAllText(previewPath, CompositionDocumentReportHtmlExporter.Export(document));
 
             var previewFile = await StorageFile.GetFileFromPathAsync(previewPath);
             var launched = await Launcher.LaunchFileAsync(previewFile);
             StatusContextText.Text = launched ? "Print preview opened" : "Print preview not opened";
             MessagesText.Text =
-                $"Printable preview generated{Environment.NewLine}" +
-                $"Path: {previewPath}";
+                $"Full document printable preview generated{Environment.NewLine}" +
+                $"Path: {previewPath}{Environment.NewLine}" +
+                "Use the browser print dialog to print or save as PDF.";
         }
         catch (Exception problem)
         {

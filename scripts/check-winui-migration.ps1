@@ -75,6 +75,7 @@ Assert-NotContains "ThinkComposer.WinUI\ThinkComposer.WinUI.csproj" "..\ThinkCom
 Assert-NotContains "ThinkComposer.Core\ThinkComposer.Core.csproj" "<UseWPF>true</UseWPF>" "Core project must stay UI-framework neutral."
 Assert-Contains "scripts\smoke-winui-launch.ps1" "DocumentPath" "WinUI smoke must support startup document coverage."
 Assert-Contains "scripts\smoke-winui-launch.ps1" "RequireWindow" "WinUI smoke must verify the main window when requested."
+Assert-Contains "ThinkComposer.WinUI\MainPage.xaml.cs" "Full document printable preview generated" "Print preview must use the full document report path."
 
 $forbiddenPatterns = @(
     "\bSystem\.Windows\b",
