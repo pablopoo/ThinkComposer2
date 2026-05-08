@@ -57,6 +57,14 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private sealed record TableRowEntry(int Index, string Values)
+    {
+        public override string ToString()
+        {
+            return $"{Index + 1}: {Values}";
+        }
+    }
+
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
@@ -83,12 +91,14 @@ public sealed partial class MainPage : Page
     private CompositionDefinitionGroup? _selectedDefinitionGroup;
     private string? _selectedTemplateKey;
     private string? _selectedComplementKey;
+    private string? _selectedTableDetailId;
     private string? _pendingRelationshipSourceId;
     private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
     private List<string> _recentFiles = [];
+    private List<string> _tableEditorRows = [];
     private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
 
     public MainPage()
@@ -1571,6 +1581,7 @@ public sealed partial class MainPage : Page
         DetailNameBox.Text = detail.Name;
         DetailValueBox.Text = detail.Value;
         DetailKindBox.Text = detail.Kind;
+        SetTableEditor(detail, isEnabled: true);
     }
 
     private void UpsertDetailButton_Click(object sender, RoutedEventArgs e)
@@ -1663,6 +1674,7 @@ public sealed partial class MainPage : Page
                 : document;
         DetailNameBox.Text = string.Empty;
         DetailValueBox.Text = string.Empty;
+        SetTableEditor(null, isEnabled: false);
         MarkDocumentMetadataChanged("Detail removed");
     }
 
@@ -1683,6 +1695,73 @@ public sealed partial class MainPage : Page
         DetailValueBox.Text = detail.Value;
         DetailKindBox.Text = detail.Kind;
         MarkDocumentMetadataChanged(status);
+        SetTableEditor(
+            string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal)
+                ? new DetailListEntry(detail.Id, detail.Kind, detail.Name, detail.Value)
+                : null,
+            isEnabled: true);
+    }
+
+    private void InspectorTableRowsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (InspectorTableRowsList.SelectedItem is TableRowEntry row)
+        {
+            TableRowValuesBox.Text = row.Values;
+        }
+    }
+
+    private void UpsertTableRowButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedTableDetailId))
+        {
+            return;
+        }
+
+        var values = TableRowValuesBox.Text.Trim();
+        if (InspectorTableRowsList.SelectedItem is TableRowEntry selectedRow)
+        {
+            _tableEditorRows[selectedRow.Index] = values;
+        }
+        else
+        {
+            _tableEditorRows.Add(values);
+        }
+
+        TableRowValuesBox.Text = string.Empty;
+        RefreshTableRowsList();
+    }
+
+    private void DeleteTableRowButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (InspectorTableRowsList.SelectedItem is not TableRowEntry selectedRow)
+        {
+            return;
+        }
+
+        _tableEditorRows.RemoveAt(selectedRow.Index);
+        TableRowValuesBox.Text = string.Empty;
+        RefreshTableRowsList();
+    }
+
+    private void SaveTableDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedTableDetailId))
+        {
+            return;
+        }
+
+        var columns = ParseCsvRecord(TableColumnsBox.Text);
+        if (columns.Count == 0)
+        {
+            StatusContextText.Text = "At least one table column is required";
+            return;
+        }
+
+        var rows = _tableEditorRows.Select(row => (IReadOnlyList<string>)ParseCsvRecord(row)).ToArray();
+        var detailName = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Table" : DetailNameBox.Text.Trim();
+        SaveDetail(
+            CompositionDetailFactory.CreateTable(detailName, columns, rows, _selectedTableDetailId),
+            "Table detail saved");
     }
 
     private void ApplyMarkersButton_Click(object sender, RoutedEventArgs e)
@@ -2586,6 +2665,54 @@ public sealed partial class MainPage : Page
         DeleteDetailButton.IsEnabled = isEnabled;
         MarkerIdsBox.IsEnabled = isEnabled;
         ApplyMarkersButton.IsEnabled = isEnabled;
+        SetTableEditor(null, isEnabled: false);
+    }
+
+    private void SetTableEditor(DetailListEntry? detail, bool isEnabled)
+    {
+        var isTable = detail is not null &&
+            string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal);
+        _selectedTableDetailId = isTable ? detail!.Id : null;
+
+        if (isTable)
+        {
+            var table = CompositionDetailTableCsv.Parse(detail!.Value);
+            TableColumnsBox.Text = FormatCsvRecord(table.Columns);
+            _tableEditorRows = table.Rows.Select(FormatCsvRecord).ToList();
+            TableEditorExpander.IsExpanded = true;
+        }
+        else
+        {
+            TableColumnsBox.Text = string.Empty;
+            TableRowValuesBox.Text = string.Empty;
+            _tableEditorRows = [];
+        }
+
+        RefreshTableRowsList();
+        var canEdit = isEnabled && isTable;
+        TableColumnsBox.IsEnabled = canEdit;
+        InspectorTableRowsList.IsEnabled = canEdit;
+        TableRowValuesBox.IsEnabled = canEdit;
+        UpsertTableRowButton.IsEnabled = canEdit;
+        DeleteTableRowButton.IsEnabled = canEdit;
+        SaveTableDetailButton.IsEnabled = canEdit;
+    }
+
+    private void RefreshTableRowsList()
+    {
+        InspectorTableRowsList.ItemsSource = _tableEditorRows
+            .Select((row, index) => new TableRowEntry(index, row))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> ParseCsvRecord(string text)
+    {
+        return CompositionDetailTableCsv.Parse(text ?? string.Empty).Columns;
+    }
+
+    private static string FormatCsvRecord(IReadOnlyList<string> fields)
+    {
+        return CompositionDetailTableCsv.Format(new CompositionDetailTableSnapshot(fields, Array.Empty<IReadOnlyList<string>>()));
     }
 
     private void SetLinkRoleInspector(string? selectedLinkRoleId, bool isEnabled)

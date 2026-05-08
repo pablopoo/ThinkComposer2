@@ -465,6 +465,44 @@
                                 </StackPanel>
                             </Expander>
 
+                            <Expander x:Name="TableEditorExpander" Header="Table editor" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <TextBox
+                                        x:Name="TableColumnsBox"
+                                        PlaceholderText="Column 1, Column 2" />
+                                    <ListView
+                                        x:Name="InspectorTableRowsList"
+                                        MaxHeight="112"
+                                        SelectionChanged="InspectorTableRowsList_SelectionChanged"
+                                        SelectionMode="Single" />
+                                    <TextBox
+                                        x:Name="TableRowValuesBox"
+                                        PlaceholderText="Cell 1, Cell 2" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="UpsertTableRowButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="UpsertTableRowButton_Click"
+                                            Content="Save row" />
+                                        <Button
+                                            x:Name="DeleteTableRowButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="DeleteTableRowButton_Click"
+                                            Content="Remove row" />
+                                    </Grid>
+                                    <Button
+                                        x:Name="SaveTableDetailButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="SaveTableDetailButton_Click"
+                                        Content="Save table detail" />
+                                </StackPanel>
+                            </Expander>
+
                             <Expander x:Name="LinkRoleExpander" Header="Link role" IsExpanded="False">
                                 <StackPanel Padding="0,10,0,0" Spacing="8">
                                     <ComboBox
