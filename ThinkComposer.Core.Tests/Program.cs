@@ -179,6 +179,23 @@ finally
     }
 }
 
+var modernFromView = CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot);
+AssertEqual(snapshot.Id, modernFromView.Id, "adapter document id");
+AssertEqual(snapshot.Title, modernFromView.Title, "adapter document title");
+AssertEqual(snapshot.Nodes.Count, modernFromView.Ideas.Count, "adapter idea count");
+AssertEqual(snapshot.Connectors.Count, modernFromView.Relationships.Count, "adapter relationship count");
+AssertEqual("Default Domain", modernFromView.Domain.Name, "adapter default domain");
+AssertEqual("Customer Need", modernFromView.Ideas.Single(idea => idea.Id == "customer").Name, "adapter idea name");
+AssertEqual("capability", modernFromView.Relationships.Single(relationship => relationship.Id == "customer-capability").TargetIdeaId, "adapter relationship target");
+
+var projectedSnapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(modernFromView);
+AssertEqual(snapshot.Id, projectedSnapshot.Id, "adapter projected id");
+AssertEqual(snapshot.Title, projectedSnapshot.Title, "adapter projected title");
+AssertEqual(snapshot.Nodes.Count, projectedSnapshot.Nodes.Count, "adapter projected node count");
+AssertEqual(snapshot.Connectors.Count, projectedSnapshot.Connectors.Count, "adapter projected connector count");
+AssertEqual("Customer Need", projectedSnapshot.Nodes.Single(node => node.Id == "customer").Text, "adapter projected node text");
+AssertEqual("capability", projectedSnapshot.Connectors.Single(connector => connector.Id == "customer-capability").TargetId, "adapter projected connector target");
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {

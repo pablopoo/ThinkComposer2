@@ -74,7 +74,7 @@ Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csp
 
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `Add modern document XML store`.
 
@@ -84,21 +84,21 @@ Commit message: `Add modern document XML store`.
 - Test: `ThinkComposer.Core.Tests/Program.cs`
 - Create: `ThinkComposer.Core/Rendering/CompositionDocumentSnapshotAdapter.cs`
 
-- [ ] **Step 1: Write failing projection tests**
+- [x] **Step 1: Write failing projection tests**
 
 Convert `CompositionViewSnapshot` to `CompositionDocumentSnapshot` and project back to `CompositionViewSnapshot`.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csproj`
 
 Expected: compile fails because `CompositionDocumentSnapshotAdapter` does not exist.
 
-- [ ] **Step 3: Implement adapter**
+- [x] **Step 3: Implement adapter**
 
 Map nodes to ideas, connectors to relationships, and visual nodes/connectors to the default view layer.
 
-- [ ] **Step 4: Run green test and solution build**
+- [x] **Step 4: Run green test and solution build**
 
 Run:
 
