@@ -103,6 +103,35 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot SetIdeaStyle(
+        CompositionDocumentSnapshot document,
+        string ideaId,
+        CompositionStyleSnapshot style)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (style is null)
+        {
+            throw new ArgumentNullException(nameof(style));
+        }
+
+        return document with
+        {
+            Ideas = document.Ideas.Select(idea => string.Equals(idea.Id, ideaId, StringComparison.Ordinal)
+                ? idea with { Style = style }
+                : idea).ToArray(),
+            Views = document.Views.Select(view => view with
+            {
+                Nodes = view.Nodes.Select(node => string.Equals(node.Id, ideaId, StringComparison.Ordinal)
+                    ? node with { Style = style }
+                    : node).ToArray()
+            }).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertRelationshipDetail(
         CompositionDocumentSnapshot document,
         string relationshipId,
@@ -170,6 +199,37 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot SetRelationshipStyle(
+        CompositionDocumentSnapshot document,
+        string relationshipId,
+        CompositionStyleSnapshot style)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (style is null)
+        {
+            throw new ArgumentNullException(nameof(style));
+        }
+
+        return document with
+        {
+            Relationships = document.Relationships.Select(relationship =>
+                string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)
+                    ? relationship with { Style = style }
+                    : relationship).ToArray(),
+            Views = document.Views.Select(view => view with
+            {
+                Connectors = view.Connectors.Select(connector =>
+                    string.Equals(connector.Id, relationshipId, StringComparison.Ordinal)
+                        ? connector with { Style = style }
+                        : connector).ToArray()
+            }).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot ApplyViewSnapshot(
         CompositionDocumentSnapshot document,
         CompositionViewSnapshot viewSnapshot,
@@ -192,8 +252,8 @@ public static class CompositionDocumentSnapshotEditor
 
         var ideas = viewSnapshot.Nodes
             .Select(node => ideasById.TryGetValue(node.Id, out var existing)
-                ? existing with { Name = node.Text }
-                : new CompositionIdeaSnapshot(node.Id, node.Text, defaultConceptDefinitionId))
+                ? existing with { Name = node.Text, Style = node.Style }
+                : new CompositionIdeaSnapshot(node.Id, node.Text, defaultConceptDefinitionId, Style: node.Style))
             .ToArray();
 
         var relationships = viewSnapshot.Connectors
@@ -202,14 +262,16 @@ public static class CompositionDocumentSnapshotEditor
                 {
                     Name = connector.Text,
                     SourceIdeaId = connector.SourceId,
-                    TargetIdeaId = connector.TargetId
+                    TargetIdeaId = connector.TargetId,
+                    Style = connector.Style
                 }
                 : new CompositionRelationshipSnapshot(
                     connector.Id,
                     connector.Text,
                     connector.SourceId,
                     connector.TargetId,
-                    defaultRelationshipDefinitionId))
+                    defaultRelationshipDefinitionId,
+                    Style: connector.Style))
             .ToArray();
 
         var views = ApplyView(document, viewSnapshot, viewId);

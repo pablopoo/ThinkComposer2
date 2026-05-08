@@ -32,7 +32,8 @@ public static class CompositionDocumentSnapshotAdapter
             .Select(node => new CompositionIdeaSnapshot(
                 Id: node.Id,
                 Name: node.Text,
-                DefinitionId: DefaultConceptDefinitionId))
+                DefinitionId: DefaultConceptDefinitionId,
+                Style: node.Style))
             .ToArray();
 
         var relationships = snapshot.Connectors
@@ -41,7 +42,8 @@ public static class CompositionDocumentSnapshotAdapter
                 Name: connector.Text,
                 SourceIdeaId: connector.SourceId,
                 TargetIdeaId: connector.TargetId,
-                DefinitionId: DefaultRelationshipDefinitionId))
+                DefinitionId: DefaultRelationshipDefinitionId,
+                Style: connector.Style))
             .ToArray();
 
         return new CompositionDocumentSnapshot(
@@ -78,7 +80,8 @@ public static class CompositionDocumentSnapshotAdapter
                 idea.Id,
                 idea.Name,
                 new TcPoint(120 + (index % 4 * 240), 120 + (index / 4 * 160)),
-                new TcSize(164, 82)))
+                new TcSize(164, 82),
+                idea.Style))
             .ToArray();
 
         var connectors = document.Relationships
@@ -86,7 +89,8 @@ public static class CompositionDocumentSnapshotAdapter
                 relationship.Id,
                 relationship.SourceIdeaId,
                 relationship.TargetIdeaId,
-                relationship.Name))
+                relationship.Name,
+                relationship.Style))
             .ToArray();
 
         return new CompositionViewSnapshot(document.Id, document.Title, nodes, connectors);

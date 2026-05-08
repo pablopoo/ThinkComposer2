@@ -46,8 +46,8 @@ public static class CompositionSnapshotSvgExporter
                 new XAttribute("y1", Format(route.Source.Y + offsetY)),
                 new XAttribute("x2", Format(route.Target.X + offsetX)),
                 new XAttribute("y2", Format(route.Target.Y + offsetY)),
-                new XAttribute("stroke", "#2b78c6"),
-                new XAttribute("stroke-width", "1.4")));
+                new XAttribute("stroke", ValueOrDefault(connector.Style.Stroke, "#2b78c6")),
+                new XAttribute("stroke-width", Format(PositiveOrDefault(connector.Style.StrokeThickness, 1.4)))));
         }
 
         foreach (var node in snapshot.Nodes)
@@ -62,16 +62,16 @@ public static class CompositionSnapshotSvgExporter
                 new XAttribute("width", Format(nodeWidth)),
                 new XAttribute("height", Format(nodeHeight)),
                 new XAttribute("rx", "7"),
-                new XAttribute("fill", "#ffffff"),
-                new XAttribute("stroke", "#8a9ba8"),
-                new XAttribute("stroke-width", "1")));
+                new XAttribute("fill", ValueOrDefault(node.Style.Fill, "#ffffff")),
+                new XAttribute("stroke", ValueOrDefault(node.Style.Stroke, "#8a9ba8")),
+                new XAttribute("stroke-width", Format(PositiveOrDefault(node.Style.StrokeThickness, 1)))));
             root.Add(new XElement(svg + "text",
                 new XAttribute("x", Format(x + 10)),
                 new XAttribute("y", Format(y + Math.Min(nodeHeight / 2 + 5, 22))),
                 new XAttribute("font-family", "Segoe UI, Arial, sans-serif"),
                 new XAttribute("font-size", "12"),
                 new XAttribute("font-weight", "600"),
-                new XAttribute("fill", "#1f1f1f"),
+                new XAttribute("fill", ValueOrDefault(node.Style.Text, "#1f1f1f")),
                 node.Text));
         }
 
@@ -95,6 +95,16 @@ public static class CompositionSnapshotSvgExporter
     private static string Format(double value)
     {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string ValueOrDefault(string value, string defaultValue)
+    {
+        return string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
+    }
+
+    private static double PositiveOrDefault(double value, double defaultValue)
+    {
+        return value > 0 ? value : defaultValue;
     }
 
     private readonly record struct SnapshotBounds(double Left, double Top, double Right, double Bottom);

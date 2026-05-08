@@ -232,6 +232,51 @@ AssertEqual(snapshot.Connectors.Count, projectedSnapshot.Connectors.Count, "adap
 AssertEqual("Customer Need", projectedSnapshot.Nodes.Single(node => node.Id == "customer").Text, "adapter projected node text");
 AssertEqual("capability", projectedSnapshot.Connectors.Single(connector => connector.Id == "customer-capability").TargetId, "adapter projected connector target");
 
+var styledView = new CompositionViewSnapshot(
+    "styled",
+    "Styled View",
+    [
+        new CompositionNodeView(
+            "styled-node",
+            "Styled Node",
+            new TcPoint(10, 20),
+            new TcSize(140, 60),
+            Style: new CompositionStyleSnapshot(Fill: "#fef3c7", Stroke: "#b45309", Text: "#111827", StrokeThickness: 2.5))
+    ],
+    [
+        new CompositionConnectorView(
+            "styled-link",
+            "styled-node",
+            "styled-node",
+            "Styled Link",
+            Style: new CompositionStyleSnapshot(Stroke: "#16a34a", StrokeThickness: 3.5))
+    ]);
+var styledDocument = CompositionDocumentSnapshotAdapter.FromViewSnapshot(styledView);
+AssertEqual("#fef3c7", styledDocument.Ideas.Single().Style.Fill, "adapter stores node fill style");
+AssertEqual("#16a34a", styledDocument.Relationships.Single().Style.Stroke, "adapter stores connector stroke style");
+var styledProjected = CompositionDocumentSnapshotAdapter.ToViewSnapshot(styledDocument);
+AssertEqual("#fef3c7", styledProjected.Nodes.Single().Style.Fill, "adapter projects node fill style");
+AssertEqual("#16a34a", styledProjected.Connectors.Single().Style.Stroke, "adapter projects connector stroke style");
+var styledSvg = CompositionSnapshotSvgExporter.Export(styledProjected);
+AssertTrue(styledSvg.Contains("fill=\"#fef3c7\"", StringComparison.Ordinal), "svg node fill style");
+AssertTrue(styledSvg.Contains("stroke=\"#16a34a\"", StringComparison.Ordinal), "svg connector stroke style");
+
+var styledViewPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-styled-{Guid.NewGuid():N}.tcview");
+try
+{
+    CompositionViewSnapshotXmlStore.Save(styledView, styledViewPath);
+    var reloadedStyledView = CompositionViewSnapshotXmlStore.Load(styledViewPath);
+    AssertEqual("#fef3c7", reloadedStyledView.Nodes.Single().Style.Fill, "view roundtrip node fill style");
+    AssertEqual("#16a34a", reloadedStyledView.Connectors.Single().Style.Stroke, "view roundtrip connector stroke style");
+}
+finally
+{
+    if (File.Exists(styledViewPath))
+    {
+        File.Delete(styledViewPath);
+    }
+}
+
 var renamedModernSnapshot = CompositionSnapshotEditor.RenameNode(projectedSnapshot, "customer", "Renamed Need");
 var updatedModernDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(modernFromView, renamedModernSnapshot);
 AssertEqual("Renamed Need", updatedModernDocument.Ideas.Single(idea => idea.Id == "customer").Name, "modern edit updates idea");
@@ -250,12 +295,22 @@ var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
 AssertEqual("Team", updatedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Single(detail => detail.Name == "Owner").Value, "idea detail updated");
 var markedDocument = CompositionDocumentSnapshotEditor.SetIdeaMarkers(updatedDetailDocument, "idea-1", ["marker-def", "risk-high"]);
 AssertEqual(2, markedDocument.Ideas.Single(idea => idea.Id == "idea-1").Markers.Count, "idea markers updated");
-var relationshipDetailDocument = CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(
+var styledIdeaDocument = CompositionDocumentSnapshotEditor.SetIdeaStyle(
     markedDocument,
+    "idea-1",
+    new CompositionStyleSnapshot(Fill: "#dbeafe", Stroke: "#1d4ed8", Text: "#111827", StrokeThickness: 2));
+AssertEqual("#dbeafe", styledIdeaDocument.Ideas.Single(idea => idea.Id == "idea-1").Style.Fill, "idea style fill updated");
+var relationshipDetailDocument = CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(
+    styledIdeaDocument,
     "rel-1",
     new CompositionDetailSnapshot("rel-detail", "CustomField", "Latency", "Low"));
 AssertEqual("Low", relationshipDetailDocument.Relationships.Single(relationship => relationship.Id == "rel-1").Details.Single(detail => detail.Name == "Latency").Value, "relationship detail added");
-var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(relationshipDetailDocument, "idea-1", "detail-added");
+var styledRelationshipDocument = CompositionDocumentSnapshotEditor.SetRelationshipStyle(
+    relationshipDetailDocument,
+    "rel-1",
+    new CompositionStyleSnapshot(Stroke: "#9333ea", StrokeThickness: 3));
+AssertEqual("#9333ea", styledRelationshipDocument.Relationships.Single(relationship => relationship.Id == "rel-1").Style.Stroke, "relationship style stroke updated");
+var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(styledRelationshipDocument, "idea-1", "detail-added");
 AssertTrue(!deletedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Any(detail => detail.Id == "detail-added"), "idea detail deleted");
 
 var definitionEditedDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(

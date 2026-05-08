@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
@@ -194,8 +195,10 @@ public sealed partial class CompositionCanvas : UserControl
                 (float)route.Source.Y,
                 (float)route.Target.X,
                 (float)route.Target.Y,
-                isSelected ? palette.SelectedStroke : palette.Connector,
-                isSelected ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : CompositionCanvasRenderDefaults.ConnectorStrokeWidth);
+                isSelected ? palette.SelectedStroke : ColorFromStyle(connector.Style.Stroke, palette.Connector),
+                isSelected
+                    ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth
+                    : StrokeWidthFromStyle(connector.Style.StrokeThickness, CompositionCanvasRenderDefaults.ConnectorStrokeWidth));
         }
     }
 
@@ -205,10 +208,14 @@ public sealed partial class CompositionCanvas : UserControl
         {
             var bounds = node.Bounds;
             var isSelected = _selectedNodeIds.Contains(node.Id);
-            var stroke = isSelected ? palette.SelectedStroke : palette.NodeStroke;
-            var strokeWidth = isSelected ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : 1;
+            var stroke = isSelected ? palette.SelectedStroke : ColorFromStyle(node.Source.Style.Stroke, palette.NodeStroke);
+            var strokeWidth = isSelected
+                ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth
+                : StrokeWidthFromStyle(node.Source.Style.StrokeThickness, 1);
+            var fill = ColorFromStyle(node.Source.Style.Fill, palette.NodeFill);
+            var text = ColorFromStyle(node.Source.Style.Text, palette.Text);
 
-            session.FillRoundedRectangle(bounds, 7, 7, palette.NodeFill);
+            session.FillRoundedRectangle(bounds, 7, 7, fill);
             session.DrawRoundedRectangle(bounds, 7, 7, stroke, strokeWidth);
 
             var label = CompositionNodeLabelPolicy.ForNode(node.Source);
@@ -218,7 +225,7 @@ public sealed partial class CompositionCanvas : UserControl
                 session.DrawText(
                     node.Title,
                     CreateCompactTextRect(bounds, padding),
-                    palette.Text,
+                    text,
                     CompactTitleFormat);
                 continue;
             }
@@ -226,7 +233,7 @@ public sealed partial class CompositionCanvas : UserControl
             session.DrawText(
                 node.Title,
                 new Rect(bounds.X + padding, bounds.Y + 10, Math.Max(1, bounds.Width - padding * 2), 24),
-                palette.Text,
+                text,
                 TitleFormat);
             session.DrawText(
                 node.Subtitle,
@@ -244,6 +251,47 @@ public sealed partial class CompositionCanvas : UserControl
             bounds.Y + Math.Max(3, (bounds.Height - lineHeight) / 2),
             Math.Max(1, bounds.Width - horizontalPadding * 2),
             lineHeight);
+    }
+
+    private static Windows.UI.Color ColorFromStyle(string value, Windows.UI.Color fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        var hex = value.Trim();
+        if (hex.StartsWith('#'))
+        {
+            hex = hex[1..];
+        }
+
+        if (hex.Length == 6 &&
+            int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+        {
+            return Windows.UI.Color.FromArgb(
+                255,
+                (byte)((rgb >> 16) & 0xff),
+                (byte)((rgb >> 8) & 0xff),
+                (byte)(rgb & 0xff));
+        }
+
+        if (hex.Length == 8 &&
+            uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var argb))
+        {
+            return Windows.UI.Color.FromArgb(
+                (byte)((argb >> 24) & 0xff),
+                (byte)((argb >> 16) & 0xff),
+                (byte)((argb >> 8) & 0xff),
+                (byte)(argb & 0xff));
+        }
+
+        return fallback;
+    }
+
+    private static float StrokeWidthFromStyle(double value, float fallback)
+    {
+        return value > 0 ? (float)value : fallback;
     }
 
     private void DrawViewportLabel(CanvasDrawingSession session, double width, double height, CanvasPalette palette)

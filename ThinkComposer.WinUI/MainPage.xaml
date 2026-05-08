@@ -463,16 +463,29 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Fill" />
-                                    <TextBlock x:Name="InspectorFillText" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+                                    <TextBox x:Name="InspectorFillBox" Grid.Column="1" PlaceholderText="#ffffff" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Stroke" />
-                                    <TextBlock x:Name="InspectorStrokeText" Grid.Row="1" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+                                    <TextBox x:Name="InspectorStrokeBox" Grid.Row="1" Grid.Column="1" PlaceholderText="#8a9ba8" />
 
-                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Line" />
-                                    <TextBlock x:Name="InspectorStrokeThicknessText" Grid.Row="2" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Text" />
+                                    <TextBox x:Name="InspectorTextColorBox" Grid.Row="2" Grid.Column="1" PlaceholderText="#1f1f1f" />
+
+                                    <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Line" />
+                                    <NumberBox x:Name="InspectorStrokeThicknessBox" Grid.Row="3" Grid.Column="1" Minimum="0" SmallChange="0.5" SpinButtonPlacementMode="Compact" />
+
+                                    <Button
+                                        x:Name="ApplyStyleButton"
+                                        Grid.Row="4"
+                                        Grid.ColumnSpan="2"
+                                        HorizontalAlignment="Stretch"
+                                        Click="ApplyStyleButton_Click"
+                                        Content="Apply style" />
                                 </Grid>
                             </Expander>
 

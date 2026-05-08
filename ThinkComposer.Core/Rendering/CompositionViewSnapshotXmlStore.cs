@@ -21,7 +21,8 @@ public static class CompositionViewSnapshotXmlStore
                 ReadAttribute(node, "id"),
                 ReadAttribute(node, "text"),
                 new TcPoint(ReadDouble(node, "x"), ReadDouble(node, "y")),
-                new TcSize(ReadDouble(node, "width"), ReadDouble(node, "height"))))
+                new TcSize(ReadDouble(node, "width"), ReadDouble(node, "height")),
+                ReadStyle(node.Element("Style"))))
             .ToList();
 
         var connectors = ReadElements(root, "Connectors", "Connector")
@@ -29,7 +30,8 @@ public static class CompositionViewSnapshotXmlStore
                 ReadAttribute(connector, "id"),
                 ReadAttribute(connector, "sourceId"),
                 ReadAttribute(connector, "targetId"),
-                ReadOptionalAttribute(connector, "text") ?? "Relationship"))
+                ReadOptionalAttribute(connector, "text") ?? "Relationship",
+                ReadStyle(connector.Element("Style"))))
             .ToList();
 
         return new CompositionViewSnapshot(
@@ -72,7 +74,8 @@ public static class CompositionViewSnapshotXmlStore
                             new XAttribute("x", FormatDouble(node.Position.X)),
                             new XAttribute("y", FormatDouble(node.Position.Y)),
                             new XAttribute("width", FormatDouble(node.Size.Width)),
-                            new XAttribute("height", FormatDouble(node.Size.Height))))),
+                            new XAttribute("height", FormatDouble(node.Size.Height)),
+                            WriteStyle(node.Style)))),
                 new XElement(
                     "Connectors",
                     snapshot.Connectors.Select(connector =>
@@ -81,7 +84,8 @@ public static class CompositionViewSnapshotXmlStore
                             new XAttribute("id", connector.Id),
                             new XAttribute("text", connector.Text),
                             new XAttribute("sourceId", connector.SourceId),
-                            new XAttribute("targetId", connector.TargetId))))));
+                            new XAttribute("targetId", connector.TargetId),
+                            WriteStyle(connector.Style))))));
 
         document.Save(filePath);
     }
@@ -105,6 +109,39 @@ public static class CompositionViewSnapshotXmlStore
     private static double ReadDouble(XElement element, string name)
     {
         return double.Parse(ReadAttribute(element, name), CultureInfo.InvariantCulture);
+    }
+
+    private static XElement WriteStyle(CompositionStyleSnapshot style)
+    {
+        return new XElement(
+            "Style",
+            new XAttribute("fill", style.Fill),
+            new XAttribute("stroke", style.Stroke),
+            new XAttribute("text", style.Text),
+            new XAttribute("strokeThickness", FormatDouble(style.StrokeThickness)),
+            new XAttribute("strokeDash", style.StrokeDash));
+    }
+
+    private static CompositionStyleSnapshot ReadStyle(XElement? element)
+    {
+        if (element is null)
+        {
+            return new CompositionStyleSnapshot();
+        }
+
+        return new CompositionStyleSnapshot(
+            Fill: ReadOptionalAttribute(element, "fill") ?? string.Empty,
+            Stroke: ReadOptionalAttribute(element, "stroke") ?? string.Empty,
+            Text: ReadOptionalAttribute(element, "text") ?? string.Empty,
+            StrokeThickness: ReadOptionalDouble(element, "strokeThickness"),
+            StrokeDash: ReadOptionalAttribute(element, "strokeDash") ?? string.Empty);
+    }
+
+    private static double ReadOptionalDouble(XElement element, string name)
+    {
+        return double.TryParse(ReadOptionalAttribute(element, name), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0;
     }
 
     private static string FormatDouble(double value)

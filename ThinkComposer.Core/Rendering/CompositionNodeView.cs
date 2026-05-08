@@ -6,4 +6,8 @@ public sealed record CompositionNodeView(
     string Id,
     string Text,
     TcPoint Position,
-    TcSize Size);
+    TcSize Size,
+    CompositionStyleSnapshot? Style = null)
+{
+    public CompositionStyleSnapshot Style { get; init; } = Style ?? new CompositionStyleSnapshot();
+}

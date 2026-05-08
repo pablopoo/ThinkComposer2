@@ -1352,6 +1352,38 @@ public sealed partial class MainPage : Page
         MarkDocumentMetadataChanged("Markers updated");
     }
 
+    private void ApplyStyleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var style = ReadStyleInspector();
+        var document = EnsureCurrentDocument();
+        if (!string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetIdeaStyle(document, _selectedNodeId, style);
+            ApplyEditedSnapshot(CompositionDocumentSnapshotAdapter.ToViewSnapshot(_currentDocument), _selectedNodeId, fitToViewport: false);
+            StatusContextText.Text = "Style updated";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipStyle(document, _selectedConnectorId, style);
+            ApplyEditedSnapshot(
+                CompositionDocumentSnapshotAdapter.ToViewSnapshot(_currentDocument),
+                selectedNodeId: null,
+                fitToViewport: false,
+                selectedConnectorId: _selectedConnectorId);
+            StatusContextText.Text = "Style updated";
+            return;
+        }
+
+        StatusContextText.Text = "Select a concept or relationship first";
+    }
+
     private void ApplySelectedNode(CompositionNodeView? node)
     {
         _isApplyingInspector = true;
@@ -1380,7 +1412,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
             SetMetadataInspector(null, null, isEnabled: false);
-            SetStyleInspector(new CompositionStyleSnapshot());
+            SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
             OutgoingText.Text = "0";
@@ -1406,7 +1438,7 @@ public sealed partial class MainPage : Page
         SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Concept");
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
         SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
-        SetStyleInspector(idea?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
+        SetStyleInspector(idea?.Style ?? definition?.Style ?? node.Style, isEnabled: true);
         InspectorXBox.Value = Math.Round(node.Position.X, 1);
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
         InspectorWidthBox.Value = Math.Round(node.Size.Width, 1);
@@ -1449,7 +1481,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, "Concept selection");
             SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
             SetMetadataInspector(null, null, isEnabled: false);
-            SetStyleInspector(new CompositionStyleSnapshot());
+            SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
             OutgoingText.Text = nodes.Sum(node => _snapshotIndex?.CountOutgoing(node.Id) ?? 0).ToString();
@@ -1492,7 +1524,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Relationship");
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
             SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
-            SetStyleInspector(relationship?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
+            SetStyleInspector(relationship?.Style ?? definition?.Style ?? connector.Style, isEnabled: true);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
@@ -1537,7 +1569,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, group.ToString());
             SetComboFirstItem(InspectorStatusBox, definition.Kind);
             SetMetadataInspector(definition.Details, null, isEnabled: false);
-            SetStyleInspector(definition.Style);
+            SetStyleInspector(definition.Style, isEnabled: false);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
@@ -1947,13 +1979,27 @@ public sealed partial class MainPage : Page
             : $"{markers.Count} marker(s)";
     }
 
-    private void SetStyleInspector(CompositionStyleSnapshot style)
+    private void SetStyleInspector(CompositionStyleSnapshot style, bool isEnabled)
     {
-        InspectorFillText.Text = string.IsNullOrWhiteSpace(style.Fill) ? "(default)" : style.Fill;
-        InspectorStrokeText.Text = string.IsNullOrWhiteSpace(style.Stroke) ? "(default)" : style.Stroke;
-        InspectorStrokeThicknessText.Text = style.StrokeThickness <= 0
-            ? "(default)"
-            : style.StrokeThickness.ToString("0.##");
+        InspectorFillBox.Text = style.Fill;
+        InspectorStrokeBox.Text = style.Stroke;
+        InspectorTextColorBox.Text = style.Text;
+        InspectorStrokeThicknessBox.Value = style.StrokeThickness > 0 ? style.StrokeThickness : 0;
+        InspectorFillBox.IsEnabled = isEnabled;
+        InspectorStrokeBox.IsEnabled = isEnabled;
+        InspectorTextColorBox.IsEnabled = isEnabled;
+        InspectorStrokeThicknessBox.IsEnabled = isEnabled;
+        ApplyStyleButton.IsEnabled = isEnabled;
+    }
+
+    private CompositionStyleSnapshot ReadStyleInspector()
+    {
+        var thickness = InspectorStrokeThicknessBox.Value;
+        return new CompositionStyleSnapshot(
+            Fill: InspectorFillBox.Text.Trim(),
+            Stroke: InspectorStrokeBox.Text.Trim(),
+            Text: InspectorTextColorBox.Text.Trim(),
+            StrokeThickness: double.IsNaN(thickness) ? 0 : Math.Max(0, thickness));
     }
 
     private static void SetComboFirstItem(ComboBox comboBox, string text)
