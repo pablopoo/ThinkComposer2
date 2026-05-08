@@ -221,6 +221,49 @@ public sealed partial class MainPage : Page
         flyout.ShowAt(RecentButton);
     }
 
+    private async void MergeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var picker = new FileOpenPicker();
+        InitializePicker(picker);
+        picker.FileTypeFilter.Add(".tcdoc");
+        picker.FileTypeFilter.Add(".tcview");
+        picker.FileTypeFilter.Add(".tdom");
+        picker.FileTypeFilter.Add(".tcom");
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        var incoming = await LoadDocumentForMergeAsync(file.Path);
+        if (incoming is null)
+        {
+            return;
+        }
+
+        var current = BuildCurrentDocument();
+        var merged = CompositionDocumentMerger.Merge(current, incoming);
+        _currentDocument = merged;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(merged);
+        _editingSession = new CompositionEditingSession(snapshot);
+        ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
+        _isDirty = true;
+        CompositionTitleText.Text = merged.Title;
+        StatusContextText.Text = $"Merged {Path.GetFileName(file.Path)}";
+        MessagesText.Text =
+            $"Document merged{Environment.NewLine}" +
+            $"Source: {file.Path}{Environment.NewLine}" +
+            $"Concepts: {incoming.Ideas.Count}, relationships: {incoming.Relationships.Count}";
+        AddRecentFile(file.Path);
+    }
+
     private async void RecentFileMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuFlyoutItem { Tag: string filePath })
@@ -778,13 +821,58 @@ public sealed partial class MainPage : Page
 
     private async Task ImportLegacyPackageAsync(string legacyPath)
     {
+        var outputPath = await ExportLegacyPackageToModernDocumentAsync(legacyPath);
+        if (outputPath is null)
+        {
+            return;
+        }
+
+        LoadModernDocumentFromPath(outputPath, addToRecent: false);
+        _snapshotPath = null;
+        AddRecentFile(legacyPath);
+        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}; save as .tcdoc";
+        MessagesText.Text =
+            $"Legacy document imported{Environment.NewLine}" +
+            "Use Save or Save As to store it as a modern .tcdoc document.";
+    }
+
+    private async Task<CompositionDocumentSnapshot?> LoadDocumentForMergeAsync(string filePath)
+    {
+        try
+        {
+            return CompositionDocumentFileKindDetector.FromPath(filePath) switch
+            {
+                CompositionDocumentFileKind.ModernDocument => CompositionDocumentSnapshotXmlStore.Load(filePath),
+                CompositionDocumentFileKind.Snapshot => CompositionDocumentSnapshotAdapter.FromViewSnapshot(
+                    CompositionViewSnapshotXmlStore.Load(filePath)),
+                CompositionDocumentFileKind.LegacyPackage => await LoadLegacyDocumentForMergeAsync(filePath),
+                _ => null
+            };
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not load merge source{Environment.NewLine}" +
+                problem.Message;
+            return null;
+        }
+    }
+
+    private async Task<CompositionDocumentSnapshot?> LoadLegacyDocumentForMergeAsync(string legacyPath)
+    {
+        var outputPath = await ExportLegacyPackageToModernDocumentAsync(legacyPath);
+        return outputPath is null ? null : CompositionDocumentSnapshotXmlStore.Load(outputPath);
+    }
+
+    private async Task<string?> ExportLegacyPackageToModernDocumentAsync(string legacyPath)
+    {
         var toolPath = FindLegacyBridgeToolPath();
         if (toolPath is null)
         {
             MessagesText.Text =
                 $"Could not import legacy document{Environment.NewLine}" +
                 "Legacy bridge tool was not found.";
-            return;
+            return null;
         }
 
         var outputPath = Path.Combine(
@@ -804,28 +892,21 @@ public sealed partial class MainPage : Page
         if (process is null)
         {
             MessagesText.Text = "Could not start legacy bridge tool.";
-            return;
+            return null;
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync();
         var error = await process.StandardError.ReadToEndAsync();
+        await process.StandardOutput.ReadToEndAsync();
         await process.WaitForExitAsync();
         if (process.ExitCode != 0)
         {
             MessagesText.Text =
                 $"Could not import legacy document{Environment.NewLine}" +
                 error.Trim();
-            return;
+            return null;
         }
 
-        LoadModernDocumentFromPath(outputPath, addToRecent: false);
-        _snapshotPath = null;
-        AddRecentFile(legacyPath);
-        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}; save as .tcdoc";
-        MessagesText.Text =
-            $"Legacy document imported{Environment.NewLine}" +
-            $"{output.Trim()}{Environment.NewLine}" +
-            "Use Save or Save As to store it as a modern .tcdoc document.";
+        return outputPath;
     }
 
     private void SaveCurrentDocumentToPath(string snapshotPath)
@@ -1626,6 +1707,9 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandIds.Open:
                 OpenButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.MergeDocument:
+                MergeButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.Save:
                 SaveButton_Click(this, new RoutedEventArgs());

@@ -238,6 +238,42 @@ AssertEqual("Renamed Need", updatedModernDocument.Ideas.Single(idea => idea.Id =
 AssertEqual("Renamed Need", updatedModernDocument.Views[0].Nodes.Single(node => node.Id == "customer").Text, "modern edit updates view node");
 AssertEqual(modernFromView.Relationships.Count, updatedModernDocument.Relationships.Count, "modern edit preserves relationships");
 
+var incomingDocument = new CompositionDocumentSnapshot(
+    Id: "incoming-doc",
+    Title: "Incoming",
+    Domain: new CompositionDomainSnapshot(
+        Id: "domain-incoming",
+        Name: "Incoming Domain",
+        ConceptDefinitions:
+        [
+            new CompositionDefinitionSnapshot("incoming-concept", "Incoming Concept", "Concept")
+        ]),
+    Ideas:
+    [
+        new CompositionIdeaSnapshot("customer", "Imported Customer", "incoming-concept")
+    ],
+    Relationships:
+    [
+        new CompositionRelationshipSnapshot("customer-capability", "Imported Link", "customer", "customer", "relationship.default")
+    ],
+    Views:
+    [
+        new CompositionViewLayerSnapshot(
+            "incoming-view",
+            "Incoming",
+            [new CompositionNodeView("customer", "Imported Customer", new TcPoint(10, 20), new TcSize(120, 60))],
+            [new CompositionConnectorView("customer-capability", "customer", "customer", "Imported Link")])
+    ]);
+var mergedDocument = CompositionDocumentMerger.Merge(modernFromView, incomingDocument);
+AssertEqual(modernFromView.Ideas.Count + 1, mergedDocument.Ideas.Count, "merge idea count");
+AssertTrue(mergedDocument.Domain.ConceptDefinitions.Any(definition => definition.Id == "incoming-concept"), "merge domain definition");
+var mergedIncomingIdea = mergedDocument.Ideas.Single(idea => idea.Name == "Imported Customer");
+AssertTrue(mergedIncomingIdea.Id != "customer", "merge remaps duplicate idea id");
+var mergedIncomingRelationship = mergedDocument.Relationships.Single(relationship => relationship.Name == "Imported Link");
+AssertEqual(mergedIncomingIdea.Id, mergedIncomingRelationship.SourceIdeaId, "merge remaps relationship source");
+AssertEqual(mergedIncomingIdea.Id, mergedDocument.Views[0].Nodes.Single(node => node.Text == "Imported Customer").Id, "merge remaps view node");
+AssertEqual(58.0, mergedDocument.Views[0].Nodes.Single(node => node.Text == "Imported Customer").Position.X, "merge offsets imported x");
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {
@@ -269,6 +305,7 @@ AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ExportHtml), "command catalog export");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ReportHtml), "command catalog report");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.GenerateFiles), "command catalog generate files");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.MergeDocument), "command catalog merge");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.PrintPreview), "command catalog print preview");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
 AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");
