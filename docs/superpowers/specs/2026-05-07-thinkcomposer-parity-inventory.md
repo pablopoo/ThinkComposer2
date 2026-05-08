@@ -2,6 +2,10 @@
 
 Date: 2026-05-07
 
+Detailed audit: `docs/superpowers/specs/2026-05-08-winui-parity-audit.md`.
+
+Status: basic WinUI editor parity is implemented. Full legacy product parity is not complete; the major blocker is the simplified `.tcview` model, which does not yet preserve rich domain/composition data.
+
 ## Document
 
 - Open: `.tcview` native open plus `.tdom`/`.tcom` legacy import to modern snapshot.
