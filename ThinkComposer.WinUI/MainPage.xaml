@@ -408,11 +408,49 @@
                             </Expander>
 
                             <Expander x:Name="DetailsExpander" Header="Details" IsExpanded="True">
-                                <ListView
-                                    x:Name="InspectorDetailsList"
-                                    Margin="0,10,0,0"
-                                    MaxHeight="150"
-                                    SelectionMode="None" />
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <ListView
+                                        x:Name="InspectorDetailsList"
+                                        MaxHeight="118"
+                                        SelectionChanged="InspectorDetailsList_SelectionChanged"
+                                        SelectionMode="Single" />
+                                    <TextBox x:Name="DetailNameBox" PlaceholderText="Detail name" />
+                                    <TextBox x:Name="DetailValueBox" PlaceholderText="Value" />
+                                    <TextBox x:Name="DetailKindBox" PlaceholderText="Kind" Text="CustomField" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="UpsertDetailButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="UpsertDetailButton_Click"
+                                            Content="Save detail" />
+                                        <Button
+                                            x:Name="DeleteDetailButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="DeleteDetailButton_Click"
+                                            Content="Remove" />
+                                    </Grid>
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander x:Name="MarkersExpander" Header="Markers" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <TextBox
+                                        x:Name="MarkerIdsBox"
+                                        AcceptsReturn="True"
+                                        MinHeight="64"
+                                        TextWrapping="Wrap"
+                                        PlaceholderText="Marker ids, separated by commas" />
+                                    <Button
+                                        x:Name="ApplyMarkersButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="ApplyMarkersButton_Click"
+                                        Content="Apply markers" />
+                                </StackPanel>
                             </Expander>
 
                             <Expander x:Name="StyleExpander" Header="Style" IsExpanded="False">

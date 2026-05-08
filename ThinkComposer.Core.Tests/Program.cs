@@ -238,6 +238,26 @@ AssertEqual("Renamed Need", updatedModernDocument.Ideas.Single(idea => idea.Id =
 AssertEqual("Renamed Need", updatedModernDocument.Views[0].Nodes.Single(node => node.Id == "customer").Text, "modern edit updates view node");
 AssertEqual(modernFromView.Relationships.Count, updatedModernDocument.Relationships.Count, "modern edit preserves relationships");
 
+var detailedDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
+    modernDocument,
+    "idea-1",
+    new CompositionDetailSnapshot("detail-added", "CustomField", "Owner", "Pablo"));
+AssertEqual("Pablo", detailedDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Single(detail => detail.Name == "Owner").Value, "idea detail added");
+var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
+    detailedDocument,
+    "idea-1",
+    new CompositionDetailSnapshot("detail-added", "CustomField", "Owner", "Team"));
+AssertEqual("Team", updatedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Single(detail => detail.Name == "Owner").Value, "idea detail updated");
+var markedDocument = CompositionDocumentSnapshotEditor.SetIdeaMarkers(updatedDetailDocument, "idea-1", ["marker-def", "risk-high"]);
+AssertEqual(2, markedDocument.Ideas.Single(idea => idea.Id == "idea-1").Markers.Count, "idea markers updated");
+var relationshipDetailDocument = CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(
+    markedDocument,
+    "rel-1",
+    new CompositionDetailSnapshot("rel-detail", "CustomField", "Latency", "Low"));
+AssertEqual("Low", relationshipDetailDocument.Relationships.Single(relationship => relationship.Id == "rel-1").Details.Single(detail => detail.Name == "Latency").Value, "relationship detail added");
+var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(relationshipDetailDocument, "idea-1", "detail-added");
+AssertTrue(!deletedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Any(detail => detail.Id == "detail-added"), "idea detail deleted");
+
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",
     Title: "Incoming",

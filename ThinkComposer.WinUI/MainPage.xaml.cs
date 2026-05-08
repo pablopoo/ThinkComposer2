@@ -33,6 +33,14 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private sealed record DetailListEntry(string Id, string Kind, string Name, string Value)
+    {
+        public override string ToString()
+        {
+            return string.IsNullOrWhiteSpace(Value) ? $"{Name} ({Kind})" : $"{Name}: {Value}";
+        }
+    }
+
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
@@ -1229,6 +1237,89 @@ public sealed partial class MainPage : Page
         ApplyInspectorLayout();
     }
 
+    private void InspectorDetailsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (InspectorDetailsList.SelectedItem is not DetailListEntry detail)
+        {
+            return;
+        }
+
+        DetailNameBox.Text = detail.Name;
+        DetailValueBox.Text = detail.Value;
+        DetailKindBox.Text = detail.Kind;
+    }
+
+    private void UpsertDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var name = DetailNameBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            StatusContextText.Text = "Detail name is required";
+            return;
+        }
+
+        var kind = string.IsNullOrWhiteSpace(DetailKindBox.Text) ? "CustomField" : DetailKindBox.Text.Trim();
+        var detailId = InspectorDetailsList.SelectedItem is DetailListEntry selectedDetail
+            ? selectedDetail.Id
+            : CreateDetailId(name);
+        var detail = new CompositionDetailSnapshot(detailId, kind, name, DetailValueBox.Text);
+        var document = EnsureCurrentDocument();
+        _currentDocument = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? CompositionDocumentSnapshotEditor.UpsertIdeaDetail(document, _selectedNodeId, detail)
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(document, _selectedConnectorId, detail)
+                : document;
+        MarkDocumentMetadataChanged("Detail saved");
+    }
+
+    private void DeleteDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var detailId = InspectorDetailsList.SelectedItem is DetailListEntry selectedDetail
+            ? selectedDetail.Id
+            : CreateDetailId(DetailNameBox.Text.Trim());
+        if (string.IsNullOrWhiteSpace(detailId))
+        {
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? CompositionDocumentSnapshotEditor.DeleteIdeaDetail(document, _selectedNodeId, detailId)
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? CompositionDocumentSnapshotEditor.DeleteRelationshipDetail(document, _selectedConnectorId, detailId)
+                : document;
+        DetailNameBox.Text = string.Empty;
+        DetailValueBox.Text = string.Empty;
+        MarkDocumentMetadataChanged("Detail removed");
+    }
+
+    private void ApplyMarkersButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var markers = ParseMarkerIds(MarkerIdsBox.Text);
+        var document = EnsureCurrentDocument();
+        _currentDocument = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? CompositionDocumentSnapshotEditor.SetIdeaMarkers(document, _selectedNodeId, markers)
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? CompositionDocumentSnapshotEditor.SetRelationshipMarkers(document, _selectedConnectorId, markers)
+                : document;
+        MarkDocumentMetadataChanged("Markers updated");
+    }
+
     private void ApplySelectedNode(CompositionNodeView? node)
     {
         _isApplyingInspector = true;
@@ -1254,7 +1345,7 @@ public sealed partial class MainPage : Page
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
-            InspectorDetailsList.ItemsSource = Array.Empty<string>();
+            SetMetadataInspector(null, null, isEnabled: false);
             SetStyleInspector(new CompositionStyleSnapshot());
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1278,7 +1369,7 @@ public sealed partial class MainPage : Page
         var definition = FindDefinition(idea?.DefinitionId);
         SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Concept");
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
-        InspectorDetailsList.ItemsSource = FormatDetails(idea?.Details);
+        SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
         SetStyleInspector(idea?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
         InspectorXBox.Value = Math.Round(node.Position.X, 1);
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
@@ -1319,7 +1410,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.Value = 0;
             SetComboFirstItem(InspectorKindBox, "Concept selection");
             SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
-            InspectorDetailsList.ItemsSource = nodes.Select(node => GetNodeTitle(node)).ToArray();
+            SetMetadataInspector(null, null, isEnabled: false);
             SetStyleInspector(new CompositionStyleSnapshot());
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1360,7 +1451,7 @@ public sealed partial class MainPage : Page
             var definition = FindDefinition(relationship?.DefinitionId);
             SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Relationship");
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
-            InspectorDetailsList.ItemsSource = FormatDetails(relationship?.Details);
+            SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
             SetStyleInspector(relationship?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1611,6 +1702,36 @@ public sealed partial class MainPage : Page
         return FocusManager.GetFocusedElement() is TextBox or AutoSuggestBox or NumberBox or ComboBox;
     }
 
+    private CompositionDocumentSnapshot EnsureCurrentDocument()
+    {
+        _currentDocument ??= BuildCurrentDocument();
+        return _currentDocument;
+    }
+
+    private void MarkDocumentMetadataChanged(string status)
+    {
+        _isDirty = true;
+        RefreshCurrentSelectionInspector();
+        RefreshCommandCatalog();
+        RefreshBottomPanelContent();
+        StatusContextText.Text = status;
+        RefreshDiagnostics();
+    }
+
+    private void RefreshCurrentSelectionInspector()
+    {
+        if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            ApplySelectedConnector(FindConnector(_selectedConnectorId));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            ApplySelectedNode(FindNode(_selectedNodeId));
+        }
+    }
+
     private CompositionIdeaSnapshot? FindIdea(string ideaId)
     {
         return _currentDocument?.Ideas.FirstOrDefault(idea => string.Equals(idea.Id, ideaId, StringComparison.Ordinal));
@@ -1636,17 +1757,54 @@ public sealed partial class MainPage : Page
             .FirstOrDefault(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal));
     }
 
-    private static IReadOnlyList<string> FormatDetails(IReadOnlyList<CompositionDetailSnapshot>? details)
+    private void SetMetadataInspector(
+        IReadOnlyList<CompositionDetailSnapshot>? details,
+        IReadOnlyList<string>? markers,
+        bool isEnabled)
+    {
+        InspectorDetailsList.ItemsSource = FormatDetailEntries(details);
+        MarkerIdsBox.Text = markers is null ? string.Empty : string.Join(", ", markers);
+        DetailNameBox.Text = string.Empty;
+        DetailValueBox.Text = string.Empty;
+        DetailKindBox.Text = "CustomField";
+        DetailNameBox.IsEnabled = isEnabled;
+        DetailValueBox.IsEnabled = isEnabled;
+        DetailKindBox.IsEnabled = isEnabled;
+        InspectorDetailsList.IsEnabled = isEnabled;
+        UpsertDetailButton.IsEnabled = isEnabled;
+        DeleteDetailButton.IsEnabled = isEnabled;
+        MarkerIdsBox.IsEnabled = isEnabled;
+        ApplyMarkersButton.IsEnabled = isEnabled;
+    }
+
+    private static IReadOnlyList<DetailListEntry> FormatDetailEntries(IReadOnlyList<CompositionDetailSnapshot>? details)
     {
         if (details is null || details.Count == 0)
         {
-            return ["No details"];
+            return Array.Empty<DetailListEntry>();
         }
 
         return details
-            .Select(detail => string.IsNullOrWhiteSpace(detail.Value)
-                ? $"{detail.Name} ({detail.Kind})"
-                : $"{detail.Name}: {detail.Value}")
+            .Select(detail => new DetailListEntry(detail.Id, detail.Kind, detail.Name, detail.Value))
+            .ToArray();
+    }
+
+    private static string CreateDetailId(string name)
+    {
+        var normalized = new string(name.Trim()
+            .Select(character => char.IsLetterOrDigit(character) ? char.ToLowerInvariant(character) : '-')
+            .ToArray())
+            .Trim('-');
+        return string.IsNullOrWhiteSpace(normalized) ? $"detail-{Guid.NewGuid():N}" : normalized;
+    }
+
+    private static IReadOnlyList<string> ParseMarkerIds(string text)
+    {
+        return text
+            .Split([',', ';', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(marker => marker.Trim())
+            .Where(marker => marker.Length > 0)
+            .Distinct(StringComparer.Ordinal)
             .ToArray();
     }
 
