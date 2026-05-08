@@ -35,7 +35,7 @@ Reference design:
 - No product code changes.
 - Update only verification notes in `MODERNIZATION_PLAN.md` if needed.
 
-- [ ] **Step 1: Build baseline**
+- [x] **Step 1: Build baseline**
 
 Run:
 
@@ -50,7 +50,7 @@ Expected:
 0 Errores
 ```
 
-- [ ] **Step 2: Smoke-test baseline executable**
+- [x] **Step 2: Smoke-test baseline executable**
 
 Run:
 
@@ -60,7 +60,7 @@ Run:
 
 Expected: the current app opens, creates a composition, and closes cleanly.
 
-- [ ] **Step 3: Record baseline workflows**
+- [x] **Step 3: Record baseline workflows**
 
 Create `docs/superpowers/specs/2026-05-07-thinkcomposer-parity-inventory.md` with this checklist:
 
@@ -115,18 +115,18 @@ Expected: the migration has a visible parity target before WinUI work starts.
 - Create: `ThinkComposer.Core/Rendering/CompositionConnectorView.cs`
 - Modify: `Instrumind_ThinkComposer.sln`
 
-- [ ] **Step 1: Create core project**
+- [x] **Step 1: Create core project**
 
 Run:
 
 ```powershell
-dotnet new classlib -n ThinkComposer.Core -f net10.0-windows
-dotnet sln Instrumind_ThinkComposer.sln add ThinkComposer.Core\ThinkComposer.Core.csproj
+dotnet new classlib -n ThinkComposer.Core -f net10.0
+# Then set TargetFramework to net10.0-windows and add the project to the solution.
 ```
 
 Expected: `ThinkComposer.Core` appears in the solution and builds without WPF references.
 
-- [ ] **Step 2: Add neutral primitives**
+- [x] **Step 2: Add neutral primitives**
 
 Create `ThinkComposer.Core/Primitives/TcPoint.cs`:
 
@@ -152,7 +152,7 @@ namespace Instrumind.ThinkComposer.Core.Primitives;
 public readonly record struct TcColor(byte A, byte R, byte G, byte B);
 ```
 
-- [ ] **Step 3: Add render DTOs**
+- [x] **Step 3: Add render DTOs**
 
 Create `ThinkComposer.Core/Rendering/CompositionNodeView.cs`:
 
@@ -179,7 +179,7 @@ public sealed record CompositionConnectorView(
     string TargetId);
 ```
 
-- [ ] **Step 4: Verify no WPF references**
+- [x] **Step 4: Verify no WPF references**
 
 Run:
 
@@ -190,7 +190,7 @@ Select-String -Path ThinkComposer.Core\**\*.cs -Pattern "System.Windows|Presenta
 
 Expected: build passes and search returns no matches.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -209,13 +209,15 @@ git commit -m "Create UI-neutral ThinkComposer core project"
 - Create: `ThinkComposer.WinUI/MainWindow.xaml.cs`
 - Modify: `Instrumind_ThinkComposer.sln`
 
-- [ ] **Step 1: Create WinUI 3 project**
+- [x] **Step 1: Create WinUI 3 project**
 
 Use Visual Studio's WinUI 3 desktop template if CLI templates are not installed. Target .NET 10 and Windows App SDK.
 
+Implementation note: installed the official `Microsoft.WindowsAppSDK.WinUI.CSharp.Templates` CLI template and generated `ThinkComposer.WinUI`. The template selected Windows App SDK `2.0.1`; the project is set to `WindowsAppSDKSelfContained=true` because the machine has Windows App Runtime 1.5-1.8 installed, not 2.0.
+
 Expected: `ThinkComposer.WinUI` opens a blank native WinUI window.
 
-- [ ] **Step 2: Add shell layout**
+- [x] **Step 2: Add shell layout**
 
 Implement this structure:
 
@@ -232,7 +234,7 @@ Status bar
 
 Expected: the app visually matches `docs/ui-mockups/thinkcomposer-winui3-final-direction.html` at shell level.
 
-- [ ] **Step 3: Add collapsible panels**
+- [x] **Step 3: Add collapsible panels**
 
 Implement state for:
 
@@ -245,13 +247,13 @@ Focus mode
 
 Expected: panel toggles behave like VS Code and content state is preserved.
 
-- [ ] **Step 4: Add light/dark theme**
+- [x] **Step 4: Add light/dark theme**
 
 Use WinUI theme resources and runtime theme switching.
 
 Expected: app changes theme without restart.
 
-- [ ] **Step 5: Verify no WPF references**
+- [x] **Step 5: Verify no WPF references**
 
 Run:
 
@@ -266,16 +268,16 @@ Expected: no WPF references.
 **Files:**
 - Create: `ThinkComposer.WinUI/Canvas/CompositionCanvas.xaml`
 - Create: `ThinkComposer.WinUI/Canvas/CompositionCanvas.xaml.cs`
-- Create: `ThinkComposer.WinUI/Canvas/CompositionCanvasRenderer.cs`
+- Create: `ThinkComposer.WinUI/Canvas/CompositionCanvas.xaml.cs`
 - Modify: `ThinkComposer.WinUI/ThinkComposer.WinUI.csproj`
 
-- [ ] **Step 1: Add Win2D package**
+- [x] **Step 1: Add Win2D package**
 
 Add `Microsoft.Graphics.Win2D`.
 
 Expected: WinUI project builds with Win2D available.
 
-- [ ] **Step 2: Render fake composition**
+- [x] **Step 2: Render fake composition**
 
 Draw:
 
@@ -288,7 +290,7 @@ canvas grid
 
 Expected: drawing is native and not WPF-hosted.
 
-- [ ] **Step 3: Add interaction**
+- [x] **Step 3: Add interaction**
 
 Implement:
 
