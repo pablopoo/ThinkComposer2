@@ -121,6 +121,50 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot EnsureCompositeView(
+        CompositionDocumentSnapshot document,
+        string ideaId)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (string.IsNullOrWhiteSpace(ideaId))
+        {
+            throw new ArgumentException("Idea id is required.", nameof(ideaId));
+        }
+
+        var idea = document.Ideas.FirstOrDefault(candidate => string.Equals(candidate.Id, ideaId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Idea '{ideaId}' was not found.");
+        if (!string.IsNullOrWhiteSpace(idea.ActiveViewId) &&
+            document.Views.Any(view => string.Equals(view.Id, idea.ActiveViewId, StringComparison.Ordinal)))
+        {
+            return document with
+            {
+                Ideas = document.Ideas.Select(candidate =>
+                    string.Equals(candidate.Id, ideaId, StringComparison.Ordinal)
+                        ? candidate with { IsComposite = true }
+                        : candidate).ToArray()
+            };
+        }
+
+        var viewId = CreateUniqueId($"view.{idea.Id}.composite", document.Views.Select(view => view.Id));
+        var view = new CompositionViewLayerSnapshot(
+            Id: viewId,
+            Name: $"{idea.Name} Detail",
+            ContainerIdeaId: idea.Id);
+
+        return document with
+        {
+            Ideas = document.Ideas.Select(candidate =>
+                string.Equals(candidate.Id, ideaId, StringComparison.Ordinal)
+                    ? candidate with { IsComposite = true, ActiveViewId = viewId }
+                    : candidate).ToArray(),
+            Views = document.Views.Concat([view]).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertIdeaDetail(
         CompositionDocumentSnapshot document,
         string ideaId,
@@ -730,5 +774,23 @@ public static class CompositionDocumentSnapshotEditor
         return extensions
             .Where(extension => !string.Equals(extension.Key, key, StringComparison.Ordinal))
             .ToArray();
+    }
+
+    private static string CreateUniqueId(string baseId, IEnumerable<string> existingIds)
+    {
+        var usedIds = existingIds.ToHashSet(StringComparer.Ordinal);
+        if (!usedIds.Contains(baseId))
+        {
+            return baseId;
+        }
+
+        for (var index = 2; ; index++)
+        {
+            var candidate = $"{baseId}.{index}";
+            if (!usedIds.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 }

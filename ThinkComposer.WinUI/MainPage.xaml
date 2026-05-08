@@ -670,6 +670,11 @@
                                         Click="NewRelationshipButton_Click"
                                         Content="Create relationship from selection" />
                                     <Button
+                                        x:Name="InspectorCompositeViewButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="OpenCompositeViewButton_Click"
+                                        Content="Open composite view" />
+                                    <Button
                                         x:Name="InspectorDeleteButton"
                                         HorizontalAlignment="Stretch"
                                         Click="DeleteButton_Click"

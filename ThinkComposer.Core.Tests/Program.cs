@@ -440,6 +440,11 @@ var updatedModernDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(
 AssertEqual("Renamed Need", updatedModernDocument.Ideas.Single(idea => idea.Id == "customer").Name, "modern edit updates idea");
 AssertEqual("Renamed Need", updatedModernDocument.Views[0].Nodes.Single(node => node.Id == "customer").Text, "modern edit updates view node");
 AssertEqual(modernFromView.Relationships.Count, updatedModernDocument.Relationships.Count, "modern edit preserves relationships");
+var compositeViewDocument = CompositionDocumentSnapshotEditor.EnsureCompositeView(modernFromView, "customer");
+var compositeIdea = compositeViewDocument.Ideas.Single(idea => idea.Id == "customer");
+AssertEqual(true, compositeIdea.IsComposite, "composite authoring marks idea");
+AssertTrue(!string.IsNullOrWhiteSpace(compositeIdea.ActiveViewId), "composite authoring active view");
+AssertEqual("customer", compositeViewDocument.Views.Single(view => view.Id == compositeIdea.ActiveViewId).ContainerIdeaId, "composite authoring view container");
 
 var detailedDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     modernDocument,

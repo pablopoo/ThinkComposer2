@@ -581,6 +581,29 @@ public sealed partial class MainPage : Page
         StatusContextText.Text = "Select target concept";
     }
 
+    private void OpenCompositeViewButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            StatusContextText.Text = "Select a concept first";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = CompositionDocumentSnapshotEditor.EnsureCompositeView(document, _selectedNodeId);
+        var idea = _currentDocument.Ideas.FirstOrDefault(candidate => string.Equals(candidate.Id, _selectedNodeId, StringComparison.Ordinal));
+        if (idea is null || string.IsNullOrWhiteSpace(idea.ActiveViewId))
+        {
+            StatusContextText.Text = "Composite view was not created";
+            return;
+        }
+
+        _isDirty = true;
+        UpdateDocumentTitleIndicator();
+        RefreshCommandCatalog();
+        OpenDocumentView(idea.ActiveViewId);
+    }
+
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -2018,6 +2041,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = false;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -2048,6 +2072,7 @@ public sealed partial class MainPage : Page
         InspectorWidthBox.IsEnabled = true;
         InspectorHeightBox.IsEnabled = true;
         InspectorRelationshipButton.IsEnabled = true;
+        InspectorCompositeViewButton.IsEnabled = true;
         InspectorDeleteButton.IsEnabled = true;
         InspectorNameBox.Text = GetNodeTitle(node);
         var idea = FindIdea(node.Id);
@@ -2095,6 +2120,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -2145,6 +2171,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = connector.Text;
             var relationship = FindRelationship(connector.Id);
@@ -2197,6 +2224,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = definition.Name;
             SetComboFirstItem(InspectorKindBox, group.ToString());
@@ -2247,6 +2275,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = template.Key;
             SetComboFirstItem(InspectorKindBox, "Generation template");
@@ -2297,6 +2326,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
+            InspectorCompositeViewButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = complement.Key;
             SetComboFirstItem(InspectorKindBox, "View complement");
