@@ -11,11 +11,14 @@
                     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F8F8F8" />
                     <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F3F3F3" />
                     <SolidColorBrush x:Key="ChromeForegroundBrush" Color="#242424" />
+                    <SolidColorBrush x:Key="MutedForegroundBrush" Color="#616161" />
                     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F7F7F7" />
                     <SolidColorBrush x:Key="RailBackgroundBrush" Color="#F3F3F3" />
                     <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="ShellBorderBrush" Color="#E5E5E5" />
+                    <SolidColorBrush x:Key="SelectedTabBackgroundBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SubtleButtonBackgroundBrush" Color="#F7F7F7" />
                     <SolidColorBrush x:Key="StatusBackgroundBrush" Color="#007ACC" />
                     <SolidColorBrush x:Key="StatusForegroundBrush" Color="#FFFFFF" />
                 </ResourceDictionary>
@@ -23,11 +26,14 @@
                     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E" />
                     <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#1E1E1E" />
                     <SolidColorBrush x:Key="ChromeForegroundBrush" Color="#CCCCCC" />
+                    <SolidColorBrush x:Key="MutedForegroundBrush" Color="#9D9D9D" />
                     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#252526" />
                     <SolidColorBrush x:Key="RailBackgroundBrush" Color="#333333" />
                     <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#2D2D30" />
                     <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#1E1E1E" />
                     <SolidColorBrush x:Key="ShellBorderBrush" Color="#3C3C3C" />
+                    <SolidColorBrush x:Key="SelectedTabBackgroundBrush" Color="#2D2D30" />
+                    <SolidColorBrush x:Key="SubtleButtonBackgroundBrush" Color="#333333" />
                     <SolidColorBrush x:Key="StatusBackgroundBrush" Color="#007ACC" />
                     <SolidColorBrush x:Key="StatusForegroundBrush" Color="#FFFFFF" />
                 </ResourceDictionary>

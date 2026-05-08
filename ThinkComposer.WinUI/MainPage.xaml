@@ -11,6 +11,31 @@
     Background="{ThemeResource AppBackgroundBrush}"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <Style x:Key="RailButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{ThemeResource ChromeForegroundBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ChromeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{ThemeResource ShellBorderBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource ChromeForegroundBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </Page.Resources>
+
     <Grid x:Name="RootLayout" Background="{ThemeResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="44" />
@@ -46,22 +71,14 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                 <Button
-                    Width="34"
-                    Height="32"
-                    Background="Transparent"
-                    BorderBrush="{ThemeResource ShellBorderBrush}"
                     Click="FocusButton_Click"
-                    Foreground="{ThemeResource ChromeForegroundBrush}"
+                    Style="{StaticResource ChromeButtonStyle}"
                     ToolTipService.ToolTip="Focus canvas">
                     <SymbolIcon Symbol="FullScreen" />
                 </Button>
                 <Button
-                    Width="34"
-                    Height="32"
-                    Background="Transparent"
-                    BorderBrush="{ThemeResource ShellBorderBrush}"
                     Click="ThemeButton_Click"
-                    Foreground="{ThemeResource ChromeForegroundBrush}"
+                    Style="{StaticResource ChromeButtonStyle}"
                     ToolTipService.ToolTip="Toggle theme">
                     <SymbolIcon Symbol="Setting" />
                 </Button>
@@ -70,10 +87,10 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="50" />
+                <ColumnDefinition Width="56" />
                 <ColumnDefinition x:Name="ExplorerColumn" Width="248" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition x:Name="InspectorColumn" Width="286" />
+                <ColumnDefinition x:Name="InspectorColumn" Width="320" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -83,19 +100,19 @@
             <StackPanel
                 Grid.RowSpan="2"
                 Grid.Column="0"
-                Padding="6,8"
+                Padding="8,8"
                 Background="{ThemeResource RailBackgroundBrush}"
                 Spacing="8">
-                <Button Width="36" Height="36" Click="ExplorerButton_Click" ToolTipService.ToolTip="Explorer">
+                <Button Click="ExplorerButton_Click" Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Explorer">
                     <SymbolIcon Symbol="Folder" />
                 </Button>
-                <Button Width="36" Height="36" Click="InspectorButton_Click" ToolTipService.ToolTip="Inspector">
+                <Button Click="InspectorButton_Click" Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Inspector">
                     <SymbolIcon Symbol="Setting" />
                 </Button>
-                <Button Width="36" Height="36" Click="BottomButton_Click" ToolTipService.ToolTip="Messages">
+                <Button Click="BottomButton_Click" Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Messages">
                     <SymbolIcon Symbol="Message" />
                 </Button>
-                <Button Width="36" Height="36" ToolTipService.ToolTip="Search">
+                <Button Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Search">
                     <SymbolIcon Symbol="Find" />
                 </Button>
             </StackPanel>
@@ -110,7 +127,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="36" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="38" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid Padding="12,0,6,0">
@@ -118,21 +135,33 @@
                         <Button
                             Width="28"
                             Height="28"
+                            MinWidth="0"
+                            Padding="0"
                             HorizontalAlignment="Right"
                             Click="ExplorerButton_Click"
                             Content="&lt;"
                             ToolTipService.ToolTip="Collapse explorer" />
                     </Grid>
-                    <TabView
+                    <Grid
                         Grid.Row="1"
-                        Height="44"
-                        CanDragTabs="False"
-                        CanReorderTabs="False"
-                        IsAddTabButtonVisible="False">
-                        <TabViewItem Header="Content" IsClosable="False" />
-                        <TabViewItem Header="Domain" IsClosable="False" />
-                    </TabView>
-                    <TreeView Grid.Row="2" Margin="8">
+                        BorderBrush="{ThemeResource ShellBorderBrush}"
+                        BorderThickness="0,1,0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Background="{ThemeResource SelectedTabBackgroundBrush}" BorderBrush="{ThemeResource ShellBorderBrush}" BorderThickness="0,0,1,0">
+                            <TextBlock Margin="12,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="Content" />
+                        </Border>
+                        <TextBlock
+                            Grid.Column="1"
+                            Margin="12,0"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{ThemeResource MutedForegroundBrush}"
+                            Text="Domain" />
+                    </Grid>
+                    <TreeView Grid.Row="2" Margin="8,10,8,8">
                         <TreeView.RootNodes>
                             <TreeViewNode Content="Composition 1" IsExpanded="True">
                                 <TreeViewNode.Children>
@@ -191,7 +220,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="36" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="38" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid Padding="12,0,6,0">
@@ -199,40 +228,111 @@
                         <Button
                             Width="28"
                             Height="28"
+                            MinWidth="0"
+                            Padding="0"
                             HorizontalAlignment="Right"
                             Click="InspectorButton_Click"
                             Content="&gt;"
                             ToolTipService.ToolTip="Collapse inspector" />
                     </Grid>
-                    <TabView
+                    <Grid
                         Grid.Row="1"
-                        Height="44"
-                        CanDragTabs="False"
-                        CanReorderTabs="False"
-                        IsAddTabButtonVisible="False">
-                        <TabViewItem Header="Object" IsClosable="False" />
-                        <TabViewItem Header="Style" IsClosable="False" />
-                    </TabView>
-                    <StackPanel Grid.Row="2" Padding="12" Spacing="10">
-                        <Expander Header="Concept" IsExpanded="True">
-                            <StackPanel Spacing="8">
-                                <TextBox Header="Name" Text="Customer Need" />
-                                <ComboBox Header="Kind" SelectedIndex="0">
-                                    <ComboBoxItem Content="Concept" />
-                                    <ComboBoxItem Content="Role" />
-                                </ComboBox>
-                            </StackPanel>
-                        </Expander>
-                        <Expander Header="Layout" IsExpanded="True">
-                            <StackPanel Spacing="8">
-                                <NumberBox Header="X" Value="120" />
-                                <NumberBox Header="Y" Value="132" />
-                            </StackPanel>
-                        </Expander>
-                        <Expander Header="Relationships">
-                            <TextBlock Text="Outgoing: 1&#x0a;Incoming: 0" />
-                        </Expander>
-                    </StackPanel>
+                        BorderBrush="{ThemeResource ShellBorderBrush}"
+                        BorderThickness="0,1,0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Background="{ThemeResource SelectedTabBackgroundBrush}" BorderBrush="{ThemeResource ShellBorderBrush}" BorderThickness="0,0,1,0">
+                            <TextBlock Margin="12,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="Object" />
+                        </Border>
+                        <TextBlock
+                            Grid.Column="1"
+                            Margin="12,0"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{ThemeResource MutedForegroundBrush}"
+                            Text="Style" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Padding="12,10,12,12" Spacing="10">
+                            <Expander Header="Concept" IsExpanded="True">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Name" />
+                                    <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Text="Customer Need" />
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Kind" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                        <ComboBoxItem Content="Concept" />
+                                        <ComboBoxItem Content="Role" />
+                                    </ComboBox>
+
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Status" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                        <ComboBoxItem Content="Draft" />
+                                        <ComboBoxItem Content="Reviewed" />
+                                    </ComboBox>
+                                </Grid>
+                            </Expander>
+
+                            <Expander Header="Layout" IsExpanded="True">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="X" />
+                                    <NumberBox Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="120" />
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Y" />
+                                    <NumberBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="132" />
+
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Width" />
+                                    <NumberBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="164" />
+
+                                    <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Height" />
+                                    <NumberBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="82" />
+                                </Grid>
+                            </Expander>
+
+                            <Expander Header="Relationships" IsExpanded="True">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Outgoing" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="1" />
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Incoming" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="0" />
+                                </Grid>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
@@ -251,13 +351,15 @@
                     <Grid Padding="12,0,6,0">
                         <StackPanel Orientation="Horizontal" Spacing="16">
                             <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Messages" />
-                            <TextBlock VerticalAlignment="Center" Text="Search" />
-                            <TextBlock VerticalAlignment="Center" Text="Preview" />
-                            <TextBlock VerticalAlignment="Center" Text="Diagnostics" />
+                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Search" />
+                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Preview" />
+                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Diagnostics" />
                         </StackPanel>
                         <Button
                             Width="28"
                             Height="28"
+                            MinWidth="0"
+                            Padding="0"
                             HorizontalAlignment="Right"
                             Click="BottomButton_Click"
                             Content="v"

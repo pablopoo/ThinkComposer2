@@ -6,7 +6,7 @@ namespace Instrumind.ThinkComposer.WinUI;
 public sealed partial class MainPage : Page
 {
     private static readonly GridLength ExplorerWidth = new(248);
-    private static readonly GridLength InspectorWidth = new(286);
+    private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
 
     private bool _isExplorerVisible = true;
@@ -18,6 +18,8 @@ public sealed partial class MainPage : Page
     {
         InitializeComponent();
     }
+
+    public event EventHandler<ElementTheme>? AppThemeChanged;
 
     private void ExplorerButton_Click(object sender, RoutedEventArgs e)
     {
@@ -49,7 +51,9 @@ public sealed partial class MainPage : Page
     private void ThemeButton_Click(object sender, RoutedEventArgs e)
     {
         _isDarkTheme = !_isDarkTheme;
-        RootPage.RequestedTheme = _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
+        var theme = _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
+        RootPage.RequestedTheme = theme;
+        AppThemeChanged?.Invoke(this, theme);
     }
 
     private void ApplyPanelState()
