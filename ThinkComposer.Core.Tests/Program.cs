@@ -7,6 +7,18 @@ AssertEqual("Composition 1", snapshot.Title, "snapshot title");
 AssertEqual(3, snapshot.Nodes.Count, "node count");
 AssertEqual(2, snapshot.Connectors.Count, "connector count");
 
+var emptyDocument = CompositionDocumentFactory.CreateEmpty("Untitled");
+AssertEqual("Untitled", emptyDocument.Title, "empty document title");
+AssertEqual(0, emptyDocument.Nodes.Count, "empty document nodes");
+AssertEqual(0, emptyDocument.Connectors.Count, "empty document connectors");
+AssertTrue(Guid.TryParse(emptyDocument.Id, out _), "empty document id is guid");
+
+var commandEntries = CompositionCommandCatalog.ForSnapshot(snapshot);
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.Open), "command catalog open");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
+AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");
+AssertEqual(0, CompositionCommandCatalog.Search(commandEntries, "zzzz-not-found").Count, "command search miss");
+
 var nodeIds = snapshot.Nodes.Select(node => node.Id).ToHashSet(StringComparer.Ordinal);
 AssertTrue(nodeIds.SetEquals(["customer", "capability", "service"]), "node ids");
 

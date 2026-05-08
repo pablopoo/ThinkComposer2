@@ -56,9 +56,12 @@
                 DefaultLabelPosition="Collapsed"
                 Foreground="{ThemeResource ChromeForegroundBrush}"
                 IsOpen="False">
+                <AppBarButton Click="NewDocumentButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Document" Label="New" ToolTipService.ToolTip="New document" />
                 <AppBarButton Click="NewConceptButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Add" Label="New concept" ToolTipService.ToolTip="New concept" />
                 <AppBarButton Click="NewRelationshipButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Link" Label="Link" ToolTipService.ToolTip="Create relationship from selected concept" />
+                <AppBarButton Click="OpenButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Open" ToolTipService.ToolTip="Open .tcview" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
+                <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcview" />
                 <AppBarSeparator />
                 <AppBarButton Click="UndoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Undo" Label="Undo" ToolTipService.ToolTip="Undo" />
                 <AppBarButton Click="RedoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Redo" Label="Redo" ToolTipService.ToolTip="Redo" />
@@ -67,9 +70,14 @@
             </CommandBar>
 
             <AutoSuggestBox
+                x:Name="CommandSearchBox"
                 Grid.Column="1"
                 MaxWidth="720"
                 HorizontalAlignment="Stretch"
+                DisplayMemberPath="Title"
+                QuerySubmitted="CommandSearchBox_QuerySubmitted"
+                SuggestionChosen="CommandSearchBox_SuggestionChosen"
+                TextChanged="CommandSearchBox_TextChanged"
                 PlaceholderText="Find command, object, view..." />
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">

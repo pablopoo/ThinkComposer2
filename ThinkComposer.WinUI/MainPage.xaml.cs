@@ -3,6 +3,7 @@ using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Windows.Storage.Pickers;
 using Windows.System;
 
 namespace Instrumind.ThinkComposer.WinUI;
@@ -26,6 +27,7 @@ public sealed partial class MainPage : Page
     private string? _selectedConnectorId;
     private string? _pendingRelationshipSourceId;
     private bool _isApplyingInspector;
+    private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
 
     public MainPage()
     {
@@ -77,11 +79,17 @@ public sealed partial class MainPage : Page
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_snapshotPath))
+        if (_currentSnapshot is null)
         {
             MessagesText.Text =
                 $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
                 "No snapshot is available to save.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_snapshotPath))
+        {
+            SaveAsButton_Click(sender, e);
             return;
         }
 
@@ -107,6 +115,50 @@ public sealed partial class MainPage : Page
                 $"Could not save snapshot{Environment.NewLine}" +
                 problem.Message;
         }
+    }
+
+    private void NewDocumentButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplySnapshot(CompositionDocumentFactory.CreateEmpty("Untitled"), snapshotPath: null);
+        StatusContextText.Text = "New document";
+    }
+
+    private async void OpenButton_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker();
+        InitializePicker(picker);
+        picker.FileTypeFilter.Add(".tcview");
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        LoadSnapshotFromPath(file.Path);
+    }
+
+    private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var picker = new FileSavePicker();
+        InitializePicker(picker);
+        picker.FileTypeChoices.Add("ThinkComposer view", [".tcview"]);
+        picker.SuggestedFileName = string.IsNullOrWhiteSpace(_currentSnapshot.Title) ? "Untitled" : _currentSnapshot.Title;
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        SaveSnapshotToPath(file.Path);
     }
 
     private void NewConceptButton_Click(object sender, RoutedEventArgs e)
@@ -208,6 +260,11 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        LoadSnapshotFromPath(snapshotPath);
+    }
+
+    private void LoadSnapshotFromPath(string snapshotPath)
+    {
         try
         {
             var snapshot = CompositionViewSnapshotXmlStore.Load(snapshotPath);
@@ -222,19 +279,57 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private void ApplySnapshot(CompositionViewSnapshot snapshot, string snapshotPath)
+    private void SaveSnapshotToPath(string snapshotPath)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            CompositionViewSnapshotXmlStore.Save(_currentSnapshot, snapshotPath);
+            _snapshotPath = snapshotPath;
+            _isDirty = false;
+            StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
+            MessagesText.Text =
+                $"Snapshot saved{Environment.NewLine}" +
+                $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
+                $"Path: {snapshotPath}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not save snapshot{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
+    private static void InitializePicker(object picker)
+    {
+        var window = App.MainWindowInstance;
+        if (window is null)
+        {
+            return;
+        }
+
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+    }
+
+    private void ApplySnapshot(CompositionViewSnapshot snapshot, string? snapshotPath)
     {
         _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = snapshotPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
 
         CompositionTitleText.Text = snapshot.Title;
-        StatusContextText.Text = $"Loaded {Path.GetFileName(snapshotPath)}";
+        StatusContextText.Text = snapshotPath is null ? "New document" : $"Loaded {Path.GetFileName(snapshotPath)}";
         MessagesText.Text =
             $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
-            $"Canvas renderer: loaded .tcview snapshot{Environment.NewLine}" +
+            $"Canvas renderer: loaded snapshot{Environment.NewLine}" +
             $"Document: {snapshot.Title}{Environment.NewLine}" +
             $"Nodes: {snapshot.Nodes.Count}, connectors: {snapshot.Connectors.Count}";
+        RefreshCommandCatalog();
     }
 
     private void ApplySessionSnapshot(
@@ -258,6 +353,7 @@ public sealed partial class MainPage : Page
         {
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
         }
+        RefreshCommandCatalog();
     }
 
     private void UpdateExplorer(CompositionViewSnapshot snapshot)
@@ -432,6 +528,39 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void CommandSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    {
+        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput)
+        {
+            return;
+        }
+
+        sender.ItemsSource = CompositionCommandCatalog.Search(_commandEntries, sender.Text);
+    }
+
+    private void CommandSearchBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+    {
+        if (args.SelectedItem is CompositionCommandEntry entry)
+        {
+            sender.Text = entry.Title;
+        }
+    }
+
+    private void CommandSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        var entry = args.ChosenSuggestion as CompositionCommandEntry
+            ?? CompositionCommandCatalog.Search(_commandEntries, args.QueryText, limit: 1).FirstOrDefault();
+
+        if (entry is null)
+        {
+            return;
+        }
+
+        ExecuteCommandEntry(entry);
+        sender.Text = string.Empty;
+        sender.ItemsSource = null;
+    }
+
     private void ApplyInspectorName()
     {
         if (_isApplyingInspector || _currentSnapshot is null)
@@ -571,6 +700,69 @@ public sealed partial class MainPage : Page
         {
             StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
         }
+    }
+
+    private void ExecuteCommandEntry(CompositionCommandEntry entry)
+    {
+        switch (entry.Kind)
+        {
+            case CompositionCommandEntryKind.Node when !string.IsNullOrWhiteSpace(entry.TargetId):
+                CanvasView.SelectNode(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                return;
+            case CompositionCommandEntryKind.Connector when !string.IsNullOrWhiteSpace(entry.TargetId):
+                CanvasView.SelectConnector(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                return;
+            case CompositionCommandEntryKind.Command:
+                ExecuteCommand(entry.Id);
+                return;
+        }
+    }
+
+    private void ExecuteCommand(string commandId)
+    {
+        switch (commandId)
+        {
+            case CompositionCommandIds.NewDocument:
+                NewDocumentButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Open:
+                OpenButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Save:
+                SaveButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.SaveAs:
+                SaveAsButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.NewConcept:
+                NewConceptButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.NewRelationship:
+                NewRelationshipButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Delete:
+                DeleteButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Undo:
+                UndoButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Redo:
+                RedoButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.FocusCanvas:
+                FocusButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.ToggleTheme:
+                ThemeButton_Click(this, new RoutedEventArgs());
+                break;
+        }
+    }
+
+    private void RefreshCommandCatalog()
+    {
+        _commandEntries = CompositionCommandCatalog.ForSnapshot(_currentSnapshot);
     }
 
     private static string GetNodeTitle(CompositionNodeView node)

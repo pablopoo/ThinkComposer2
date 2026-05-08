@@ -399,9 +399,11 @@ Port selected object properties and actions.
 
 Port bottom panel workflows.
 
-- [ ] **Step 4: Command search**
+- [x] **Step 4: Command search**
 
 Add command/object/view search.
+
+Implementation note: the WinUI command box now searches base commands, concepts, and relationships. Submitting a command executes it; submitting a concept or relationship selects it on the canvas.
 
 ## Phase 7: Port Output And App Services
 
@@ -411,6 +413,8 @@ Add command/object/view search.
 - [ ] **Step 1: Open/save parity**
 
 Existing documents open and save correctly from WinUI.
+
+Implementation note: WinUI now supports New, Open `.tcview`, Save, and Save As `.tcview` through native Windows file pickers. Direct `.tdom`/`.tcom` open remains pending; current legacy path still exports those packages through the bridge tool into `.tcview`.
 
 - [ ] **Step 2: Export/print parity**
 

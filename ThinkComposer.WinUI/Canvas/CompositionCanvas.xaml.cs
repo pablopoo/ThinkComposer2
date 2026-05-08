@@ -92,6 +92,20 @@ public sealed partial class CompositionCanvas : UserControl
         return new TcPoint(worldPoint.X, worldPoint.Y);
     }
 
+    public void SelectNode(string nodeId)
+    {
+        SetSelectedConnector(null);
+        SetSelectedNode(FindNode(nodeId));
+        DrawingSurface.Invalidate();
+    }
+
+    public void SelectConnector(string connectorId)
+    {
+        SetSelectedNode(null);
+        SetSelectedConnector(FindConnector(connectorId));
+        DrawingSurface.Invalidate();
+    }
+
     public void FitSnapshotToViewport()
     {
         if (DrawingSurface.ActualWidth <= 0 || DrawingSurface.ActualHeight <= 0)
