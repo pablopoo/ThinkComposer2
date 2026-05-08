@@ -485,14 +485,32 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        var conceptDefinitionId = _selectedDefinitionGroup == CompositionDefinitionGroup.Concept
+            ? _selectedDefinitionId
+            : null;
+        var conceptDefinition = string.IsNullOrWhiteSpace(conceptDefinitionId)
+            ? null
+            : FindDefinition(CompositionDefinitionGroup.Concept, conceptDefinitionId);
         var center = CanvasView.GetViewportCenter();
         var size = new TcSize(160, 70);
         var node = new CompositionNodeView(
             Guid.NewGuid().ToString(),
-            "New Concept",
+            conceptDefinition is null ? "New Concept" : conceptDefinition.Name,
             new TcPoint(center.X - size.Width / 2, center.Y - size.Height / 2),
-            size);
+            size,
+            conceptDefinition?.Style ?? new CompositionStyleSnapshot());
         ApplyEditedSnapshot(CompositionSnapshotEditor.CreateNode(_currentSnapshot, node), node.Id, fitToViewport: false);
+        if (!string.IsNullOrWhiteSpace(conceptDefinitionId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetIdeaDefinition(
+                EnsureCurrentDocument(),
+                node.Id,
+                conceptDefinitionId);
+            RefreshCurrentSelectionInspector();
+            RefreshCommandCatalog();
+            RefreshBottomPanelContent();
+            StatusContextText.Text = $"Created {conceptDefinition?.Name ?? "concept"}";
+        }
     }
 
     private void NewRelationshipButton_Click(object sender, RoutedEventArgs e)
