@@ -69,10 +69,10 @@
                 <AppBarButton Click="NewDocumentButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Document" Label="New" ToolTipService.ToolTip="New document" />
                 <AppBarButton Click="NewConceptButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Add" Label="New concept" ToolTipService.ToolTip="New concept" />
                 <AppBarButton Click="NewRelationshipButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Link" Label="Link" ToolTipService.ToolTip="Create relationship from selected concept" />
-                <AppBarButton Click="OpenButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Open" ToolTipService.ToolTip="Open .tcview" />
+                <AppBarButton Click="OpenButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Open" ToolTipService.ToolTip="Open .tcdoc, .tcview, or legacy package" />
                 <AppBarButton x:Name="RecentButton" Click="RecentButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Recent" ToolTipService.ToolTip="Open recent document" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
-                <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcview" />
+                <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcdoc or .tcview" />
                 <AppBarButton Click="ExportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Export" ToolTipService.ToolTip="Export HTML or SVG" />
                 <AppBarButton Click="PrintPreviewButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Print" Label="Print" ToolTipService.ToolTip="Open printable preview" />
                 <AppBarSeparator />
@@ -383,6 +383,37 @@
                                         SpinButtonPlacementMode="Compact"
                                         ValueChanged="InspectorLayoutBox_ValueChanged"
                                         Value="82" />
+                                </Grid>
+                            </Expander>
+
+                            <Expander x:Name="DetailsExpander" Header="Details" IsExpanded="True">
+                                <ListView
+                                    x:Name="InspectorDetailsList"
+                                    Margin="0,10,0,0"
+                                    MaxHeight="150"
+                                    SelectionMode="None" />
+                            </Expander>
+
+                            <Expander x:Name="StyleExpander" Header="Style" IsExpanded="False">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Fill" />
+                                    <TextBlock x:Name="InspectorFillText" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Stroke" />
+                                    <TextBlock x:Name="InspectorStrokeText" Grid.Row="1" Grid.Column="1" TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Line" />
+                                    <TextBlock x:Name="InspectorStrokeThicknessText" Grid.Row="2" Grid.Column="1" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </Expander>
 

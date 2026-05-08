@@ -47,6 +47,7 @@ public sealed partial class MainPage : Page
     private bool _isDarkTheme;
     private bool _isDirty;
     private string? _snapshotPath;
+    private CompositionDocumentSnapshot? _currentDocument;
     private CompositionViewSnapshot? _currentSnapshot;
     private CompositionEditingSession? _editingSession;
     private CompositionSnapshotIndex? _snapshotIndex;
@@ -148,7 +149,7 @@ public sealed partial class MainPage : Page
         {
             MessagesText.Text =
                 $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
-                "No snapshot is available to save.";
+                "No document is available to save.";
             return;
         }
 
@@ -164,28 +165,14 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        try
-        {
-            CompositionViewSnapshotXmlStore.Save(_currentSnapshot, _snapshotPath);
-            _isDirty = false;
-            AddRecentFile(_snapshotPath);
-            StatusContextText.Text = $"Saved {Path.GetFileName(_snapshotPath)}";
-            MessagesText.Text =
-                $"Snapshot saved{Environment.NewLine}" +
-                $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
-                $"Path: {_snapshotPath}";
-        }
-        catch (Exception problem)
-        {
-            MessagesText.Text =
-                $"Could not save snapshot{Environment.NewLine}" +
-                problem.Message;
-        }
+        SaveCurrentDocumentToPath(_snapshotPath);
     }
 
     private void NewDocumentButton_Click(object sender, RoutedEventArgs e)
     {
-        ApplySnapshot(CompositionDocumentFactory.CreateEmpty("Untitled"), snapshotPath: null);
+        ApplyDocument(
+            CompositionDocumentSnapshotAdapter.FromViewSnapshot(CompositionDocumentFactory.CreateEmpty("Untitled")),
+            documentPath: null);
         StatusContextText.Text = "New document";
     }
 
@@ -193,6 +180,7 @@ public sealed partial class MainPage : Page
     {
         var picker = new FileOpenPicker();
         InitializePicker(picker);
+        picker.FileTypeFilter.Add(".tcdoc");
         picker.FileTypeFilter.Add(".tcview");
         picker.FileTypeFilter.Add(".tdom");
         picker.FileTypeFilter.Add(".tcom");
@@ -247,6 +235,7 @@ public sealed partial class MainPage : Page
 
         var picker = new FileSavePicker();
         InitializePicker(picker);
+        picker.FileTypeChoices.Add("ThinkComposer document", [".tcdoc"]);
         picker.FileTypeChoices.Add("ThinkComposer view", [".tcview"]);
         picker.SuggestedFileName = string.IsNullOrWhiteSpace(_currentSnapshot.Title) ? "Untitled" : _currentSnapshot.Title;
         picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
@@ -257,7 +246,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        SaveSnapshotToPath(file.Path);
+        SaveCurrentDocumentToPath(file.Path);
     }
 
     private async void ExportButton_Click(object sender, RoutedEventArgs e)
@@ -574,13 +563,13 @@ public sealed partial class MainPage : Page
 
     private void LoadStartupSnapshot()
     {
-        var snapshotPath = FindStartupSnapshotPath();
-        if (snapshotPath is null)
+        var documentPath = FindStartupDocumentPath();
+        if (documentPath is null)
         {
             return;
         }
 
-        LoadSnapshotFromPath(snapshotPath, addToRecent: false);
+        _ = LoadDocumentFromPathAsync(documentPath);
     }
 
     private void LoadSnapshotFromPath(string snapshotPath, bool addToRecent = true)
@@ -607,6 +596,9 @@ public sealed partial class MainPage : Page
     {
         switch (CompositionDocumentFileKindDetector.FromPath(filePath))
         {
+            case CompositionDocumentFileKind.ModernDocument:
+                LoadModernDocumentFromPath(filePath);
+                return;
             case CompositionDocumentFileKind.Snapshot:
                 LoadSnapshotFromPath(filePath);
                 return;
@@ -618,6 +610,25 @@ public sealed partial class MainPage : Page
                     $"Unsupported document type{Environment.NewLine}" +
                     filePath;
                 return;
+        }
+    }
+
+    private void LoadModernDocumentFromPath(string documentPath, bool addToRecent = true)
+    {
+        try
+        {
+            var document = CompositionDocumentSnapshotXmlStore.Load(documentPath);
+            ApplyDocument(document, documentPath);
+            if (addToRecent)
+            {
+                AddRecentFile(documentPath);
+            }
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not load document{Environment.NewLine}" +
+                problem.Message;
         }
     }
 
@@ -634,7 +645,7 @@ public sealed partial class MainPage : Page
 
         var outputPath = Path.Combine(
             Path.GetTempPath(),
-            $"thinkcomposer-import-{Path.GetFileNameWithoutExtension(legacyPath)}-{Guid.NewGuid():N}.tcview");
+            $"thinkcomposer-import-{Path.GetFileNameWithoutExtension(legacyPath)}-{Guid.NewGuid():N}.tcdoc");
         var startInfo = new ProcessStartInfo(toolPath)
         {
             UseShellExecute = false,
@@ -663,17 +674,17 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        LoadSnapshotFromPath(outputPath, addToRecent: false);
+        LoadModernDocumentFromPath(outputPath, addToRecent: false);
         _snapshotPath = null;
         AddRecentFile(legacyPath);
-        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}; save as .tcview";
+        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}; save as .tcdoc";
         MessagesText.Text =
             $"Legacy document imported{Environment.NewLine}" +
             $"{output.Trim()}{Environment.NewLine}" +
-            "Use Save or Save As to store it as a modern .tcview document.";
+            "Use Save or Save As to store it as a modern .tcdoc document.";
     }
 
-    private void SaveSnapshotToPath(string snapshotPath)
+    private void SaveCurrentDocumentToPath(string snapshotPath)
     {
         if (_currentSnapshot is null)
         {
@@ -682,20 +693,31 @@ public sealed partial class MainPage : Page
 
         try
         {
-            CompositionViewSnapshotXmlStore.Save(_currentSnapshot, snapshotPath);
+            if (CompositionDocumentFileKindDetector.FromPath(snapshotPath) == CompositionDocumentFileKind.ModernDocument)
+            {
+                var document = BuildCurrentDocument();
+                _currentDocument = document;
+                CompositionDocumentSnapshotXmlStore.Save(document, snapshotPath);
+            }
+            else
+            {
+                CompositionViewSnapshotXmlStore.Save(_currentSnapshot, snapshotPath);
+                _currentDocument = null;
+            }
+
             _snapshotPath = snapshotPath;
             _isDirty = false;
             AddRecentFile(snapshotPath);
             StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
             MessagesText.Text =
-                $"Snapshot saved{Environment.NewLine}" +
+                $"Document saved{Environment.NewLine}" +
                 $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
                 $"Path: {snapshotPath}";
         }
         catch (Exception problem)
         {
             MessagesText.Text =
-                $"Could not save snapshot{Environment.NewLine}" +
+                $"Could not save document{Environment.NewLine}" +
                 problem.Message;
         }
     }
@@ -711,8 +733,41 @@ public sealed partial class MainPage : Page
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
     }
 
+    private CompositionDocumentSnapshot BuildCurrentDocument()
+    {
+        if (_currentSnapshot is null)
+        {
+            throw new InvalidOperationException("No document is loaded.");
+        }
+
+        return _currentDocument is null
+            ? CompositionDocumentSnapshotAdapter.FromViewSnapshot(_currentSnapshot)
+            : CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, _currentSnapshot);
+    }
+
+    private void ApplyDocument(CompositionDocumentSnapshot document, string? documentPath)
+    {
+        _currentDocument = document;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document);
+        _editingSession = new CompositionEditingSession(snapshot);
+        _snapshotPath = documentPath;
+        ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
+
+        CompositionTitleText.Text = document.Title;
+        StatusContextText.Text = documentPath is null ? "New document" : $"Loaded {Path.GetFileName(documentPath)}";
+        MessagesText.Text =
+            $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
+            $"Canvas renderer: loaded modern document{Environment.NewLine}" +
+            $"Document: {document.Title}{Environment.NewLine}" +
+            $"Domain: {document.Domain.Name}{Environment.NewLine}" +
+            $"Ideas: {document.Ideas.Count}, relationships: {document.Relationships.Count}";
+        RefreshCommandCatalog();
+        RefreshBottomPanelContent();
+    }
+
     private void ApplySnapshot(CompositionViewSnapshot snapshot, string? snapshotPath)
     {
+        _currentDocument = null;
         _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = snapshotPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
@@ -737,6 +792,11 @@ public sealed partial class MainPage : Page
     {
         _currentSnapshot = snapshot;
         _isDirty = markDirty;
+        if (markDirty && _currentDocument is not null)
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, snapshot);
+        }
+
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
 
         UpdateExplorer(snapshot);
@@ -787,6 +847,44 @@ public sealed partial class MainPage : Page
         }
 
         ExplorerTree.RootNodes.Add(relations);
+
+        if (_currentDocument is not null)
+        {
+            var domain = _currentDocument.Domain;
+            var domainNode = new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry($"Domain: {domain.Name}", CompositionCommandEntryKind.Command),
+                IsExpanded = true
+            };
+            AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions);
+            AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions);
+            AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions);
+            AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions);
+            AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages);
+            ExplorerTree.RootNodes.Add(domainNode);
+        }
+
+        static void AddDefinitionGroup(
+            TreeViewNode parent,
+            string title,
+            IReadOnlyList<CompositionDefinitionSnapshot> definitions)
+        {
+            var group = new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry($"{title} ({definitions.Count})", CompositionCommandEntryKind.Command),
+                IsExpanded = false
+            };
+
+            foreach (var definition in definitions)
+            {
+                group.Children.Add(new TreeViewNode
+                {
+                    Content = new ExplorerTreeEntry(definition.Name, CompositionCommandEntryKind.Command)
+                });
+            }
+
+            parent.Children.Add(group);
+        }
     }
 
     private void ExplorerTree_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
@@ -833,6 +931,11 @@ public sealed partial class MainPage : Page
         }
 
         _currentSnapshot = CompositionSnapshotEditor.MoveNode(_currentSnapshot, node.Id, node.Position);
+        if (_currentDocument is not null)
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, _currentSnapshot);
+        }
+
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(_currentSnapshot);
         _isDirty = true;
         ApplySelectedNode(node);
@@ -895,6 +998,8 @@ public sealed partial class MainPage : Page
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
+            InspectorDetailsList.ItemsSource = Array.Empty<string>();
+            SetStyleInspector(new CompositionStyleSnapshot());
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
             OutgoingText.Text = "0";
@@ -913,8 +1018,12 @@ public sealed partial class MainPage : Page
         InspectorRelationshipButton.IsEnabled = true;
         InspectorDeleteButton.IsEnabled = true;
         InspectorNameBox.Text = GetNodeTitle(node);
-        InspectorKindBox.SelectedIndex = 0;
-        InspectorStatusBox.SelectedIndex = 0;
+        var idea = FindIdea(node.Id);
+        var definition = FindDefinition(idea?.DefinitionId);
+        SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Concept");
+        SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
+        InspectorDetailsList.ItemsSource = FormatDetails(idea?.Details);
+        SetStyleInspector(idea?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
         InspectorXBox.Value = Math.Round(node.Position.X, 1);
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
         InspectorWidthBox.Value = Math.Round(node.Size.Width, 1);
@@ -954,8 +1063,12 @@ public sealed partial class MainPage : Page
             InspectorRelationshipButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = connector.Text;
-            InspectorKindBox.SelectedIndex = 0;
-            InspectorStatusBox.SelectedIndex = 0;
+            var relationship = FindRelationship(connector.Id);
+            var definition = FindDefinition(relationship?.DefinitionId);
+            SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Relationship");
+            SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
+            InspectorDetailsList.ItemsSource = FormatDetails(relationship?.Details);
+            SetStyleInspector(relationship?.Style ?? definition?.Style ?? new CompositionStyleSnapshot());
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
@@ -1125,6 +1238,76 @@ public sealed partial class MainPage : Page
         return _currentSnapshot?.Connectors.FirstOrDefault(connector => string.Equals(connector.Id, connectorId, StringComparison.Ordinal));
     }
 
+    private CompositionIdeaSnapshot? FindIdea(string ideaId)
+    {
+        return _currentDocument?.Ideas.FirstOrDefault(idea => string.Equals(idea.Id, ideaId, StringComparison.Ordinal));
+    }
+
+    private CompositionRelationshipSnapshot? FindRelationship(string relationshipId)
+    {
+        return _currentDocument?.Relationships.FirstOrDefault(relationship => string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal));
+    }
+
+    private CompositionDefinitionSnapshot? FindDefinition(string? definitionId)
+    {
+        if (_currentDocument is null || string.IsNullOrWhiteSpace(definitionId))
+        {
+            return null;
+        }
+
+        return _currentDocument.Domain.ConceptDefinitions
+            .Concat(_currentDocument.Domain.RelationshipDefinitions)
+            .Concat(_currentDocument.Domain.MarkerDefinitions)
+            .Concat(_currentDocument.Domain.TableDefinitions)
+            .Concat(_currentDocument.Domain.ExternalLanguages)
+            .FirstOrDefault(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal));
+    }
+
+    private static IReadOnlyList<string> FormatDetails(IReadOnlyList<CompositionDetailSnapshot>? details)
+    {
+        if (details is null || details.Count == 0)
+        {
+            return ["No details"];
+        }
+
+        return details
+            .Select(detail => string.IsNullOrWhiteSpace(detail.Value)
+                ? $"{detail.Name} ({detail.Kind})"
+                : $"{detail.Name}: {detail.Value}")
+            .ToArray();
+    }
+
+    private static string FormatMarkerSummary(IReadOnlyList<string>? markers)
+    {
+        return markers is null || markers.Count == 0
+            ? "No markers"
+            : $"{markers.Count} marker(s)";
+    }
+
+    private void SetStyleInspector(CompositionStyleSnapshot style)
+    {
+        InspectorFillText.Text = string.IsNullOrWhiteSpace(style.Fill) ? "(default)" : style.Fill;
+        InspectorStrokeText.Text = string.IsNullOrWhiteSpace(style.Stroke) ? "(default)" : style.Stroke;
+        InspectorStrokeThicknessText.Text = style.StrokeThickness <= 0
+            ? "(default)"
+            : style.StrokeThickness.ToString("0.##");
+    }
+
+    private static void SetComboFirstItem(ComboBox comboBox, string text)
+    {
+        if (comboBox.Items.Count == 0)
+        {
+            comboBox.Items.Add(new ComboBoxItem());
+        }
+
+        if (comboBox.Items[0] is ComboBoxItem item)
+        {
+            item.Content = text;
+        }
+
+        comboBox.SelectedIndex = 0;
+    }
+
     private bool TryCompletePendingRelationship(CompositionNodeView? targetNode)
     {
         if (_currentSnapshot is null ||
@@ -1259,22 +1442,24 @@ public sealed partial class MainPage : Page
         return string.IsNullOrWhiteSpace(connector.Text) ? connector.Id : connector.Text;
     }
 
-    private static string? FindStartupSnapshotPath()
+    private static string? FindStartupDocumentPath()
     {
-        var commandLineSnapshot = Environment.GetCommandLineArgs()
+        var commandLineDocument = Environment.GetCommandLineArgs()
             .Skip(1)
-            .FirstOrDefault(IsExistingSnapshotPath);
+            .FirstOrDefault(IsExistingDocumentPath);
 
-        if (commandLineSnapshot is not null)
+        if (commandLineDocument is not null)
         {
-            return Path.GetFullPath(commandLineSnapshot);
+            return Path.GetFullPath(commandLineDocument);
         }
 
         return EnumerateAncestorDirectories(AppContext.BaseDirectory)
             .Concat(EnumerateAncestorDirectories(Environment.CurrentDirectory))
             .SelectMany(directory => new[]
             {
+                Path.Combine(directory, "docs", "generated", "All-Purpose.tcdoc"),
                 Path.Combine(directory, "docs", "generated", "All-Purpose.tcview"),
+                Path.Combine(directory, "PredefinedContent", "All-Purpose.tcdoc"),
                 Path.Combine(directory, "PredefinedContent", "All-Purpose.tcview")
             })
             .FirstOrDefault(File.Exists);
@@ -1288,9 +1473,10 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private static bool IsExistingSnapshotPath(string path)
+    private static bool IsExistingDocumentPath(string path)
     {
-        return string.Equals(Path.GetExtension(path), ".tcview", StringComparison.OrdinalIgnoreCase)
+        var kind = CompositionDocumentFileKindDetector.FromPath(path);
+        return (kind == CompositionDocumentFileKind.Snapshot || kind == CompositionDocumentFileKind.ModernDocument)
             && File.Exists(path);
     }
 

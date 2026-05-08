@@ -197,6 +197,12 @@ AssertEqual(snapshot.Connectors.Count, projectedSnapshot.Connectors.Count, "adap
 AssertEqual("Customer Need", projectedSnapshot.Nodes.Single(node => node.Id == "customer").Text, "adapter projected node text");
 AssertEqual("capability", projectedSnapshot.Connectors.Single(connector => connector.Id == "customer-capability").TargetId, "adapter projected connector target");
 
+var renamedModernSnapshot = CompositionSnapshotEditor.RenameNode(projectedSnapshot, "customer", "Renamed Need");
+var updatedModernDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(modernFromView, renamedModernSnapshot);
+AssertEqual("Renamed Need", updatedModernDocument.Ideas.Single(idea => idea.Id == "customer").Name, "modern edit updates idea");
+AssertEqual("Renamed Need", updatedModernDocument.Views[0].Nodes.Single(node => node.Id == "customer").Text, "modern edit updates view node");
+AssertEqual(modernFromView.Relationships.Count, updatedModernDocument.Relationships.Count, "modern edit preserves relationships");
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {
