@@ -675,6 +675,11 @@
                                         Click="OpenCompositeViewButton_Click"
                                         Content="Open composite view" />
                                     <Button
+                                        x:Name="InspectorShortcutButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="CreateShortcutButton_Click"
+                                        Content="Create shortcut here" />
+                                    <Button
                                         x:Name="InspectorDeleteButton"
                                         HorizontalAlignment="Stretch"
                                         Click="DeleteButton_Click"

@@ -1,3 +1,5 @@
+using Instrumind.ThinkComposer.Core.Primitives;
+
 namespace Instrumind.ThinkComposer.Core.Rendering;
 
 public static class CompositionDocumentSnapshotEditor
@@ -162,6 +164,61 @@ public static class CompositionDocumentSnapshotEditor
                     ? candidate with { IsComposite = true, ActiveViewId = viewId }
                     : candidate).ToArray(),
             Views = document.Views.Concat([view]).ToArray()
+        };
+    }
+
+    public static CompositionDocumentSnapshot CreateShortcut(
+        CompositionDocumentSnapshot document,
+        string viewId,
+        string targetIdeaId,
+        string shortcutId,
+        TcPoint position,
+        TcSize size)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            throw new ArgumentException("View id is required.", nameof(viewId));
+        }
+
+        if (string.IsNullOrWhiteSpace(targetIdeaId))
+        {
+            throw new ArgumentException("Target idea id is required.", nameof(targetIdeaId));
+        }
+
+        var target = document.Ideas.FirstOrDefault(idea => string.Equals(idea.Id, targetIdeaId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Idea '{targetIdeaId}' was not found.");
+        if (!document.Views.Any(view => string.Equals(view.Id, viewId, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException($"View '{viewId}' was not found.");
+        }
+
+        var baseShortcutId = string.IsNullOrWhiteSpace(shortcutId)
+            ? $"shortcut.{target.Id}"
+            : shortcutId.Trim();
+        var usedIds = document.Ideas
+            .Select(idea => idea.Id)
+            .Concat(document.Views.SelectMany(view => view.Nodes.Select(node => node.Id)));
+        var id = CreateUniqueId(baseShortcutId, usedIds);
+        var shortcutIdea = new CompositionIdeaSnapshot(
+            id,
+            target.Name,
+            target.DefinitionId,
+            target.Summary,
+            Style: target.Style,
+            ShortcutTargetId: target.Id);
+        var shortcutNode = new CompositionNodeView(id, target.Name, position, size, target.Style);
+
+        return document with
+        {
+            Ideas = document.Ideas.Concat([shortcutIdea]).ToArray(),
+            Views = document.Views.Select(view => string.Equals(view.Id, viewId, StringComparison.Ordinal)
+                ? view with { Nodes = view.Nodes.Concat([shortcutNode]).ToArray() }
+                : view).ToArray()
         };
     }
 

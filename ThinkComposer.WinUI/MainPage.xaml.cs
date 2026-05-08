@@ -604,6 +604,38 @@ public sealed partial class MainPage : Page
         OpenDocumentView(idea.ActiveViewId);
     }
 
+    private void CreateShortcutButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            StatusContextText.Text = "Select a concept first";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        var viewId = GetCurrentViewId(document);
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            StatusContextText.Text = "No active view";
+            return;
+        }
+
+        var center = CanvasView.GetViewportCenter();
+        var size = new TcSize(160, 70);
+        var shortcutId = $"shortcut-{Guid.NewGuid():N}";
+        _currentDocument = CompositionDocumentSnapshotEditor.CreateShortcut(
+            document,
+            viewId,
+            _selectedNodeId,
+            shortcutId,
+            new TcPoint(center.X - size.Width / 2, center.Y - size.Height / 2),
+            size);
+
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(_currentDocument, viewId);
+        ApplyEditedSnapshot(snapshot, shortcutId, fitToViewport: false);
+        StatusContextText.Text = "Shortcut created";
+    }
+
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -2042,6 +2074,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = false;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -2073,6 +2106,7 @@ public sealed partial class MainPage : Page
         InspectorHeightBox.IsEnabled = true;
         InspectorRelationshipButton.IsEnabled = true;
         InspectorCompositeViewButton.IsEnabled = true;
+        InspectorShortcutButton.IsEnabled = true;
         InspectorDeleteButton.IsEnabled = true;
         InspectorNameBox.Text = GetNodeTitle(node);
         var idea = FindIdea(node.Id);
@@ -2121,6 +2155,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -2172,6 +2207,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = connector.Text;
             var relationship = FindRelationship(connector.Id);
@@ -2225,6 +2261,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = definition.Name;
             SetComboFirstItem(InspectorKindBox, group.ToString());
@@ -2276,6 +2313,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = template.Key;
             SetComboFirstItem(InspectorKindBox, "Generation template");
@@ -2327,6 +2365,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.IsEnabled = false;
             InspectorRelationshipButton.IsEnabled = false;
             InspectorCompositeViewButton.IsEnabled = false;
+            InspectorShortcutButton.IsEnabled = false;
             InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = complement.Key;
             SetComboFirstItem(InspectorKindBox, "View complement");

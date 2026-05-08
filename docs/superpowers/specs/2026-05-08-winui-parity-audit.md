@@ -4,9 +4,9 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, shortcut-object authoring, presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -14,7 +14,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Data contract: versioned `CompositionDocumentSnapshot`, XML roundtrip, schema validation, migration-safe `.tcview` warning.
 - Legacy bridge: exports legacy packages to `.tcdoc` or `.tcview`; WinUI consumes `.tcdoc` through the external bridge tool without referencing WPF.
 - Canvas: render concepts/relationships, pan, zoom, select, multi-select, move, precise keyboard move, create concept, create relationship, delete, undo/redo.
-- Navigation: browse/switch modern document views from Explorer and command search; create/open composite views from selected concepts; preserve composite/shortcut metadata in `.tcdoc`.
+- Navigation: browse/switch modern document views from Explorer and command search; create/open composite views from selected concepts; create shortcut objects in the current view; preserve composite/shortcut metadata in `.tcdoc`.
 - Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, current-view complements, and generation templates.
 - Canvas complements: render group regions plus legend/info/quote cards from current-view complements.
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
@@ -36,9 +36,9 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Table details persist as CSV and can be edited through a structured row editor, but there is no full spreadsheet-like cell grid.
 - Base-table definitions are listed/editable as definitions, but base-table records are not a dedicated workflow.
 
-### P1 - Composite Navigation And Shortcuts
+### P1 - Composite Navigation And Complements
 
-- Modern documents preserve composite/shortcut metadata and support view switching/composite-view creation, but shortcut objects are not yet a dedicated WinUI workflow.
+- Modern documents preserve composite/shortcut metadata and support view switching, composite-view creation, and shortcut-object creation.
 - Complements render as basic group regions and cards, but do not yet support all legacy complement-specific styling and geometry.
 
 ### P1 - Output Parity
@@ -55,8 +55,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ## Recommended Backlog
 
-1. Add shortcut-object authoring to WinUI.
-2. Build a spreadsheet-like grid editor and base-table record workflows.
-3. Render complements visually on the canvas.
-4. Add PDF/XPS or an explicit supported replacement path.
-5. Add UI automation smoke tests and release packaging.
+1. Build a spreadsheet-like grid editor and base-table record workflows.
+2. Add PDF/XPS or an explicit supported replacement path.
+3. Add UI automation smoke tests around launch, theme switching, open/save, create/edit, and report/generation.
+4. Define installer, signing, and update-channel packaging.

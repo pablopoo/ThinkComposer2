@@ -445,6 +445,15 @@ var compositeIdea = compositeViewDocument.Ideas.Single(idea => idea.Id == "custo
 AssertEqual(true, compositeIdea.IsComposite, "composite authoring marks idea");
 AssertTrue(!string.IsNullOrWhiteSpace(compositeIdea.ActiveViewId), "composite authoring active view");
 AssertEqual("customer", compositeViewDocument.Views.Single(view => view.Id == compositeIdea.ActiveViewId).ContainerIdeaId, "composite authoring view container");
+var shortcutDocument = CompositionDocumentSnapshotEditor.CreateShortcut(
+    compositeViewDocument,
+    compositeViewDocument.Views[0].Id,
+    "customer",
+    "customer-shortcut",
+    new TcPoint(420, 120),
+    new TcSize(164, 82));
+AssertEqual("customer", shortcutDocument.Ideas.Single(idea => idea.Id == "customer-shortcut").ShortcutTargetId, "shortcut target");
+AssertTrue(shortcutDocument.Views[0].Nodes.Any(node => node.Id == "customer-shortcut"), "shortcut node in view");
 
 var detailedDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     modernDocument,
