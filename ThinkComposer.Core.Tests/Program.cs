@@ -12,6 +12,10 @@ AssertEqual("Untitled", emptyDocument.Title, "empty document title");
 AssertEqual(0, emptyDocument.Nodes.Count, "empty document nodes");
 AssertEqual(0, emptyDocument.Connectors.Count, "empty document connectors");
 AssertTrue(Guid.TryParse(emptyDocument.Id, out _), "empty document id is guid");
+AssertEqual(CompositionDocumentFileKind.Snapshot, CompositionDocumentFileKindDetector.FromPath("sample.tcview"), "snapshot extension");
+AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKindDetector.FromPath("sample.tdom"), "tdom extension");
+AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKindDetector.FromPath("sample.tcom"), "tcom extension");
+AssertEqual(CompositionDocumentFileKind.Unknown, CompositionDocumentFileKindDetector.FromPath("sample.txt"), "unknown extension");
 
 var commandEntries = CompositionCommandCatalog.ForSnapshot(snapshot);
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.Open), "command catalog open");

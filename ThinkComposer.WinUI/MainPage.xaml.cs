@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.UI.Xaml;
@@ -128,6 +129,8 @@ public sealed partial class MainPage : Page
         var picker = new FileOpenPicker();
         InitializePicker(picker);
         picker.FileTypeFilter.Add(".tcview");
+        picker.FileTypeFilter.Add(".tdom");
+        picker.FileTypeFilter.Add(".tcom");
         picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 
         var file = await picker.PickSingleFileAsync();
@@ -136,7 +139,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        LoadSnapshotFromPath(file.Path);
+        await LoadDocumentFromPathAsync(file.Path);
     }
 
     private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
@@ -277,6 +280,73 @@ public sealed partial class MainPage : Page
                 $"Canvas renderer: Core snapshot DTOs{Environment.NewLine}" +
                 $"Could not load snapshot: {problem.Message}";
         }
+    }
+
+    private async Task LoadDocumentFromPathAsync(string filePath)
+    {
+        switch (CompositionDocumentFileKindDetector.FromPath(filePath))
+        {
+            case CompositionDocumentFileKind.Snapshot:
+                LoadSnapshotFromPath(filePath);
+                return;
+            case CompositionDocumentFileKind.LegacyPackage:
+                await ImportLegacyPackageAsync(filePath);
+                return;
+            default:
+                MessagesText.Text =
+                    $"Unsupported document type{Environment.NewLine}" +
+                    filePath;
+                return;
+        }
+    }
+
+    private async Task ImportLegacyPackageAsync(string legacyPath)
+    {
+        var toolPath = FindLegacyBridgeToolPath();
+        if (toolPath is null)
+        {
+            MessagesText.Text =
+                $"Could not import legacy document{Environment.NewLine}" +
+                "Legacy bridge tool was not found.";
+            return;
+        }
+
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            $"thinkcomposer-import-{Path.GetFileNameWithoutExtension(legacyPath)}-{Guid.NewGuid():N}.tcview");
+        var startInfo = new ProcessStartInfo(toolPath)
+        {
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add(legacyPath);
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            MessagesText.Text = "Could not start legacy bridge tool.";
+            return;
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0)
+        {
+            MessagesText.Text =
+                $"Could not import legacy document{Environment.NewLine}" +
+                error.Trim();
+            return;
+        }
+
+        LoadSnapshotFromPath(outputPath);
+        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}";
+        MessagesText.Text =
+            $"Legacy document imported{Environment.NewLine}" +
+            output.Trim();
     }
 
     private void SaveSnapshotToPath(string snapshotPath)
@@ -803,5 +873,20 @@ public sealed partial class MainPage : Page
     {
         return string.Equals(Path.GetExtension(path), ".tcview", StringComparison.OrdinalIgnoreCase)
             && File.Exists(path);
+    }
+
+    private static string? FindLegacyBridgeToolPath()
+    {
+        return EnumerateAncestorDirectories(AppContext.BaseDirectory)
+            .Concat(EnumerateAncestorDirectories(Environment.CurrentDirectory))
+            .Select(directory => Path.Combine(
+                directory,
+                "ThinkComposer.LegacyBridge.Tool",
+                "bin",
+                "x86",
+                "Debug",
+                "net48",
+                "ThinkComposer.LegacyBridge.Tool.exe"))
+            .FirstOrDefault(File.Exists);
     }
 }
