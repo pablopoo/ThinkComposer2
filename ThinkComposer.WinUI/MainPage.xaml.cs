@@ -329,6 +329,53 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void GenerateFilesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var document = BuildCurrentDocument();
+            var result = CompositionDocumentFileGenerator.Generate(document);
+            if (result.Files.Count == 0)
+            {
+                StatusContextText.Text = "No generation templates";
+                MessagesText.Text =
+                    $"No files generated{Environment.NewLine}" +
+                    "The current domain has no concept or relationship templates.";
+                return;
+            }
+
+            var picker = new FolderPicker
+            {
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            InitializePicker(picker);
+            picker.FileTypeFilter.Add("*");
+            var folder = await picker.PickSingleFolderAsync();
+            if (folder is null)
+            {
+                return;
+            }
+
+            result.WriteToDirectory(folder.Path);
+            StatusContextText.Text = $"Generated {result.Files.Count} file(s)";
+            MessagesText.Text =
+                $"File generation completed{Environment.NewLine}" +
+                $"Files: {result.Files.Count}{Environment.NewLine}" +
+                $"Path: {folder.Path}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not generate files{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
     private async void PrintPreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -1591,6 +1638,9 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandIds.ReportHtml:
                 ReportButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.GenerateFiles:
+                GenerateFilesButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.PrintPreview:
                 PrintPreviewButton_Click(this, new RoutedEventArgs());

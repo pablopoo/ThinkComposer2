@@ -161,6 +161,30 @@ AssertTrue(modernReportHtml.Contains("Source: Customer Need", StringComparison.O
 AssertTrue(modernReportHtml.Contains("<svg", StringComparison.Ordinal), "modern report view svg");
 AssertTrue(modernReportHtml.Contains("Checklist", StringComparison.Ordinal), "modern report table definition");
 
+var generationDocument = modernDocument with
+{
+    Domain = modernDocument.Domain with
+    {
+        Templates =
+        [
+            new CompositionExtensionSnapshot(
+                "legacy.template.concept.default",
+                "%%:FILENAME={{Name}}.md\n# {{Name}}\nDefinition={{Definition.Name}}\nSpec={{Details.Spec}}"),
+            new CompositionExtensionSnapshot(
+                "legacy.template.relationship.default",
+                "%%:FILENAME={{Name}}.rel.txt\n{{Source.Name}} -> {{Target.Name}}: {{Name}}")
+        ]
+    }
+};
+var generatedFiles = CompositionDocumentFileGenerator.Generate(generationDocument);
+AssertEqual(2, generatedFiles.Files.Count, "modern generation file count");
+var generatedConceptFile = generatedFiles.Files.Single(file => file.RelativePath == "Customer Need.md");
+AssertTrue(generatedConceptFile.Content.Contains("# Customer Need", StringComparison.Ordinal), "modern generation concept name");
+AssertTrue(generatedConceptFile.Content.Contains("Definition=Concept", StringComparison.Ordinal), "modern generation definition");
+AssertTrue(generatedConceptFile.Content.Contains("Spec=spec.pdf", StringComparison.Ordinal), "modern generation detail");
+var generatedRelationshipFile = generatedFiles.Files.Single(file => file.RelativePath == "Addresses.rel.txt");
+AssertTrue(generatedRelationshipFile.Content.Contains("Customer Need -> Customer Need: Addresses", StringComparison.Ordinal), "modern generation relationship");
+
 var modernDocumentPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-modern-{Guid.NewGuid():N}.tcdoc");
 try
 {
@@ -244,6 +268,7 @@ var commandEntries = CompositionCommandCatalog.ForSnapshot(snapshot);
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.Open), "command catalog open");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ExportHtml), "command catalog export");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ReportHtml), "command catalog report");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.GenerateFiles), "command catalog generate files");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.PrintPreview), "command catalog print preview");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
 AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");
