@@ -24,27 +24,27 @@
 - Create: `ThinkComposer.Core/Rendering/CompositionStyleSnapshot.cs`
 - Create: `ThinkComposer.Core/Rendering/CompositionExtensionSnapshot.cs`
 
-- [ ] **Step 1: Write failing DTO usage test**
+- [x] **Step 1: Write failing DTO usage test**
 
 Add a test that constructs a document with domain metadata, definitions, details, style, markers, complements, templates, and extensions.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csproj`
 
 Expected: compile fails because the new DTO types do not exist.
 
-- [ ] **Step 3: Add DTO records**
+- [x] **Step 3: Add DTO records**
 
 Implement records with immutable list properties and default empty lists.
 
-- [ ] **Step 4: Run green test**
+- [x] **Step 4: Run green test**
 
 Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csproj`
 
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `Add modern document DTO contract`.
 
@@ -54,21 +54,21 @@ Commit message: `Add modern document DTO contract`.
 - Test: `ThinkComposer.Core.Tests/Program.cs`
 - Create: `ThinkComposer.Core/Rendering/CompositionDocumentSnapshotXmlStore.cs`
 
-- [ ] **Step 1: Write failing roundtrip test**
+- [x] **Step 1: Write failing roundtrip test**
 
 Save and load a full document and assert schema version, domain definitions, details, styles, templates, complements, and extensions survive.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csproj`
 
 Expected: compile fails because `CompositionDocumentSnapshotXmlStore` does not exist.
 
-- [ ] **Step 3: Implement XML store**
+- [x] **Step 3: Implement XML store**
 
 Use `XDocument` and explicit element names. Do not use binary serialization.
 
-- [ ] **Step 4: Run green test**
+- [x] **Step 4: Run green test**
 
 Run: `dotnet run --project ThinkComposer.Core.Tests\ThinkComposer.Core.Tests.csproj`
 

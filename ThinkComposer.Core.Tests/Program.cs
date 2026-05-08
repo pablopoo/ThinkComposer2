@@ -149,6 +149,36 @@ AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
 
+var modernDocumentPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-modern-{Guid.NewGuid():N}.tcdoc");
+try
+{
+    CompositionDocumentSnapshotXmlStore.Save(modernDocument, modernDocumentPath);
+    var reloadedModernDocument = CompositionDocumentSnapshotXmlStore.Load(modernDocumentPath);
+
+    AssertEqual(modernDocument.SchemaVersion, reloadedModernDocument.SchemaVersion, "modern roundtrip schema");
+    AssertEqual("Modern Document", reloadedModernDocument.Title, "modern roundtrip title");
+    AssertEqual("All Purpose", reloadedModernDocument.Domain.Name, "modern roundtrip domain");
+    AssertEqual("Relationship", reloadedModernDocument.Domain.RelationshipDefinitions[0].Name, "modern roundtrip relationship definition");
+    AssertEqual("Risk", reloadedModernDocument.Domain.MarkerDefinitions[0].Name, "modern roundtrip marker definition");
+    AssertEqual("Checklist", reloadedModernDocument.Domain.TableDefinitions[0].Name, "modern roundtrip table definition");
+    AssertEqual("SQL", reloadedModernDocument.Domain.ExternalLanguages[0].Name, "modern roundtrip external language");
+    AssertEqual("select * from ideas", reloadedModernDocument.Domain.Templates[0].Value, "modern roundtrip template");
+    AssertEqual("Customer Need", reloadedModernDocument.Ideas[0].Name, "modern roundtrip idea");
+    AssertEqual("Spec", reloadedModernDocument.Ideas[0].Details[0].Name, "modern roundtrip idea detail");
+    AssertEqual("marker-def", reloadedModernDocument.Ideas[0].Markers[0], "modern roundtrip idea marker");
+    AssertEqual("#f8f8f8", reloadedModernDocument.Ideas[0].Style.Fill, "modern roundtrip idea style");
+    AssertEqual("High", reloadedModernDocument.Relationships[0].Details[0].Value, "modern roundtrip relationship detail");
+    AssertEqual("Legend", reloadedModernDocument.Views[0].Complements[0].Value, "modern roundtrip complement");
+    AssertEqual("legacy.package.raw", reloadedModernDocument.Extensions[0].Key, "modern roundtrip extension");
+}
+finally
+{
+    if (File.Exists(modernDocumentPath))
+    {
+        File.Delete(modernDocumentPath);
+    }
+}
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {
