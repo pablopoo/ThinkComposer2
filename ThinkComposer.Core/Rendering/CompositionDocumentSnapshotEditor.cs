@@ -2,6 +2,43 @@ namespace Instrumind.ThinkComposer.Core.Rendering;
 
 public static class CompositionDocumentSnapshotEditor
 {
+    public static CompositionDocumentSnapshot UpsertDefinition(
+        CompositionDocumentSnapshot document,
+        CompositionDefinitionGroup group,
+        CompositionDefinitionSnapshot definition)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (definition is null)
+        {
+            throw new ArgumentNullException(nameof(definition));
+        }
+
+        return document with
+        {
+            Domain = UpsertDefinition(document.Domain, group, definition)
+        };
+    }
+
+    public static CompositionDocumentSnapshot DeleteDefinition(
+        CompositionDocumentSnapshot document,
+        CompositionDefinitionGroup group,
+        string definitionId)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        return document with
+        {
+            Domain = DeleteDefinition(document.Domain, group, definitionId)
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertIdeaDetail(
         CompositionDocumentSnapshot document,
         string ideaId,
@@ -263,6 +300,101 @@ public static class CompositionDocumentSnapshotEditor
             .Where(marker => !string.IsNullOrWhiteSpace(marker))
             .Select(marker => marker.Trim())
             .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static CompositionDomainSnapshot UpsertDefinition(
+        CompositionDomainSnapshot domain,
+        CompositionDefinitionGroup group,
+        CompositionDefinitionSnapshot definition)
+    {
+        return group switch
+        {
+            CompositionDefinitionGroup.Concept => domain with
+            {
+                ConceptDefinitions = UpsertDefinition(domain.ConceptDefinitions, definition)
+            },
+            CompositionDefinitionGroup.Relationship => domain with
+            {
+                RelationshipDefinitions = UpsertDefinition(domain.RelationshipDefinitions, definition)
+            },
+            CompositionDefinitionGroup.Marker => domain with
+            {
+                MarkerDefinitions = UpsertDefinition(domain.MarkerDefinitions, definition)
+            },
+            CompositionDefinitionGroup.Table => domain with
+            {
+                TableDefinitions = UpsertDefinition(domain.TableDefinitions, definition)
+            },
+            CompositionDefinitionGroup.ExternalLanguage => domain with
+            {
+                ExternalLanguages = UpsertDefinition(domain.ExternalLanguages, definition)
+            },
+            _ => domain
+        };
+    }
+
+    private static CompositionDomainSnapshot DeleteDefinition(
+        CompositionDomainSnapshot domain,
+        CompositionDefinitionGroup group,
+        string definitionId)
+    {
+        return group switch
+        {
+            CompositionDefinitionGroup.Concept => domain with
+            {
+                ConceptDefinitions = DeleteDefinition(domain.ConceptDefinitions, definitionId)
+            },
+            CompositionDefinitionGroup.Relationship => domain with
+            {
+                RelationshipDefinitions = DeleteDefinition(domain.RelationshipDefinitions, definitionId)
+            },
+            CompositionDefinitionGroup.Marker => domain with
+            {
+                MarkerDefinitions = DeleteDefinition(domain.MarkerDefinitions, definitionId)
+            },
+            CompositionDefinitionGroup.Table => domain with
+            {
+                TableDefinitions = DeleteDefinition(domain.TableDefinitions, definitionId)
+            },
+            CompositionDefinitionGroup.ExternalLanguage => domain with
+            {
+                ExternalLanguages = DeleteDefinition(domain.ExternalLanguages, definitionId)
+            },
+            _ => domain
+        };
+    }
+
+    private static IReadOnlyList<CompositionDefinitionSnapshot> UpsertDefinition(
+        IReadOnlyList<CompositionDefinitionSnapshot> definitions,
+        CompositionDefinitionSnapshot definition)
+    {
+        var replaced = false;
+        var result = definitions.Select(existing =>
+        {
+            if (!string.Equals(existing.Id, definition.Id, StringComparison.Ordinal))
+            {
+                return existing;
+            }
+
+            replaced = true;
+            return definition;
+        }).ToList();
+
+        if (!replaced)
+        {
+            result.Add(definition);
+        }
+
+        return result.ToArray();
+    }
+
+    private static IReadOnlyList<CompositionDefinitionSnapshot> DeleteDefinition(
+        IReadOnlyList<CompositionDefinitionSnapshot> definitions,
+        string definitionId)
+    {
+        return definitions
+            .Where(definition => !string.Equals(definition.Id, definitionId, StringComparison.Ordinal))
             .ToArray();
     }
 }

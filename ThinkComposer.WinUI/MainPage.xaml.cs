@@ -25,7 +25,8 @@ public sealed partial class MainPage : Page
     private sealed record ExplorerTreeEntry(
         string Title,
         CompositionCommandEntryKind Kind,
-        string? TargetId = null)
+        string? TargetId = null,
+        CompositionDefinitionGroup? DefinitionGroup = null)
     {
         public override string ToString()
         {
@@ -62,6 +63,8 @@ public sealed partial class MainPage : Page
     private CompositionSnapshotIndex? _snapshotIndex;
     private string? _selectedNodeId;
     private string? _selectedConnectorId;
+    private string? _selectedDefinitionId;
+    private CompositionDefinitionGroup? _selectedDefinitionGroup;
     private string? _pendingRelationshipSourceId;
     private CompositionSnapshotSelection? _clipboardSelection;
     private bool _isApplyingInspector;
@@ -499,6 +502,23 @@ public sealed partial class MainPage : Page
                 CompositionSnapshotSelectionEditor.Delete(_currentSnapshot, selectedNodeIds),
                 selectedNodeId: null,
                 fitToViewport: false);
+            return;
+        }
+
+        if (_selectedDefinitionGroup is not null && !string.IsNullOrWhiteSpace(_selectedDefinitionId))
+        {
+            var document = EnsureCurrentDocument();
+            _currentDocument = CompositionDocumentSnapshotEditor.DeleteDefinition(
+                document,
+                _selectedDefinitionGroup.Value,
+                _selectedDefinitionId);
+            _selectedDefinitionGroup = null;
+            _selectedDefinitionId = null;
+            _isDirty = true;
+            UpdateExplorer(_currentSnapshot);
+            ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
+            StatusContextText.Text = "Definition deleted";
+            RefreshBottomPanelContent();
             return;
         }
 
@@ -1110,18 +1130,19 @@ public sealed partial class MainPage : Page
                 Content = new ExplorerTreeEntry($"Domain: {domain.Name}", CompositionCommandEntryKind.Command),
                 IsExpanded = true
             };
-            AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions);
-            AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions);
-            AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions);
-            AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions);
-            AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages);
+            AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions, CompositionDefinitionGroup.Concept);
+            AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions, CompositionDefinitionGroup.Relationship);
+            AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions, CompositionDefinitionGroup.Marker);
+            AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions, CompositionDefinitionGroup.Table);
+            AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages, CompositionDefinitionGroup.ExternalLanguage);
             ExplorerTree.RootNodes.Add(domainNode);
         }
 
         static void AddDefinitionGroup(
             TreeViewNode parent,
             string title,
-            IReadOnlyList<CompositionDefinitionSnapshot> definitions)
+            IReadOnlyList<CompositionDefinitionSnapshot> definitions,
+            CompositionDefinitionGroup definitionGroup)
         {
             var group = new TreeViewNode
             {
@@ -1133,7 +1154,11 @@ public sealed partial class MainPage : Page
             {
                 group.Children.Add(new TreeViewNode
                 {
-                    Content = new ExplorerTreeEntry(definition.Name, CompositionCommandEntryKind.Command)
+                    Content = new ExplorerTreeEntry(
+                        definition.Name,
+                        CompositionCommandEntryKind.Command,
+                        definition.Id,
+                        definitionGroup)
                 });
             }
 
@@ -1146,6 +1171,13 @@ public sealed partial class MainPage : Page
         if (sender.SelectedNode?.Content is not ExplorerTreeEntry entry ||
             string.IsNullOrWhiteSpace(entry.TargetId))
         {
+            return;
+        }
+
+        if (entry.DefinitionGroup is not null)
+        {
+            ApplySelectedDefinition(entry.DefinitionGroup.Value, entry.TargetId);
+            StatusContextText.Text = $"Selected {entry.Title}";
             return;
         }
 
@@ -1328,6 +1360,8 @@ public sealed partial class MainPage : Page
         if (node is null)
         {
             _selectedNodeId = null;
+            _selectedDefinitionId = null;
+            _selectedDefinitionGroup = null;
             if (string.IsNullOrWhiteSpace(_selectedConnectorId))
             {
                 _pendingRelationshipSourceId = null;
@@ -1356,6 +1390,8 @@ public sealed partial class MainPage : Page
 
         _selectedNodeId = node.Id;
         _selectedConnectorId = null;
+        _selectedDefinitionId = null;
+        _selectedDefinitionGroup = null;
         ObjectExpander.Header = "Concept";
         InspectorNameBox.IsEnabled = true;
         InspectorXBox.IsEnabled = true;
@@ -1394,6 +1430,8 @@ public sealed partial class MainPage : Page
         {
             _selectedNodeId = null;
             _selectedConnectorId = null;
+            _selectedDefinitionId = null;
+            _selectedDefinitionGroup = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Multiple selection";
             InspectorNameBox.Text = $"{nodes.Count} concepts selected";
@@ -1437,6 +1475,8 @@ public sealed partial class MainPage : Page
 
             _selectedNodeId = null;
             _selectedConnectorId = connector.Id;
+            _selectedDefinitionId = null;
+            _selectedDefinitionGroup = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Relationship";
             InspectorNameBox.IsEnabled = true;
@@ -1461,6 +1501,51 @@ public sealed partial class MainPage : Page
             IncomingLabel.Text = "Target";
             OutgoingText.Text = connector.SourceId;
             IncomingText.Text = connector.TargetId;
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+            RefreshDiagnostics();
+        }
+    }
+
+    private void ApplySelectedDefinition(CompositionDefinitionGroup group, string definitionId)
+    {
+        _isApplyingInspector = true;
+        try
+        {
+            var definition = FindDefinition(group, definitionId);
+            if (definition is null)
+            {
+                return;
+            }
+
+            _selectedNodeId = null;
+            _selectedConnectorId = null;
+            _selectedDefinitionId = definition.Id;
+            _selectedDefinitionGroup = group;
+            _pendingRelationshipSourceId = null;
+            ObjectExpander.Header = "Definition";
+            InspectorNameBox.IsEnabled = true;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = true;
+            InspectorNameBox.Text = definition.Name;
+            SetComboFirstItem(InspectorKindBox, group.ToString());
+            SetComboFirstItem(InspectorStatusBox, definition.Kind);
+            SetMetadataInspector(definition.Details, null, isEnabled: false);
+            SetStyleInspector(definition.Style);
+            InspectorXBox.Value = 0;
+            InspectorYBox.Value = 0;
+            InspectorWidthBox.Value = 0;
+            InspectorHeightBox.Value = 0;
+            OutgoingLabel.Text = "Group";
+            IncomingLabel.Text = "Id";
+            OutgoingText.Text = group.ToString();
+            IncomingText.Text = definition.Id;
         }
         finally
         {
@@ -1526,6 +1611,27 @@ public sealed partial class MainPage : Page
         }
 
         var nextText = InspectorNameBox.Text.Trim();
+
+        if (_selectedDefinitionGroup is not null && !string.IsNullOrWhiteSpace(_selectedDefinitionId))
+        {
+            var currentDefinition = FindDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
+            if (currentDefinition is null || string.Equals(currentDefinition.Name, nextText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var document = EnsureCurrentDocument();
+            _currentDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+                document,
+                _selectedDefinitionGroup.Value,
+                currentDefinition with { Name = nextText });
+            _isDirty = true;
+            UpdateExplorer(_currentSnapshot);
+            ApplySelectedDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
+            StatusContextText.Text = "Definition renamed";
+            RefreshBottomPanelContent();
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
         {
@@ -1755,6 +1861,32 @@ public sealed partial class MainPage : Page
             .Concat(_currentDocument.Domain.TableDefinitions)
             .Concat(_currentDocument.Domain.ExternalLanguages)
             .FirstOrDefault(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal));
+    }
+
+    private CompositionDefinitionSnapshot? FindDefinition(CompositionDefinitionGroup group, string definitionId)
+    {
+        if (_currentDocument is null)
+        {
+            return null;
+        }
+
+        return GetDefinitions(_currentDocument.Domain, group)
+            .FirstOrDefault(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal));
+    }
+
+    private static IReadOnlyList<CompositionDefinitionSnapshot> GetDefinitions(
+        CompositionDomainSnapshot domain,
+        CompositionDefinitionGroup group)
+    {
+        return group switch
+        {
+            CompositionDefinitionGroup.Concept => domain.ConceptDefinitions,
+            CompositionDefinitionGroup.Relationship => domain.RelationshipDefinitions,
+            CompositionDefinitionGroup.Marker => domain.MarkerDefinitions,
+            CompositionDefinitionGroup.Table => domain.TableDefinitions,
+            CompositionDefinitionGroup.ExternalLanguage => domain.ExternalLanguages,
+            _ => Array.Empty<CompositionDefinitionSnapshot>()
+        };
     }
 
     private void SetMetadataInspector(

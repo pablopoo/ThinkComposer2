@@ -258,6 +258,22 @@ AssertEqual("Low", relationshipDetailDocument.Relationships.Single(relationship 
 var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(relationshipDetailDocument, "idea-1", "detail-added");
 AssertTrue(!deletedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Any(detail => detail.Id == "detail-added"), "idea detail deleted");
 
+var definitionEditedDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+    modernDocument,
+    CompositionDefinitionGroup.Marker,
+    new CompositionDefinitionSnapshot("risk-high", "High Risk", "Marker", "Needs attention"));
+AssertTrue(definitionEditedDocument.Domain.MarkerDefinitions.Any(definition => definition.Id == "risk-high"), "definition added");
+var definitionUpdatedDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+    definitionEditedDocument,
+    CompositionDefinitionGroup.Marker,
+    new CompositionDefinitionSnapshot("risk-high", "Critical Risk", "Marker"));
+AssertEqual("Critical Risk", definitionUpdatedDocument.Domain.MarkerDefinitions.Single(definition => definition.Id == "risk-high").Name, "definition updated");
+var definitionDeletedDocument = CompositionDocumentSnapshotEditor.DeleteDefinition(
+    definitionUpdatedDocument,
+    CompositionDefinitionGroup.Marker,
+    "risk-high");
+AssertTrue(!definitionDeletedDocument.Domain.MarkerDefinitions.Any(definition => definition.Id == "risk-high"), "definition deleted");
+
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",
     Title: "Incoming",
