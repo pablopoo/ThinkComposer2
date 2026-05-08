@@ -2364,6 +2364,16 @@ public sealed partial class MainPage : Page
                 CanvasView.SelectConnector(entry.TargetId);
                 StatusContextText.Text = $"Selected {entry.Title}";
                 return;
+            case CompositionCommandEntryKind.Definition when
+                !string.IsNullOrWhiteSpace(entry.TargetId) &&
+                TryGetDefinitionGroup(entry.Id, out var group):
+                ApplySelectedDefinition(group, entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                return;
+            case CompositionCommandEntryKind.Template when !string.IsNullOrWhiteSpace(entry.TargetId):
+                ApplySelectedTemplate(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                return;
             case CompositionCommandEntryKind.Command:
                 ExecuteCommand(entry.Id);
                 return;
@@ -2427,7 +2437,10 @@ public sealed partial class MainPage : Page
 
     private void RefreshCommandCatalog()
     {
-        var entries = new List<CompositionCommandEntry>(CompositionCommandCatalog.ForSnapshot(_currentSnapshot));
+        var sourceEntries = _currentDocument is not null && _currentSnapshot is not null
+            ? CompositionCommandCatalog.ForDocument(BuildCurrentDocument())
+            : CompositionCommandCatalog.ForSnapshot(_currentSnapshot);
+        var entries = new List<CompositionCommandEntry>(sourceEntries);
         entries.AddRange(_recentFiles.Select(filePath =>
             new CompositionCommandEntry(
                 $"recent.{filePath}",
@@ -2437,6 +2450,15 @@ public sealed partial class MainPage : Page
                 "Recent file")));
         _commandEntries = entries;
         RefreshSearchResults();
+    }
+
+    private static bool TryGetDefinitionGroup(string commandId, out CompositionDefinitionGroup group)
+    {
+        group = default;
+        var parts = commandId.Split('.', 3);
+        return parts.Length == 3 &&
+            string.Equals(parts[0], "definition", StringComparison.Ordinal) &&
+            Enum.TryParse(parts[1], out group);
     }
 
     private static string GetNodeTitle(CompositionNodeView node)

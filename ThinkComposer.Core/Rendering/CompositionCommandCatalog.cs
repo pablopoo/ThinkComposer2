@@ -49,6 +49,47 @@ public static class CompositionCommandCatalog
         return entries;
     }
 
+    public static IReadOnlyList<CompositionCommandEntry> ForDocument(CompositionDocumentSnapshot? document)
+    {
+        if (document is null)
+        {
+            return BaseCommands;
+        }
+
+        var entries = new List<CompositionCommandEntry>(BaseCommands);
+        entries.AddRange(document.Ideas.Select(idea =>
+            new CompositionCommandEntry(
+                $"node.{idea.Id}",
+                string.IsNullOrWhiteSpace(idea.Name) ? idea.Id : idea.Name,
+                CompositionCommandEntryKind.Node,
+                idea.Id,
+                "Concept")));
+
+        entries.AddRange(document.Relationships.Select(relationship =>
+            new CompositionCommandEntry(
+                $"connector.{relationship.Id}",
+                string.IsNullOrWhiteSpace(relationship.Name) ? "Relationship" : relationship.Name,
+                CompositionCommandEntryKind.Connector,
+                relationship.Id,
+                "Relationship")));
+
+        AddDefinitions(entries, CompositionDefinitionGroup.Concept, "Concept definition", document.Domain.ConceptDefinitions);
+        AddDefinitions(entries, CompositionDefinitionGroup.Relationship, "Relationship definition", document.Domain.RelationshipDefinitions);
+        AddDefinitions(entries, CompositionDefinitionGroup.Marker, "Marker definition", document.Domain.MarkerDefinitions);
+        AddDefinitions(entries, CompositionDefinitionGroup.Table, "Table definition", document.Domain.TableDefinitions);
+        AddDefinitions(entries, CompositionDefinitionGroup.ExternalLanguage, "External language", document.Domain.ExternalLanguages);
+
+        entries.AddRange(document.Domain.Templates.Select(template =>
+            new CompositionCommandEntry(
+                $"template.{template.Key}",
+                template.Key,
+                CompositionCommandEntryKind.Template,
+                template.Key,
+                "Generation template")));
+
+        return entries;
+    }
+
     public static IReadOnlyList<CompositionCommandEntry> Search(
         IEnumerable<CompositionCommandEntry> entries,
         string query,
@@ -77,5 +118,22 @@ public static class CompositionCommandCatalog
     private static bool Contains(string value, string query)
     {
         return value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static void AddDefinitions(
+        ICollection<CompositionCommandEntry> entries,
+        CompositionDefinitionGroup group,
+        string subtitle,
+        IReadOnlyList<CompositionDefinitionSnapshot> definitions)
+    {
+        foreach (var definition in definitions)
+        {
+            entries.Add(new CompositionCommandEntry(
+                $"definition.{group}.{definition.Id}",
+                string.IsNullOrWhiteSpace(definition.Name) ? definition.Id : definition.Name,
+                CompositionCommandEntryKind.Definition,
+                definition.Id,
+                subtitle));
+        }
     }
 }

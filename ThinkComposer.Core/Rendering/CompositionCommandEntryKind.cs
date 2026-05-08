@@ -4,5 +4,7 @@ public enum CompositionCommandEntryKind
 {
     Command,
     Node,
-    Connector
+    Connector,
+    Definition,
+    Template
 }

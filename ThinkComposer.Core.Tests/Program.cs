@@ -193,6 +193,9 @@ AssertTrue(documentPreviewText.Contains("Detail: Spec = spec.pdf", StringCompari
 AssertTrue(documentPreviewText.Contains("Generated files (2)", StringComparison.Ordinal), "document preview generated count");
 AssertTrue(documentPreviewText.Contains("Customer Need.md", StringComparison.Ordinal), "document preview generated concept file");
 AssertTrue(documentPreviewText.Contains("Addresses.rel.txt", StringComparison.Ordinal), "document preview generated relationship file");
+var documentCommands = CompositionCommandCatalog.ForDocument(generationDocument);
+AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "marker-def"), "document command marker definition");
+AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Template && entry.TargetId == "legacy.template.concept.default"), "document command template");
 var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
     modernDocument,
     new CompositionExtensionSnapshot(
