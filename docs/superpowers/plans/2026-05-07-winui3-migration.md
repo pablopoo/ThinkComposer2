@@ -393,9 +393,11 @@ Port composition/domain navigation.
 
 Implementation note: Explorer now lists composition concepts and relationships as selectable tree entries; choosing one selects the matching canvas object.
 
-- [ ] **Step 2: Inspector**
+- [x] **Step 2: Inspector**
 
 Port selected object properties and actions.
+
+Implementation note: Inspector now shows contextual concept/relationship state, editable names/layout for concepts, source/target for relationships, and contextual create/delete actions.
 
 - [x] **Step 3: Messages/search/preview**
 

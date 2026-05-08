@@ -284,7 +284,7 @@
 
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                         <StackPanel Padding="12,10,12,12" Spacing="10">
-                            <Expander Header="Concept" IsExpanded="True">
+                            <Expander x:Name="ObjectExpander" Header="Concept" IsExpanded="True">
                                 <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="76" />
@@ -396,12 +396,38 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Outgoing" />
+                                    <TextBlock
+                                        x:Name="OutgoingLabel"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource MutedForegroundBrush}"
+                                        Text="Outgoing" />
                                     <TextBlock x:Name="OutgoingText" Grid.Column="1" VerticalAlignment="Center" Text="1" />
 
-                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Incoming" />
+                                    <TextBlock
+                                        x:Name="IncomingLabel"
+                                        Grid.Row="1"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource MutedForegroundBrush}"
+                                        Text="Incoming" />
                                     <TextBlock x:Name="IncomingText" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="0" />
                                 </Grid>
+                            </Expander>
+
+                            <Expander Header="Actions" IsExpanded="True">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <Button
+                                        x:Name="InspectorRelationshipButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="NewRelationshipButton_Click"
+                                        Content="Create relationship from selection" />
+                                    <Button
+                                        x:Name="InspectorDeleteButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="DeleteButton_Click"
+                                        Content="Delete selection" />
+                                </StackPanel>
                             </Expander>
                         </StackPanel>
                     </ScrollViewer>

@@ -794,16 +794,21 @@ public sealed partial class MainPage : Page
             {
                 _pendingRelationshipSourceId = null;
             }
+            ObjectExpander.Header = "Selection";
             InspectorNameBox.Text = "No selection";
             InspectorNameBox.IsEnabled = false;
             InspectorXBox.IsEnabled = false;
             InspectorYBox.IsEnabled = false;
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = false;
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
+            OutgoingLabel.Text = "Outgoing";
+            IncomingLabel.Text = "Incoming";
             OutgoingText.Text = "0";
             IncomingText.Text = "0";
             return;
@@ -811,11 +816,14 @@ public sealed partial class MainPage : Page
 
         _selectedNodeId = node.Id;
         _selectedConnectorId = null;
+        ObjectExpander.Header = "Concept";
         InspectorNameBox.IsEnabled = true;
         InspectorXBox.IsEnabled = true;
         InspectorYBox.IsEnabled = true;
         InspectorWidthBox.IsEnabled = true;
         InspectorHeightBox.IsEnabled = true;
+        InspectorRelationshipButton.IsEnabled = true;
+        InspectorDeleteButton.IsEnabled = true;
         InspectorNameBox.Text = GetNodeTitle(node);
         InspectorKindBox.SelectedIndex = 0;
         InspectorStatusBox.SelectedIndex = 0;
@@ -823,6 +831,8 @@ public sealed partial class MainPage : Page
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
         InspectorWidthBox.Value = Math.Round(node.Size.Width, 1);
         InspectorHeightBox.Value = Math.Round(node.Size.Height, 1);
+        OutgoingLabel.Text = "Outgoing";
+        IncomingLabel.Text = "Incoming";
         OutgoingText.Text = (_snapshotIndex?.CountOutgoing(node.Id) ?? 0).ToString();
         IncomingText.Text = (_snapshotIndex?.CountIncoming(node.Id) ?? 0).ToString();
         }
@@ -847,11 +857,14 @@ public sealed partial class MainPage : Page
             _selectedNodeId = null;
             _selectedConnectorId = connector.Id;
             _pendingRelationshipSourceId = null;
+            ObjectExpander.Header = "Relationship";
             InspectorNameBox.IsEnabled = true;
             InspectorXBox.IsEnabled = false;
             InspectorYBox.IsEnabled = false;
             InspectorWidthBox.IsEnabled = false;
             InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = true;
             InspectorNameBox.Text = connector.Text;
             InspectorKindBox.SelectedIndex = 0;
             InspectorStatusBox.SelectedIndex = 0;
@@ -859,6 +872,8 @@ public sealed partial class MainPage : Page
             InspectorYBox.Value = 0;
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
+            OutgoingLabel.Text = "Source";
+            IncomingLabel.Text = "Target";
             OutgoingText.Text = connector.SourceId;
             IncomingText.Text = connector.TargetId;
         }

@@ -26,7 +26,7 @@ Date: 2026-05-07
 ## Panels
 
 - Explorer navigation: WinUI tree selects canvas concepts and relationships.
-- Inspector properties
+- Inspector properties: WinUI inspector edits concept text/layout, relationship text, source/target display, and contextual actions.
 - Messages: WinUI bottom tab implemented.
 - Search: WinUI bottom tab searches commands, concepts, and relationships.
 - Preview: WinUI bottom tab shows a composition summary.
