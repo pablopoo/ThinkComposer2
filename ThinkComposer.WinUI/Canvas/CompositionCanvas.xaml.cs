@@ -21,6 +21,7 @@ public sealed partial class CompositionCanvas : UserControl
     private Vector2 _pan = new(0, 0);
     private double _zoom = 1.0;
     private CanvasNode? _selectedNode;
+    private CompositionConnectorView? _selectedConnector;
     private bool _needsInitialFit;
     private bool _isPanning;
     private Point _panStartScreen;
@@ -44,15 +45,18 @@ public sealed partial class CompositionCanvas : UserControl
     }
 
     public event EventHandler<CompositionNodeView?>? SelectedNodeChanged;
+    public event EventHandler<CompositionConnectorView?>? SelectedConnectorChanged;
     public event EventHandler<CompositionNodeView>? NodeMoved;
     public event EventHandler<CompositionNodeView>? NodeMoveCompleted;
 
     public CompositionNodeView? SelectedNode => _selectedNode?.Source;
+    public CompositionConnectorView? SelectedConnector => _selectedConnector;
 
     public void LoadSnapshot(
         CompositionViewSnapshot snapshot,
         string? selectedNodeId = null,
-        bool fitToViewport = true)
+        bool fitToViewport = true,
+        string? selectedConnectorId = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -67,7 +71,8 @@ public sealed partial class CompositionCanvas : UserControl
         _connectors.Clear();
         _connectors.AddRange(snapshot.Connectors);
 
-        SetSelectedNode(FindNode(selectedNodeId) ?? _nodes.FirstOrDefault());
+        SetSelectedNode(FindNode(selectedNodeId) ?? (string.IsNullOrWhiteSpace(selectedConnectorId) ? _nodes.FirstOrDefault() : null));
+        SetSelectedConnector(FindConnector(selectedConnectorId));
         if (fitToViewport)
         {
             _needsInitialFit = true;
@@ -150,13 +155,14 @@ public sealed partial class CompositionCanvas : UserControl
             }
 
             var route = CompositionConnectorRouter.Route(sourceNode.ToRoutingView(), targetNode.ToRoutingView());
+            var isSelected = string.Equals(connector.Id, _selectedConnector?.Id, StringComparison.Ordinal);
             session.DrawLine(
                 (float)route.Source.X,
                 (float)route.Source.Y,
                 (float)route.Target.X,
                 (float)route.Target.Y,
-                palette.Connector,
-                CompositionCanvasRenderDefaults.ConnectorStrokeWidth);
+                isSelected ? palette.SelectedStroke : palette.Connector,
+                isSelected ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : CompositionCanvasRenderDefaults.ConnectorStrokeWidth);
         }
     }
 
@@ -221,6 +227,7 @@ public sealed partial class CompositionCanvas : UserControl
         var hitNode = HitTest(worldPoint);
         if (hitNode is not null)
         {
+            SetSelectedConnector(null);
             SetSelectedNode(hitNode);
             _draggedNode = hitNode;
             _dragStartWorld = worldPoint;
@@ -229,13 +236,63 @@ public sealed partial class CompositionCanvas : UserControl
 
         if (hitNode is null)
         {
-            _isPanning = true;
-            _panStartScreen = screenPoint;
-            _panStart = _pan;
+            var hitConnector = HitTestConnector(worldPoint);
+            if (hitConnector is not null)
+            {
+                SetSelectedNode(null);
+                SetSelectedConnector(hitConnector);
+            }
+            else
+            {
+                _isPanning = true;
+                _panStartScreen = screenPoint;
+                _panStart = _pan;
+            }
         }
 
         DrawingSurface.CapturePointer(e.Pointer);
         DrawingSurface.Invalidate();
+    }
+
+    private CompositionConnectorView? HitTestConnector(Point worldPoint)
+    {
+        var threshold = Math.Max(4, 8 / _zoom);
+        for (var index = _connectors.Count - 1; index >= 0; index--)
+        {
+            var connector = _connectors[index];
+            if (!_nodesById.TryGetValue(connector.SourceId, out var sourceNode) ||
+                !_nodesById.TryGetValue(connector.TargetId, out var targetNode))
+            {
+                continue;
+            }
+
+            var route = CompositionConnectorRouter.Route(sourceNode.ToRoutingView(), targetNode.ToRoutingView());
+            if (DistanceToSegment(worldPoint, route) <= threshold)
+            {
+                return connector;
+            }
+        }
+
+        return null;
+    }
+
+    private static double DistanceToSegment(Point point, CompositionConnectorRoute route)
+    {
+        var x1 = route.Source.X;
+        var y1 = route.Source.Y;
+        var x2 = route.Target.X;
+        var y2 = route.Target.Y;
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        if (Math.Abs(dx) < double.Epsilon && Math.Abs(dy) < double.Epsilon)
+        {
+            return Math.Sqrt(Math.Pow(point.X - x1, 2) + Math.Pow(point.Y - y1, 2));
+        }
+
+        var t = Math.Max(0, Math.Min(1, ((point.X - x1) * dx + (point.Y - y1) * dy) / (dx * dx + dy * dy)));
+        var projectionX = x1 + t * dx;
+        var projectionY = y1 + t * dy;
+        return Math.Sqrt(Math.Pow(point.X - projectionX, 2) + Math.Pow(point.Y - projectionY, 2));
     }
 
     private void DrawingSurface_PointerMoved(object sender, PointerRoutedEventArgs e)
@@ -306,6 +363,13 @@ public sealed partial class CompositionCanvas : UserControl
         return string.IsNullOrWhiteSpace(nodeId) ? null : _nodesById.GetValueOrDefault(nodeId);
     }
 
+    private CompositionConnectorView? FindConnector(string? connectorId)
+    {
+        return string.IsNullOrWhiteSpace(connectorId)
+            ? null
+            : _connectors.FirstOrDefault(connector => string.Equals(connector.Id, connectorId, StringComparison.Ordinal));
+    }
+
     private void SetSelectedNode(CanvasNode? node)
     {
         if (ReferenceEquals(_selectedNode, node))
@@ -315,6 +379,17 @@ public sealed partial class CompositionCanvas : UserControl
 
         _selectedNode = node;
         SelectedNodeChanged?.Invoke(this, node?.Source);
+    }
+
+    private void SetSelectedConnector(CompositionConnectorView? connector)
+    {
+        if (Equals(_selectedConnector, connector))
+        {
+            return;
+        }
+
+        _selectedConnector = connector;
+        SelectedConnectorChanged?.Invoke(this, connector);
     }
 
     private static CanvasTextFormat TitleFormat { get; } = new()

@@ -23,12 +23,15 @@ public sealed partial class MainPage : Page
     private CompositionEditingSession? _editingSession;
     private CompositionSnapshotIndex? _snapshotIndex;
     private string? _selectedNodeId;
+    private string? _selectedConnectorId;
+    private string? _pendingRelationshipSourceId;
     private bool _isApplyingInspector;
 
     public MainPage()
     {
         InitializeComponent();
         CanvasView.SelectedNodeChanged += CanvasView_SelectedNodeChanged;
+        CanvasView.SelectedConnectorChanged += CanvasView_SelectedConnectorChanged;
         CanvasView.NodeMoved += CanvasView_NodeMoved;
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
         LoadStartupSnapshot();
@@ -123,9 +126,36 @@ public sealed partial class MainPage : Page
         ApplyEditedSnapshot(CompositionSnapshotEditor.CreateNode(_currentSnapshot, node), node.Id, fitToViewport: false);
     }
 
+    private void NewRelationshipButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            StatusContextText.Text = "Select a source concept first";
+            return;
+        }
+
+        _pendingRelationshipSourceId = _selectedNodeId;
+        StatusContextText.Text = "Select target concept";
+    }
+
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            ApplyEditedSnapshot(
+                CompositionSnapshotEditor.DeleteConnector(_currentSnapshot, _selectedConnectorId),
+                selectedNodeId: null,
+                fitToViewport: false,
+                selectedConnectorId: null);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedNodeId))
         {
             return;
         }
@@ -144,7 +174,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        ApplySessionSnapshot(_editingSession.Undo(), _selectedNodeId, markDirty: true, fitToViewport: false);
+        ApplySessionSnapshot(_editingSession.Undo(), _selectedNodeId, _selectedConnectorId, markDirty: true, fitToViewport: false);
         SetStatusModified();
     }
 
@@ -155,7 +185,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        ApplySessionSnapshot(_editingSession.Redo(), _selectedNodeId, markDirty: true, fitToViewport: false);
+        ApplySessionSnapshot(_editingSession.Redo(), _selectedNodeId, _selectedConnectorId, markDirty: true, fitToViewport: false);
         SetStatusModified();
     }
 
@@ -196,7 +226,7 @@ public sealed partial class MainPage : Page
     {
         _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = snapshotPath;
-        ApplySessionSnapshot(snapshot, selectedNodeId: null, markDirty: false, fitToViewport: true);
+        ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
 
         CompositionTitleText.Text = snapshot.Title;
         StatusContextText.Text = $"Loaded {Path.GetFileName(snapshotPath)}";
@@ -210,6 +240,7 @@ public sealed partial class MainPage : Page
     private void ApplySessionSnapshot(
         CompositionViewSnapshot snapshot,
         string? selectedNodeId,
+        string? selectedConnectorId,
         bool markDirty,
         bool fitToViewport)
     {
@@ -218,8 +249,15 @@ public sealed partial class MainPage : Page
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
 
         UpdateExplorer(snapshot);
-        CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport);
-        ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
+        CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport, selectedConnectorId);
+        if (CanvasView.SelectedConnector is not null)
+        {
+            ApplySelectedConnector(CanvasView.SelectedConnector);
+        }
+        else
+        {
+            ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
+        }
     }
 
     private void UpdateExplorer(CompositionViewSnapshot snapshot)
@@ -251,7 +289,17 @@ public sealed partial class MainPage : Page
 
     private void CanvasView_SelectedNodeChanged(object? sender, CompositionNodeView? node)
     {
+        if (TryCompletePendingRelationship(node))
+        {
+            return;
+        }
+
         ApplySelectedNode(node);
+    }
+
+    private void CanvasView_SelectedConnectorChanged(object? sender, CompositionConnectorView? connector)
+    {
+        ApplySelectedConnector(connector);
     }
 
     private void CanvasView_NodeMoved(object? sender, CompositionNodeView node)
@@ -307,6 +355,10 @@ public sealed partial class MainPage : Page
         if (node is null)
         {
             _selectedNodeId = null;
+            if (string.IsNullOrWhiteSpace(_selectedConnectorId))
+            {
+                _pendingRelationshipSourceId = null;
+            }
             InspectorNameBox.Text = "No selection";
             InspectorNameBox.IsEnabled = false;
             InspectorXBox.IsEnabled = false;
@@ -323,6 +375,7 @@ public sealed partial class MainPage : Page
         }
 
         _selectedNodeId = node.Id;
+        _selectedConnectorId = null;
         InspectorNameBox.IsEnabled = true;
         InspectorXBox.IsEnabled = true;
         InspectorYBox.IsEnabled = true;
@@ -344,15 +397,72 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void ApplySelectedConnector(CompositionConnectorView? connector)
+    {
+        _isApplyingInspector = true;
+        try
+        {
+            if (connector is null)
+            {
+                _selectedConnectorId = null;
+                return;
+            }
+
+            _selectedNodeId = null;
+            _selectedConnectorId = connector.Id;
+            _pendingRelationshipSourceId = null;
+            InspectorNameBox.IsEnabled = true;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
+            InspectorNameBox.Text = connector.Text;
+            InspectorKindBox.SelectedIndex = 0;
+            InspectorStatusBox.SelectedIndex = 0;
+            InspectorXBox.Value = 0;
+            InspectorYBox.Value = 0;
+            InspectorWidthBox.Value = 0;
+            InspectorHeightBox.Value = 0;
+            OutgoingText.Text = connector.SourceId;
+            IncomingText.Text = connector.TargetId;
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+        }
+    }
+
     private void ApplyInspectorName()
     {
-        if (_isApplyingInspector || _currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedNodeId))
+        if (_isApplyingInspector || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        var nextText = InspectorNameBox.Text.Trim();
+
+        if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            var currentConnector = FindConnector(_selectedConnectorId);
+            if (currentConnector is null || string.Equals(currentConnector.Text, nextText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            ApplyEditedSnapshot(
+                CompositionSnapshotEditor.RenameConnector(_currentSnapshot, _selectedConnectorId, nextText),
+                selectedNodeId: null,
+                fitToViewport: false,
+                selectedConnectorId: _selectedConnectorId);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedNodeId))
         {
             return;
         }
 
         var currentNode = FindNode(_selectedNodeId);
-        var nextText = InspectorNameBox.Text.Trim();
         if (currentNode is null || string.Equals(currentNode.Text, nextText, StringComparison.Ordinal))
         {
             return;
@@ -408,16 +518,51 @@ public sealed partial class MainPage : Page
     private void ApplyEditedSnapshot(
         CompositionViewSnapshot snapshot,
         string? selectedNodeId,
-        bool fitToViewport)
+        bool fitToViewport,
+        string? selectedConnectorId = null)
     {
         _editingSession?.Apply(snapshot);
-        ApplySessionSnapshot(snapshot, selectedNodeId, markDirty: true, fitToViewport);
+        ApplySessionSnapshot(snapshot, selectedNodeId, selectedConnectorId, markDirty: true, fitToViewport);
         SetStatusModified();
     }
 
     private CompositionNodeView? FindNode(string nodeId)
     {
         return _currentSnapshot?.Nodes.FirstOrDefault(node => string.Equals(node.Id, nodeId, StringComparison.Ordinal));
+    }
+
+    private CompositionConnectorView? FindConnector(string connectorId)
+    {
+        return _currentSnapshot?.Connectors.FirstOrDefault(connector => string.Equals(connector.Id, connectorId, StringComparison.Ordinal));
+    }
+
+    private bool TryCompletePendingRelationship(CompositionNodeView? targetNode)
+    {
+        if (_currentSnapshot is null ||
+            targetNode is null ||
+            string.IsNullOrWhiteSpace(_pendingRelationshipSourceId))
+        {
+            return false;
+        }
+
+        if (string.Equals(_pendingRelationshipSourceId, targetNode.Id, StringComparison.Ordinal))
+        {
+            StatusContextText.Text = "Select a different target concept";
+            return true;
+        }
+
+        var connector = new CompositionConnectorView(
+            Guid.NewGuid().ToString(),
+            _pendingRelationshipSourceId,
+            targetNode.Id,
+            "Relationship");
+        _pendingRelationshipSourceId = null;
+        ApplyEditedSnapshot(
+            CompositionSnapshotEditor.CreateConnector(_currentSnapshot, connector),
+            selectedNodeId: null,
+            fitToViewport: false,
+            selectedConnectorId: connector.Id);
+        return true;
     }
 
     private void SetStatusModified()

@@ -186,6 +186,33 @@ var deletedSnapshot = CompositionSnapshotEditor.DeleteNode(indexedSnapshot, "lef
 AssertEqual(1, deletedSnapshot.Nodes.Count, "delete node count");
 AssertEqual(0, deletedSnapshot.Connectors.Count, "delete connected connectors");
 
+var relationshipSnapshot = CompositionSnapshotEditor.CreateConnector(
+    indexedSnapshot,
+    new CompositionConnectorView("created-relationship", "left", "right", "Created Relationship"));
+AssertEqual(3, relationshipSnapshot.Connectors.Count, "create relationship count");
+AssertEqual(
+    "Created Relationship",
+    relationshipSnapshot.Connectors.Single(connector => connector.Id == "created-relationship").Text,
+    "create relationship text");
+AssertThrows<InvalidOperationException>(
+    () => CompositionSnapshotEditor.CreateConnector(indexedSnapshot, new CompositionConnectorView("left-to-right", "left", "right")),
+    "create duplicate relationship");
+AssertThrows<InvalidOperationException>(
+    () => CompositionSnapshotEditor.CreateConnector(indexedSnapshot, new CompositionConnectorView("missing-target", "left", "missing")),
+    "create relationship missing target");
+
+var renamedRelationshipSnapshot = CompositionSnapshotEditor.RenameConnector(
+    relationshipSnapshot,
+    "created-relationship",
+    "Renamed Relationship");
+AssertEqual(
+    "Renamed Relationship",
+    renamedRelationshipSnapshot.Connectors.Single(connector => connector.Id == "created-relationship").Text,
+    "rename relationship");
+
+var deletedRelationshipSnapshot = CompositionSnapshotEditor.DeleteConnector(relationshipSnapshot, "created-relationship");
+AssertEqual(2, deletedRelationshipSnapshot.Connectors.Count, "delete relationship count");
+
 var editSession = new CompositionEditingSession(indexedSnapshot);
 editSession.Apply(renamedSnapshot);
 AssertEqual(true, editSession.CanUndo, "session can undo");

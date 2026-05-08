@@ -28,7 +28,8 @@ public static class CompositionViewSnapshotXmlStore
             .Select(connector => new CompositionConnectorView(
                 ReadAttribute(connector, "id"),
                 ReadAttribute(connector, "sourceId"),
-                ReadAttribute(connector, "targetId")))
+                ReadAttribute(connector, "targetId"),
+                ReadOptionalAttribute(connector, "text") ?? "Relationship"))
             .ToList();
 
         return new CompositionViewSnapshot(
@@ -78,6 +79,7 @@ public static class CompositionViewSnapshotXmlStore
                         new XElement(
                             "Connector",
                             new XAttribute("id", connector.Id),
+                            new XAttribute("text", connector.Text),
                             new XAttribute("sourceId", connector.SourceId),
                             new XAttribute("targetId", connector.TargetId))))));
 
@@ -93,6 +95,11 @@ public static class CompositionViewSnapshotXmlStore
     {
         return element.Attribute(name)?.Value
             ?? throw new InvalidOperationException($"Snapshot XML is missing required '{name}' attribute.");
+    }
+
+    private static string? ReadOptionalAttribute(XElement element, string name)
+    {
+        return element.Attribute(name)?.Value;
     }
 
     private static double ReadDouble(XElement element, string name)

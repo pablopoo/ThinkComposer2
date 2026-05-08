@@ -361,7 +361,7 @@ delete concept
 
 Implementation note: WinUI can create concepts, select them, drag/move them on the canvas, edit name/layout through the inspector, delete selected concepts, and save the edited `.tcview` snapshot. Core editing operations are covered by `ThinkComposer.Core.Tests`.
 
-- [ ] **Step 2: Relationship editing**
+- [x] **Step 2: Relationship editing**
 
 Implement:
 
@@ -372,13 +372,15 @@ delete relationship
 edit relationship properties
 ```
 
-- [ ] **Step 3: Undo/redo**
+Implementation note: WinUI can start a relationship from the selected concept, complete it by selecting a target concept, select connector lines on the canvas, edit relationship text in the inspector, delete selected relationships, and save them in `.tcview`.
+
+- [x] **Step 3: Undo/redo**
 
 Connect edits to the existing command/undo model or create a neutral adapter if the current one is WPF-bound.
 
 Expected: edit history works in WinUI.
 
-Implementation note: a neutral `CompositionEditingSession` now provides undo/redo for snapshot edits made by the WinUI shell. Relationship-specific undo/redo remains tied to Step 2.
+Implementation note: a neutral `CompositionEditingSession` now provides undo/redo for snapshot edits made by the WinUI shell, including concept and relationship edits.
 
 ## Phase 6: Port Panels And Commands
 
