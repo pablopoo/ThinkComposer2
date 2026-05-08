@@ -78,6 +78,7 @@ Assert-Contains "scripts\smoke-winui-launch.ps1" "RequireWindow" "WinUI smoke mu
 Assert-Contains "scripts\smoke-winui-ui.ps1" "UIAutomationClient" "WinUI UI smoke must use UI Automation."
 Assert-Contains "ThinkComposer.WinUI\MainPage.xaml" "ThemeToggleButton" "Theme toggle must be automation-addressable."
 Assert-Contains "ThinkComposer.WinUI\MainPage.xaml.cs" "Full document printable preview generated" "Print preview must use the full document report path."
+Assert-Contains "scripts\release-winui.ps1" "release-index.json" "WinUI release script must emit a release index."
 
 $forbiddenPatterns = @(
     "\bSystem\.Windows\b",
