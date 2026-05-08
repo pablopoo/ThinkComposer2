@@ -184,6 +184,21 @@ AssertTrue(generatedConceptFile.Content.Contains("Definition=Concept", StringCom
 AssertTrue(generatedConceptFile.Content.Contains("Spec=spec.pdf", StringComparison.Ordinal), "modern generation detail");
 var generatedRelationshipFile = generatedFiles.Files.Single(file => file.RelativePath == "Addresses.rel.txt");
 AssertTrue(generatedRelationshipFile.Content.Contains("Customer Need -> Customer Need: Addresses", StringComparison.Ordinal), "modern generation relationship");
+var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
+    modernDocument,
+    new CompositionExtensionSnapshot(
+        "template.concept.note",
+        "%%:FILENAME={{Name}}.note.md\n{{Document.Title}}/{{Name}}"));
+AssertTrue(templateEditedDocument.Domain.Templates.Any(template => template.Key == "template.concept.note"), "template added");
+AssertEqual(1, CompositionDocumentFileGenerator.Generate(templateEditedDocument).Files.Count, "template generation after add");
+var templateUpdatedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
+    templateEditedDocument,
+    new CompositionExtensionSnapshot(
+        "template.concept.note",
+        "%%:FILENAME={{Name}}.updated.md\n{{Name}}"));
+AssertEqual("{{Name}}", templateUpdatedDocument.Domain.Templates.Single(template => template.Key == "template.concept.note").Value.Split('\n').Last(), "template updated");
+var templateDeletedDocument = CompositionDocumentSnapshotEditor.DeleteDomainTemplate(templateUpdatedDocument, "template.concept.note");
+AssertTrue(!templateDeletedDocument.Domain.Templates.Any(template => template.Key == "template.concept.note"), "template deleted");
 
 var modernDocumentPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-modern-{Guid.NewGuid():N}.tcdoc");
 try

@@ -39,6 +39,47 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot UpsertDomainTemplate(
+        CompositionDocumentSnapshot document,
+        CompositionExtensionSnapshot template)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (template is null)
+        {
+            throw new ArgumentNullException(nameof(template));
+        }
+
+        return document with
+        {
+            Domain = document.Domain with
+            {
+                Templates = UpsertExtension(document.Domain.Templates, template)
+            }
+        };
+    }
+
+    public static CompositionDocumentSnapshot DeleteDomainTemplate(
+        CompositionDocumentSnapshot document,
+        string templateKey)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        return document with
+        {
+            Domain = document.Domain with
+            {
+                Templates = DeleteExtension(document.Domain.Templates, templateKey)
+            }
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertIdeaDetail(
         CompositionDocumentSnapshot document,
         string ideaId,
@@ -457,6 +498,48 @@ public static class CompositionDocumentSnapshotEditor
     {
         return definitions
             .Where(definition => !string.Equals(definition.Id, definitionId, StringComparison.Ordinal))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<CompositionExtensionSnapshot> UpsertExtension(
+        IReadOnlyList<CompositionExtensionSnapshot> extensions,
+        CompositionExtensionSnapshot extension)
+    {
+        var key = extension.Key.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new ArgumentException("Extension key is required.", nameof(extension));
+        }
+
+        var nextExtension = string.Equals(extension.Key, key, StringComparison.Ordinal)
+            ? extension
+            : extension with { Key = key };
+        var replaced = false;
+        var result = extensions.Select(existing =>
+        {
+            if (!string.Equals(existing.Key, key, StringComparison.Ordinal))
+            {
+                return existing;
+            }
+
+            replaced = true;
+            return nextExtension;
+        }).ToList();
+
+        if (!replaced)
+        {
+            result.Add(nextExtension);
+        }
+
+        return result.ToArray();
+    }
+
+    private static IReadOnlyList<CompositionExtensionSnapshot> DeleteExtension(
+        IReadOnlyList<CompositionExtensionSnapshot> extensions,
+        string key)
+    {
+        return extensions
+            .Where(extension => !string.Equals(extension.Key, key, StringComparison.Ordinal))
             .ToArray();
     }
 }

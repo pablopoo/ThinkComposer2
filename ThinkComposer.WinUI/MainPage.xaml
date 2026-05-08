@@ -453,6 +453,35 @@
                                 </StackPanel>
                             </Expander>
 
+                            <Expander x:Name="TemplateExpander" Header="Generation template" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <TextBox x:Name="TemplateKeyBox" PlaceholderText="template.concept.name" />
+                                    <TextBox
+                                        x:Name="TemplateValueBox"
+                                        AcceptsReturn="True"
+                                        MinHeight="120"
+                                        TextWrapping="Wrap"
+                                        PlaceholderText="%%:FILENAME={{Name}}.md&#x0a;# {{Name}}" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="UpsertTemplateButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="UpsertTemplateButton_Click"
+                                            Content="Save template" />
+                                        <Button
+                                            x:Name="DeleteTemplateButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="DeleteTemplateButton_Click"
+                                            Content="Remove" />
+                                    </Grid>
+                                </StackPanel>
+                            </Expander>
+
                             <Expander x:Name="StyleExpander" Header="Style" IsExpanded="False">
                                 <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
                                     <Grid.ColumnDefinitions>

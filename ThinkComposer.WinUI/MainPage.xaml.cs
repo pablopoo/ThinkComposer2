@@ -26,7 +26,8 @@ public sealed partial class MainPage : Page
         string Title,
         CompositionCommandEntryKind Kind,
         string? TargetId = null,
-        CompositionDefinitionGroup? DefinitionGroup = null)
+        CompositionDefinitionGroup? DefinitionGroup = null,
+        string? TemplateKey = null)
     {
         public override string ToString()
         {
@@ -65,6 +66,7 @@ public sealed partial class MainPage : Page
     private string? _selectedConnectorId;
     private string? _selectedDefinitionId;
     private CompositionDefinitionGroup? _selectedDefinitionGroup;
+    private string? _selectedTemplateKey;
     private string? _pendingRelationshipSourceId;
     private CompositionSnapshotSelection? _clipboardSelection;
     private bool _isApplyingInspector;
@@ -518,6 +520,19 @@ public sealed partial class MainPage : Page
             UpdateExplorer(_currentSnapshot);
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
             StatusContextText.Text = "Definition deleted";
+            RefreshBottomPanelContent();
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedTemplateKey))
+        {
+            var document = EnsureCurrentDocument();
+            _currentDocument = CompositionDocumentSnapshotEditor.DeleteDomainTemplate(document, _selectedTemplateKey);
+            _selectedTemplateKey = null;
+            _isDirty = true;
+            UpdateExplorer(_currentSnapshot);
+            ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
+            StatusContextText.Text = "Template deleted";
             RefreshBottomPanelContent();
             return;
         }
@@ -1135,6 +1150,7 @@ public sealed partial class MainPage : Page
             AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions, CompositionDefinitionGroup.Marker);
             AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions, CompositionDefinitionGroup.Table);
             AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages, CompositionDefinitionGroup.ExternalLanguage);
+            AddTemplateGroup(domainNode, domain.Templates);
             ExplorerTree.RootNodes.Add(domainNode);
         }
 
@@ -1164,6 +1180,29 @@ public sealed partial class MainPage : Page
 
             parent.Children.Add(group);
         }
+
+        static void AddTemplateGroup(TreeViewNode parent, IReadOnlyList<CompositionExtensionSnapshot> templates)
+        {
+            var group = new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry($"Templates ({templates.Count})", CompositionCommandEntryKind.Command),
+                IsExpanded = false
+            };
+
+            foreach (var template in templates)
+            {
+                group.Children.Add(new TreeViewNode
+                {
+                    Content = new ExplorerTreeEntry(
+                        template.Key,
+                        CompositionCommandEntryKind.Command,
+                        template.Key,
+                        TemplateKey: template.Key)
+                });
+            }
+
+            parent.Children.Add(group);
+        }
     }
 
     private void ExplorerTree_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
@@ -1177,6 +1216,13 @@ public sealed partial class MainPage : Page
         if (entry.DefinitionGroup is not null)
         {
             ApplySelectedDefinition(entry.DefinitionGroup.Value, entry.TargetId);
+            StatusContextText.Text = $"Selected {entry.Title}";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.TemplateKey))
+        {
+            ApplySelectedTemplate(entry.TemplateKey);
             StatusContextText.Text = $"Selected {entry.Title}";
             return;
         }
@@ -1352,6 +1398,61 @@ public sealed partial class MainPage : Page
         MarkDocumentMetadataChanged("Markers updated");
     }
 
+    private void UpsertTemplateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var key = TemplateKeyBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            StatusContextText.Text = "Template key is required";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
+            document,
+            new CompositionExtensionSnapshot(key, TemplateValueBox.Text));
+        _selectedTemplateKey = key;
+        _selectedNodeId = null;
+        _selectedConnectorId = null;
+        _selectedDefinitionId = null;
+        _selectedDefinitionGroup = null;
+        _isDirty = true;
+        UpdateExplorer(_currentSnapshot);
+        ApplySelectedTemplate(key);
+        StatusContextText.Text = "Template saved";
+        RefreshBottomPanelContent();
+    }
+
+    private void DeleteTemplateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var key = string.IsNullOrWhiteSpace(_selectedTemplateKey)
+            ? TemplateKeyBox.Text.Trim()
+            : _selectedTemplateKey;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = CompositionDocumentSnapshotEditor.DeleteDomainTemplate(document, key);
+        _selectedTemplateKey = null;
+        _isDirty = true;
+        UpdateExplorer(_currentSnapshot);
+        ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
+        StatusContextText.Text = "Template deleted";
+        RefreshBottomPanelContent();
+    }
+
     private void ApplyStyleButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -1394,6 +1495,7 @@ public sealed partial class MainPage : Page
             _selectedNodeId = null;
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
+            _selectedTemplateKey = null;
             if (string.IsNullOrWhiteSpace(_selectedConnectorId))
             {
                 _pendingRelationshipSourceId = null;
@@ -1412,6 +1514,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
             SetMetadataInspector(null, null, isEnabled: false);
+            SetTemplateInspector(null);
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1424,6 +1527,7 @@ public sealed partial class MainPage : Page
         _selectedConnectorId = null;
         _selectedDefinitionId = null;
         _selectedDefinitionGroup = null;
+        _selectedTemplateKey = null;
         ObjectExpander.Header = "Concept";
         InspectorNameBox.IsEnabled = true;
         InspectorXBox.IsEnabled = true;
@@ -1438,6 +1542,7 @@ public sealed partial class MainPage : Page
         SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Concept");
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
         SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
+        SetTemplateInspector(null);
         SetStyleInspector(idea?.Style ?? definition?.Style ?? node.Style, isEnabled: true);
         InspectorXBox.Value = Math.Round(node.Position.X, 1);
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
@@ -1464,6 +1569,7 @@ public sealed partial class MainPage : Page
             _selectedConnectorId = null;
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
+            _selectedTemplateKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Multiple selection";
             InspectorNameBox.Text = $"{nodes.Count} concepts selected";
@@ -1481,6 +1587,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, "Concept selection");
             SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
             SetMetadataInspector(null, null, isEnabled: false);
+            SetTemplateInspector(null);
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1509,6 +1616,7 @@ public sealed partial class MainPage : Page
             _selectedConnectorId = connector.Id;
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
+            _selectedTemplateKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Relationship";
             InspectorNameBox.IsEnabled = true;
@@ -1524,6 +1632,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Relationship");
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
             SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
+            SetTemplateInspector(null);
             SetStyleInspector(relationship?.Style ?? definition?.Style ?? connector.Style, isEnabled: true);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1556,6 +1665,7 @@ public sealed partial class MainPage : Page
             _selectedConnectorId = null;
             _selectedDefinitionId = definition.Id;
             _selectedDefinitionGroup = group;
+            _selectedTemplateKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Definition";
             InspectorNameBox.IsEnabled = true;
@@ -1569,6 +1679,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, group.ToString());
             SetComboFirstItem(InspectorStatusBox, definition.Kind);
             SetMetadataInspector(definition.Details, null, isEnabled: false);
+            SetTemplateInspector(null);
             SetStyleInspector(definition.Style, isEnabled: false);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1578,6 +1689,53 @@ public sealed partial class MainPage : Page
             IncomingLabel.Text = "Id";
             OutgoingText.Text = group.ToString();
             IncomingText.Text = definition.Id;
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+            RefreshDiagnostics();
+        }
+    }
+
+    private void ApplySelectedTemplate(string templateKey)
+    {
+        _isApplyingInspector = true;
+        try
+        {
+            var template = FindTemplate(templateKey);
+            if (template is null)
+            {
+                return;
+            }
+
+            _selectedNodeId = null;
+            _selectedConnectorId = null;
+            _selectedDefinitionId = null;
+            _selectedDefinitionGroup = null;
+            _selectedTemplateKey = template.Key;
+            _pendingRelationshipSourceId = null;
+            ObjectExpander.Header = "Template";
+            InspectorNameBox.IsEnabled = false;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = true;
+            InspectorNameBox.Text = template.Key;
+            SetComboFirstItem(InspectorKindBox, "Generation template");
+            SetComboFirstItem(InspectorStatusBox, TemplateScopeLabel(template.Key));
+            SetMetadataInspector(null, null, isEnabled: false);
+            SetTemplateInspector(template);
+            SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
+            InspectorXBox.Value = 0;
+            InspectorYBox.Value = 0;
+            InspectorWidthBox.Value = 0;
+            InspectorHeightBox.Value = 0;
+            OutgoingLabel.Text = "Scope";
+            IncomingLabel.Text = "Key";
+            OutgoingText.Text = TemplateScopeLabel(template.Key);
+            IncomingText.Text = template.Key;
         }
         finally
         {
@@ -1662,6 +1820,11 @@ public sealed partial class MainPage : Page
             ApplySelectedDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
             StatusContextText.Text = "Definition renamed";
             RefreshBottomPanelContent();
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedTemplateKey))
+        {
             return;
         }
 
@@ -1858,6 +2021,18 @@ public sealed partial class MainPage : Page
 
     private void RefreshCurrentSelectionInspector()
     {
+        if (!string.IsNullOrWhiteSpace(_selectedTemplateKey))
+        {
+            ApplySelectedTemplate(_selectedTemplateKey);
+            return;
+        }
+
+        if (_selectedDefinitionGroup is not null && !string.IsNullOrWhiteSpace(_selectedDefinitionId))
+        {
+            ApplySelectedDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
         {
             ApplySelectedConnector(FindConnector(_selectedConnectorId));
@@ -1893,6 +2068,12 @@ public sealed partial class MainPage : Page
             .Concat(_currentDocument.Domain.TableDefinitions)
             .Concat(_currentDocument.Domain.ExternalLanguages)
             .FirstOrDefault(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal));
+    }
+
+    private CompositionExtensionSnapshot? FindTemplate(string templateKey)
+    {
+        return _currentDocument?.Domain.Templates
+            .FirstOrDefault(template => string.Equals(template.Key, templateKey, StringComparison.Ordinal));
     }
 
     private CompositionDefinitionSnapshot? FindDefinition(CompositionDefinitionGroup group, string definitionId)
@@ -1990,6 +2171,32 @@ public sealed partial class MainPage : Page
         InspectorTextColorBox.IsEnabled = isEnabled;
         InspectorStrokeThicknessBox.IsEnabled = isEnabled;
         ApplyStyleButton.IsEnabled = isEnabled;
+    }
+
+    private void SetTemplateInspector(CompositionExtensionSnapshot? template)
+    {
+        var hasDocument = _currentDocument is not null || _currentSnapshot is not null;
+        TemplateKeyBox.Text = template?.Key ?? string.Empty;
+        TemplateValueBox.Text = template?.Value ?? string.Empty;
+        TemplateKeyBox.IsEnabled = hasDocument;
+        TemplateValueBox.IsEnabled = hasDocument;
+        UpsertTemplateButton.IsEnabled = hasDocument;
+        DeleteTemplateButton.IsEnabled = template is not null;
+    }
+
+    private static string TemplateScopeLabel(string key)
+    {
+        if (key.Contains(".relationship.", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Relationship";
+        }
+
+        if (key.Contains(".concept.", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Concept";
+        }
+
+        return "Template";
     }
 
     private CompositionStyleSnapshot ReadStyleInspector()
