@@ -295,7 +295,7 @@ public sealed partial class MainPage : Page
         _editingSession = new CompositionEditingSession(snapshot);
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
         _isDirty = true;
-        CompositionTitleText.Text = merged.Title;
+        UpdateDocumentTitleIndicator();
         StatusContextText.Text = $"Merged {Path.GetFileName(file.Path)}";
         MessagesText.Text =
             $"Document merged{Environment.NewLine}" +
@@ -597,6 +597,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionGroup = null;
             _selectedDefinitionId = null;
             _isDirty = true;
+            UpdateDocumentTitleIndicator();
             UpdateExplorer(_currentSnapshot);
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
             StatusContextText.Text = "Definition deleted";
@@ -610,6 +611,7 @@ public sealed partial class MainPage : Page
             _currentDocument = CompositionDocumentSnapshotEditor.DeleteDomainTemplate(document, _selectedTemplateKey);
             _selectedTemplateKey = null;
             _isDirty = true;
+            UpdateDocumentTitleIndicator();
             UpdateExplorer(_currentSnapshot);
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
             StatusContextText.Text = "Template deleted";
@@ -628,6 +630,7 @@ public sealed partial class MainPage : Page
 
             _selectedComplementKey = null;
             _isDirty = true;
+            UpdateDocumentTitleIndicator();
             UpdateExplorer(_currentSnapshot);
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
             StatusContextText.Text = "Complement deleted";
@@ -1097,6 +1100,7 @@ public sealed partial class MainPage : Page
                 CompositionDocumentSnapshotXmlStore.Save(document, snapshotPath);
                 _snapshotPath = snapshotPath;
                 _isDirty = false;
+                UpdateDocumentTitleIndicator();
                 AddRecentFile(snapshotPath);
                 StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
                 MessagesText.Text =
@@ -1116,6 +1120,7 @@ public sealed partial class MainPage : Page
                 {
                     _currentDocument = document;
                     _isDirty = wasDirty;
+                    UpdateDocumentTitleIndicator();
                     StatusContextText.Text = $"Exported view {Path.GetFileName(snapshotPath)}";
                     MessagesText.Text =
                         $"View snapshot exported{Environment.NewLine}" +
@@ -1127,6 +1132,7 @@ public sealed partial class MainPage : Page
                     _currentDocument = null;
                     _snapshotPath = snapshotPath;
                     _isDirty = false;
+                    UpdateDocumentTitleIndicator();
                     StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
                     MessagesText.Text =
                         $"Document saved{Environment.NewLine}" +
@@ -1174,7 +1180,7 @@ public sealed partial class MainPage : Page
         _snapshotPath = documentPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
 
-        CompositionTitleText.Text = document.Title;
+        UpdateDocumentTitleIndicator();
         StatusContextText.Text = documentPath is null ? "New document" : $"Loaded {Path.GetFileName(documentPath)}";
         MessagesText.Text =
             $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
@@ -1193,7 +1199,7 @@ public sealed partial class MainPage : Page
         _snapshotPath = snapshotPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
 
-        CompositionTitleText.Text = snapshot.Title;
+        UpdateDocumentTitleIndicator();
         StatusContextText.Text = snapshotPath is null ? "New document" : $"Loaded {Path.GetFileName(snapshotPath)}";
         MessagesText.Text =
             $"ThinkComposer WinUI shell loaded{Environment.NewLine}" +
@@ -1219,6 +1225,7 @@ public sealed partial class MainPage : Page
         }
 
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
+        UpdateDocumentTitleIndicator();
 
         UpdateExplorer(snapshot);
         CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport, selectedConnectorId);
@@ -1769,6 +1776,7 @@ public sealed partial class MainPage : Page
         _selectedDefinitionId = null;
         _selectedDefinitionGroup = null;
         _isDirty = true;
+        UpdateDocumentTitleIndicator();
         UpdateExplorer(_currentSnapshot);
         ApplySelectedTemplate(key);
         StatusContextText.Text = "Template saved";
@@ -1794,6 +1802,7 @@ public sealed partial class MainPage : Page
         _currentDocument = CompositionDocumentSnapshotEditor.DeleteDomainTemplate(document, key);
         _selectedTemplateKey = null;
         _isDirty = true;
+        UpdateDocumentTitleIndicator();
         UpdateExplorer(_currentSnapshot);
         ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
         StatusContextText.Text = "Template deleted";
@@ -2224,6 +2233,7 @@ public sealed partial class MainPage : Page
                 _selectedDefinitionGroup.Value,
                 currentDefinition with { Name = nextText });
             _isDirty = true;
+            UpdateDocumentTitleIndicator();
             UpdateExplorer(_currentSnapshot);
             ApplySelectedDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
             StatusContextText.Text = "Definition renamed";
@@ -2420,6 +2430,7 @@ public sealed partial class MainPage : Page
     private void MarkDocumentMetadataChanged(string status)
     {
         _isDirty = true;
+        UpdateDocumentTitleIndicator();
         RefreshCurrentSelectionInspector();
         RefreshCommandCatalog();
         RefreshBottomPanelContent();
@@ -2762,12 +2773,25 @@ public sealed partial class MainPage : Page
 
     private void SetStatusModified()
     {
+        UpdateDocumentTitleIndicator();
         if (!string.IsNullOrWhiteSpace(_snapshotPath))
         {
             StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
         }
 
         RefreshDiagnostics();
+    }
+
+    private void UpdateDocumentTitleIndicator()
+    {
+        var title = _currentSnapshot?.Title ?? _currentDocument?.Title ?? "Untitled";
+        var displayTitle = _isDirty ? $"{title} *" : title;
+        CompositionTitleText.Text = displayTitle;
+
+        if (App.MainWindowInstance is not null)
+        {
+            App.MainWindowInstance.Title = $"{displayTitle} - ThinkComposer";
+        }
     }
 
     private void ExecuteCommandEntry(CompositionCommandEntry entry)
