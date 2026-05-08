@@ -99,10 +99,35 @@ AssertEqual(2.4, Math.Round(fit.Zoom, 4), "fit zoom");
 AssertEqual(-100.0, Math.Round(fit.PanX, 4), "fit pan x");
 AssertEqual(-380.0, Math.Round(fit.PanY, 4), "fit pan y");
 
+var initialFit = CompositionViewportFitter.FitNodes(
+    fitNodes,
+    1000,
+    800,
+    margin: 72,
+    minZoom: CompositionCanvasRenderDefaults.InitialMinZoom,
+    maxZoom: CompositionCanvasRenderDefaults.InitialMaxZoom);
+AssertEqual(1.35, Math.Round(initialFit.Zoom, 4), "initial fit max zoom");
+
 var emptyFit = CompositionViewportFitter.FitNodes(Array.Empty<CompositionNodeView>(), 1000, 800);
 AssertEqual(1.0, emptyFit.Zoom, "empty fit zoom");
 AssertEqual(0.0, emptyFit.PanX, "empty fit pan x");
 AssertEqual(0.0, emptyFit.PanY, "empty fit pan y");
+
+var horizontalRoute = CompositionConnectorRouter.Route(
+    new CompositionNodeView("source", "Source", new TcPoint(0, 0), new TcSize(100, 50)),
+    new CompositionNodeView("target", "Target", new TcPoint(200, 0), new TcSize(100, 50)));
+AssertEqual(100.0, Math.Round(horizontalRoute.Source.X, 4), "horizontal route source x");
+AssertEqual(25.0, Math.Round(horizontalRoute.Source.Y, 4), "horizontal route source y");
+AssertEqual(200.0, Math.Round(horizontalRoute.Target.X, 4), "horizontal route target x");
+AssertEqual(25.0, Math.Round(horizontalRoute.Target.Y, 4), "horizontal route target y");
+
+var verticalRoute = CompositionConnectorRouter.Route(
+    new CompositionNodeView("source", "Source", new TcPoint(0, 0), new TcSize(100, 50)),
+    new CompositionNodeView("target", "Target", new TcPoint(0, 150), new TcSize(100, 50)));
+AssertEqual(50.0, Math.Round(verticalRoute.Source.X, 4), "vertical route source x");
+AssertEqual(50.0, Math.Round(verticalRoute.Source.Y, 4), "vertical route source y");
+AssertEqual(50.0, Math.Round(verticalRoute.Target.X, 4), "vertical route target x");
+AssertEqual(150.0, Math.Round(verticalRoute.Target.Y, 4), "vertical route target y");
 
 var compactLabel = CompositionNodeLabelPolicy.ForNode(
     new CompositionNodeView("small", "Small", new TcPoint(0, 0), new TcSize(80, 24)));

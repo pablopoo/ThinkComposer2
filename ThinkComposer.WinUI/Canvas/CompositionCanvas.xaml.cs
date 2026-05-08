@@ -81,8 +81,8 @@ public sealed partial class CompositionCanvas : UserControl
             DrawingSurface.ActualWidth,
             DrawingSurface.ActualHeight,
             margin: 72,
-            minZoom: 0.35,
-            maxZoom: 2.4);
+            minZoom: CompositionCanvasRenderDefaults.InitialMinZoom,
+            maxZoom: CompositionCanvasRenderDefaults.InitialMaxZoom);
 
         _zoom = fit.Zoom;
         _pan = new Vector2((float)fit.PanX, (float)fit.PanY);
@@ -130,9 +130,14 @@ public sealed partial class CompositionCanvas : UserControl
                 continue;
             }
 
-            var source = sourceNode.Center;
-            var target = targetNode.Center;
-            session.DrawLine((float)source.X, (float)source.Y, (float)target.X, (float)target.Y, palette.Connector, 2);
+            var route = CompositionConnectorRouter.Route(sourceNode.ToRoutingView(), targetNode.ToRoutingView());
+            session.DrawLine(
+                (float)route.Source.X,
+                (float)route.Source.Y,
+                (float)route.Target.X,
+                (float)route.Target.Y,
+                palette.Connector,
+                CompositionCanvasRenderDefaults.ConnectorStrokeWidth);
         }
     }
 
@@ -142,10 +147,10 @@ public sealed partial class CompositionCanvas : UserControl
         {
             var bounds = node.Bounds;
             var stroke = node == _selectedNode ? palette.SelectedStroke : palette.NodeStroke;
-            var strokeWidth = node == _selectedNode ? 3 : 1;
+            var strokeWidth = node == _selectedNode ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : 1;
 
-            session.FillRoundedRectangle(bounds, 8, 8, palette.NodeFill);
-            session.DrawRoundedRectangle(bounds, 8, 8, stroke, strokeWidth);
+            session.FillRoundedRectangle(bounds, 7, 7, palette.NodeFill);
+            session.DrawRoundedRectangle(bounds, 7, 7, stroke, strokeWidth);
 
             var label = CompositionNodeLabelPolicy.ForNode(node.Source);
             var padding = label.Padding;
@@ -251,7 +256,10 @@ public sealed partial class CompositionCanvas : UserControl
         var point = e.GetCurrentPoint(DrawingSurface);
         var beforeZoom = ToWorld(point.Position);
         var delta = point.Properties.MouseWheelDelta > 0 ? 1.1 : 0.9;
-        _zoom = Math.Clamp(_zoom * delta, 0.35, 2.4);
+        _zoom = Math.Clamp(
+            _zoom * delta,
+            CompositionCanvasRenderDefaults.InteractionMinZoom,
+            CompositionCanvasRenderDefaults.InteractionMaxZoom);
         _pan = new Vector2(
             (float)(point.Position.X - beforeZoom.X * _zoom),
             (float)(point.Position.Y - beforeZoom.Y * _zoom));
@@ -319,6 +327,15 @@ public sealed partial class CompositionCanvas : UserControl
             Source = Source with { Position = new TcPoint(x, y) };
         }
 
+        public CompositionNodeView ToRoutingView()
+        {
+            return Source with
+            {
+                Position = new TcPoint(Bounds.X, Bounds.Y),
+                Size = new TcSize(Bounds.Width, Bounds.Height)
+            };
+        }
+
         public static CanvasNode FromView(CompositionNodeView node)
         {
             return new CanvasNode(
@@ -348,7 +365,7 @@ public sealed partial class CompositionCanvas : UserControl
         private static CanvasPalette Light { get; } = new(
             Rgb(255, 255, 255),
             Rgb(235, 235, 235),
-            Rgb(43, 120, 198),
+            Rgba(170, 43, 120, 198),
             Rgb(255, 255, 255),
             Rgb(138, 155, 168),
             Rgb(0, 122, 204),
@@ -358,7 +375,7 @@ public sealed partial class CompositionCanvas : UserControl
         private static CanvasPalette Dark { get; } = new(
             Rgb(30, 30, 30),
             Rgb(45, 45, 48),
-            Rgb(55, 148, 255),
+            Rgba(180, 55, 148, 255),
             Rgb(37, 37, 38),
             Rgb(80, 80, 80),
             Rgb(55, 148, 255),
@@ -368,6 +385,11 @@ public sealed partial class CompositionCanvas : UserControl
         private static Windows.UI.Color Rgb(byte red, byte green, byte blue)
         {
             return Windows.UI.Color.FromArgb(255, red, green, blue);
+        }
+
+        private static Windows.UI.Color Rgba(byte alpha, byte red, byte green, byte blue)
+        {
+            return Windows.UI.Color.FromArgb(alpha, red, green, blue);
         }
     }
 }
