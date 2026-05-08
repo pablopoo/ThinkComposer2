@@ -87,6 +87,14 @@ public static class CompositionCommandCatalog
                 template.Key,
                 "Generation template")));
 
+        entries.AddRange(document.Views.SelectMany(view => view.Complements.Select(complement =>
+            new CompositionCommandEntry(
+                $"complement.{view.Id}.{complement.Key}",
+                string.IsNullOrWhiteSpace(complement.Value) ? complement.Key : complement.Value,
+                CompositionCommandEntryKind.Complement,
+                complement.Key,
+                "View complement"))));
+
         return entries;
     }
 

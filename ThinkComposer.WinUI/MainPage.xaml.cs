@@ -49,6 +49,14 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private sealed record ExtensionListEntry(string Key, string Value)
+    {
+        public override string ToString()
+        {
+            return string.IsNullOrWhiteSpace(Value) ? Key : $"{Key}: {Value}";
+        }
+    }
+
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
@@ -74,6 +82,7 @@ public sealed partial class MainPage : Page
     private string? _selectedDefinitionId;
     private CompositionDefinitionGroup? _selectedDefinitionGroup;
     private string? _selectedTemplateKey;
+    private string? _selectedComplementKey;
     private string? _pendingRelationshipSourceId;
     private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
@@ -604,6 +613,24 @@ public sealed partial class MainPage : Page
             UpdateExplorer(_currentSnapshot);
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
             StatusContextText.Text = "Template deleted";
+            RefreshBottomPanelContent();
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedComplementKey))
+        {
+            var document = EnsureCurrentDocument();
+            var viewId = GetCurrentViewId(document);
+            if (!string.IsNullOrWhiteSpace(viewId))
+            {
+                _currentDocument = CompositionDocumentSnapshotEditor.DeleteViewComplement(document, viewId, _selectedComplementKey);
+            }
+
+            _selectedComplementKey = null;
+            _isDirty = true;
+            UpdateExplorer(_currentSnapshot);
+            ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex?.FirstNode);
+            StatusContextText.Text = "Complement deleted";
             RefreshBottomPanelContent();
             return;
         }
@@ -1249,6 +1276,29 @@ public sealed partial class MainPage : Page
         }
 
         ExplorerTree.RootNodes.Add(relations);
+
+        var complements = (_currentDocument ?? CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot))
+            .Views.FirstOrDefault()?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
+        if (complements.Count > 0)
+        {
+            var complementGroup = new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry($"Complements ({complements.Count})", CompositionCommandEntryKind.Command),
+                IsExpanded = true
+            };
+            foreach (var complement in complements)
+            {
+                complementGroup.Children.Add(new TreeViewNode
+                {
+                    Content = new ExplorerTreeEntry(
+                        string.IsNullOrWhiteSpace(complement.Value) ? complement.Key : complement.Value,
+                        CompositionCommandEntryKind.Complement,
+                        complement.Key)
+                });
+            }
+
+            ExplorerTree.RootNodes.Add(complementGroup);
+        }
     }
 
     private void UpdateDomainExplorer(CompositionViewSnapshot snapshot)
@@ -1368,6 +1418,10 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandEntryKind.Connector:
                 CanvasView.SelectConnector(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                break;
+            case CompositionCommandEntryKind.Complement:
+                ApplySelectedComplement(entry.TargetId);
                 StatusContextText.Text = $"Selected {entry.Title}";
                 break;
         }
@@ -1614,6 +1668,81 @@ public sealed partial class MainPage : Page
         MarkDocumentMetadataChanged("Markers updated");
     }
 
+    private void InspectorComplementsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isApplyingInspector ||
+            InspectorComplementsList.SelectedItem is not ExtensionListEntry entry)
+        {
+            return;
+        }
+
+        _selectedComplementKey = entry.Key;
+        ComplementKeyBox.Text = entry.Key;
+        ComplementValueBox.Text = entry.Value;
+        DeleteComplementButton.IsEnabled = true;
+    }
+
+    private void UpsertComplementButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var key = ComplementKeyBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            StatusContextText.Text = "Complement key is required";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        var viewId = GetCurrentViewId(document);
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            StatusContextText.Text = "No view available for complements";
+            return;
+        }
+
+        _currentDocument = CompositionDocumentSnapshotEditor.UpsertViewComplement(
+            document,
+            viewId,
+            new CompositionExtensionSnapshot(key, ComplementValueBox.Text));
+        _selectedComplementKey = key;
+        UpdateExplorer(_currentSnapshot);
+        MarkDocumentMetadataChanged("Complement saved");
+    }
+
+    private void DeleteComplementButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var key = string.IsNullOrWhiteSpace(_selectedComplementKey)
+            ? ComplementKeyBox.Text.Trim()
+            : _selectedComplementKey;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        var viewId = GetCurrentViewId(document);
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            return;
+        }
+
+        _currentDocument = CompositionDocumentSnapshotEditor.DeleteViewComplement(document, viewId, key);
+        _selectedComplementKey = null;
+        ComplementKeyBox.Text = string.Empty;
+        ComplementValueBox.Text = string.Empty;
+        UpdateExplorer(_currentSnapshot);
+        MarkDocumentMetadataChanged("Complement removed");
+    }
+
     private void UpsertTemplateButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -1712,6 +1841,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
             _selectedTemplateKey = null;
+            _selectedComplementKey = null;
             if (string.IsNullOrWhiteSpace(_selectedConnectorId))
             {
                 _pendingRelationshipSourceId = null;
@@ -1731,6 +1861,7 @@ public sealed partial class MainPage : Page
             InspectorHeightBox.Value = 0;
             SetMetadataInspector(null, null, isEnabled: false);
             SetTemplateInspector(null);
+            SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1744,6 +1875,7 @@ public sealed partial class MainPage : Page
         _selectedDefinitionId = null;
         _selectedDefinitionGroup = null;
         _selectedTemplateKey = null;
+        _selectedComplementKey = null;
         ObjectExpander.Header = "Concept";
         InspectorNameBox.IsEnabled = true;
         InspectorXBox.IsEnabled = true;
@@ -1759,6 +1891,7 @@ public sealed partial class MainPage : Page
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
         SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
         SetTemplateInspector(null);
+        SetComplementInspector();
         SetStyleInspector(idea?.Style ?? definition?.Style ?? node.Style, isEnabled: true);
         InspectorXBox.Value = Math.Round(node.Position.X, 1);
         InspectorYBox.Value = Math.Round(node.Position.Y, 1);
@@ -1786,6 +1919,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
             _selectedTemplateKey = null;
+            _selectedComplementKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Multiple selection";
             InspectorNameBox.Text = $"{nodes.Count} concepts selected";
@@ -1804,6 +1938,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
             SetMetadataInspector(null, null, isEnabled: false);
             SetTemplateInspector(null);
+            SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             OutgoingLabel.Text = "Outgoing";
             IncomingLabel.Text = "Incoming";
@@ -1833,6 +1968,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
             _selectedTemplateKey = null;
+            _selectedComplementKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Relationship";
             InspectorNameBox.IsEnabled = true;
@@ -1849,6 +1985,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
             SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
             SetTemplateInspector(null);
+            SetComplementInspector();
             SetStyleInspector(relationship?.Style ?? definition?.Style ?? connector.Style, isEnabled: true);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1882,6 +2019,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionId = definition.Id;
             _selectedDefinitionGroup = group;
             _selectedTemplateKey = null;
+            _selectedComplementKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Definition";
             InspectorNameBox.IsEnabled = true;
@@ -1896,6 +2034,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorStatusBox, definition.Kind);
             SetMetadataInspector(definition.Details, null, isEnabled: false);
             SetTemplateInspector(null);
+            SetComplementInspector();
             SetStyleInspector(definition.Style, isEnabled: false);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1929,6 +2068,7 @@ public sealed partial class MainPage : Page
             _selectedDefinitionId = null;
             _selectedDefinitionGroup = null;
             _selectedTemplateKey = template.Key;
+            _selectedComplementKey = null;
             _pendingRelationshipSourceId = null;
             ObjectExpander.Header = "Template";
             InspectorNameBox.IsEnabled = false;
@@ -1943,6 +2083,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorStatusBox, TemplateScopeLabel(template.Key));
             SetMetadataInspector(null, null, isEnabled: false);
             SetTemplateInspector(template);
+            SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -1952,6 +2093,55 @@ public sealed partial class MainPage : Page
             IncomingLabel.Text = "Key";
             OutgoingText.Text = TemplateScopeLabel(template.Key);
             IncomingText.Text = template.Key;
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+            RefreshDiagnostics();
+        }
+    }
+
+    private void ApplySelectedComplement(string complementKey)
+    {
+        _isApplyingInspector = true;
+        try
+        {
+            var complement = FindComplement(complementKey);
+            if (complement is null)
+            {
+                return;
+            }
+
+            _selectedNodeId = null;
+            _selectedConnectorId = null;
+            _selectedDefinitionId = null;
+            _selectedDefinitionGroup = null;
+            _selectedTemplateKey = null;
+            _selectedComplementKey = complement.Key;
+            _pendingRelationshipSourceId = null;
+            ObjectExpander.Header = "Complement";
+            InspectorNameBox.IsEnabled = false;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = true;
+            InspectorNameBox.Text = complement.Key;
+            SetComboFirstItem(InspectorKindBox, "View complement");
+            SetComboFirstItem(InspectorStatusBox, "Complement");
+            SetMetadataInspector(null, null, isEnabled: false);
+            SetTemplateInspector(null);
+            SetComplementInspector(complement.Key);
+            SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
+            InspectorXBox.Value = 0;
+            InspectorYBox.Value = 0;
+            InspectorWidthBox.Value = 0;
+            InspectorHeightBox.Value = 0;
+            OutgoingLabel.Text = "Key";
+            IncomingLabel.Text = "Value";
+            OutgoingText.Text = complement.Key;
+            IncomingText.Text = complement.Value;
         }
         finally
         {
@@ -2243,6 +2433,12 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(_selectedComplementKey))
+        {
+            ApplySelectedComplement(_selectedComplementKey);
+            return;
+        }
+
         if (_selectedDefinitionGroup is not null && !string.IsNullOrWhiteSpace(_selectedDefinitionId))
         {
             ApplySelectedDefinition(_selectedDefinitionGroup.Value, _selectedDefinitionId);
@@ -2290,6 +2486,12 @@ public sealed partial class MainPage : Page
     {
         return _currentDocument?.Domain.Templates
             .FirstOrDefault(template => string.Equals(template.Key, templateKey, StringComparison.Ordinal));
+    }
+
+    private CompositionExtensionSnapshot? FindComplement(string complementKey)
+    {
+        return _currentDocument?.Views.FirstOrDefault()?.Complements
+            .FirstOrDefault(complement => string.Equals(complement.Key, complementKey, StringComparison.Ordinal));
     }
 
     private CompositionDefinitionSnapshot? FindDefinition(CompositionDefinitionGroup group, string definitionId)
@@ -2389,6 +2591,42 @@ public sealed partial class MainPage : Page
         TemplateValueBox.IsEnabled = hasDocument;
         UpsertTemplateButton.IsEnabled = hasDocument;
         DeleteTemplateButton.IsEnabled = template is not null;
+    }
+
+    private void SetComplementInspector(string? selectedKey = null)
+    {
+        var hasDocument = _currentDocument is not null || _currentSnapshot is not null;
+        var entries = FormatExtensionEntries(_currentDocument?.Views.FirstOrDefault()?.Complements);
+        InspectorComplementsList.ItemsSource = entries;
+
+        var selectedEntry = string.IsNullOrWhiteSpace(selectedKey)
+            ? null
+            : entries.FirstOrDefault(entry => string.Equals(entry.Key, selectedKey, StringComparison.Ordinal));
+        InspectorComplementsList.SelectedItem = selectedEntry;
+        ComplementKeyBox.Text = selectedEntry?.Key ?? string.Empty;
+        ComplementValueBox.Text = selectedEntry?.Value ?? string.Empty;
+        ComplementKeyBox.IsEnabled = hasDocument;
+        ComplementValueBox.IsEnabled = hasDocument;
+        InspectorComplementsList.IsEnabled = hasDocument;
+        UpsertComplementButton.IsEnabled = hasDocument;
+        DeleteComplementButton.IsEnabled = selectedEntry is not null;
+    }
+
+    private static IReadOnlyList<ExtensionListEntry> FormatExtensionEntries(IReadOnlyList<CompositionExtensionSnapshot>? extensions)
+    {
+        if (extensions is null || extensions.Count == 0)
+        {
+            return Array.Empty<ExtensionListEntry>();
+        }
+
+        return extensions
+            .Select(extension => new ExtensionListEntry(extension.Key, extension.Value))
+            .ToArray();
+    }
+
+    private static string GetCurrentViewId(CompositionDocumentSnapshot document)
+    {
+        return document.Views.FirstOrDefault()?.Id ?? string.Empty;
     }
 
     private static string TemplateScopeLabel(string key)
@@ -2557,6 +2795,10 @@ public sealed partial class MainPage : Page
                 return;
             case CompositionCommandEntryKind.Template when !string.IsNullOrWhiteSpace(entry.TargetId):
                 ApplySelectedTemplate(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                return;
+            case CompositionCommandEntryKind.Complement when !string.IsNullOrWhiteSpace(entry.TargetId):
+                ApplySelectedComplement(entry.TargetId);
                 StatusContextText.Text = $"Selected {entry.Title}";
                 return;
             case CompositionCommandEntryKind.Command:

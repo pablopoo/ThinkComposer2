@@ -80,6 +80,47 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot UpsertViewComplement(
+        CompositionDocumentSnapshot document,
+        string viewId,
+        CompositionExtensionSnapshot complement)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (complement is null)
+        {
+            throw new ArgumentNullException(nameof(complement));
+        }
+
+        return document with
+        {
+            Views = document.Views.Select(view => string.Equals(view.Id, viewId, StringComparison.Ordinal)
+                ? view with { Complements = UpsertExtension(view.Complements, complement) }
+                : view).ToArray()
+        };
+    }
+
+    public static CompositionDocumentSnapshot DeleteViewComplement(
+        CompositionDocumentSnapshot document,
+        string viewId,
+        string complementKey)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        return document with
+        {
+            Views = document.Views.Select(view => string.Equals(view.Id, viewId, StringComparison.Ordinal)
+                ? view with { Complements = DeleteExtension(view.Complements, complementKey) }
+                : view).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertIdeaDetail(
         CompositionDocumentSnapshot document,
         string ideaId,

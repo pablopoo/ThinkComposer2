@@ -481,6 +481,40 @@
                                 </StackPanel>
                             </Expander>
 
+                            <Expander x:Name="ComplementsExpander" Header="View complements" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <ListView
+                                        x:Name="InspectorComplementsList"
+                                        MaxHeight="96"
+                                        SelectionChanged="InspectorComplementsList_SelectionChanged"
+                                        SelectionMode="Single" />
+                                    <TextBox x:Name="ComplementKeyBox" PlaceholderText="legend, group.region, quote" />
+                                    <TextBox
+                                        x:Name="ComplementValueBox"
+                                        AcceptsReturn="True"
+                                        MinHeight="70"
+                                        TextWrapping="Wrap"
+                                        PlaceholderText="Complement text or payload" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="UpsertComplementButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="UpsertComplementButton_Click"
+                                            Content="Save complement" />
+                                        <Button
+                                            x:Name="DeleteComplementButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="DeleteComplementButton_Click"
+                                            Content="Remove" />
+                                    </Grid>
+                                </StackPanel>
+                            </Expander>
+
                             <Expander x:Name="TemplateExpander" Header="Generation template" IsExpanded="False">
                                 <StackPanel Padding="0,10,0,0" Spacing="8">
                                     <TextBox x:Name="TemplateKeyBox" PlaceholderText="template.concept.name" />

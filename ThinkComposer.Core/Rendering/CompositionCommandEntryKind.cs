@@ -6,5 +6,6 @@ public enum CompositionCommandEntryKind
     Node,
     Connector,
     Definition,
-    Template
+    Template,
+    Complement
 }

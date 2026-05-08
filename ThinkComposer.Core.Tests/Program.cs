@@ -423,6 +423,24 @@ var definitionDeletedDocument = CompositionDocumentSnapshotEditor.DeleteDefiniti
     "risk-high");
 AssertTrue(!definitionDeletedDocument.Domain.MarkerDefinitions.Any(definition => definition.Id == "risk-high"), "definition deleted");
 
+var complementEditedDocument = CompositionDocumentSnapshotEditor.UpsertViewComplement(
+    modernDocument,
+    "view-1",
+    new CompositionExtensionSnapshot("legend", "Main legend"));
+AssertEqual("Main legend", complementEditedDocument.Views[0].Complements.Single(complement => complement.Key == "legend").Value, "view complement updated");
+var complementAddedDocument = CompositionDocumentSnapshotEditor.UpsertViewComplement(
+    complementEditedDocument,
+    "view-1",
+    new CompositionExtensionSnapshot("group.region", "Region A"));
+AssertTrue(complementAddedDocument.Views[0].Complements.Any(complement => complement.Key == "group.region"), "view complement added");
+var complementDeletedDocument = CompositionDocumentSnapshotEditor.DeleteViewComplement(
+    complementAddedDocument,
+    "view-1",
+    "group.region");
+AssertTrue(!complementDeletedDocument.Views[0].Complements.Any(complement => complement.Key == "group.region"), "view complement deleted");
+var complementCommands = CompositionCommandCatalog.ForDocument(complementAddedDocument);
+AssertTrue(complementCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Complement && entry.TargetId == "group.region"), "document command complement");
+
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",
     Title: "Incoming",
