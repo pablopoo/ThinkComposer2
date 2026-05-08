@@ -6,7 +6,7 @@ Date: 2026-05-08
 
 The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly release hardening and deeper automation: native PDF/XPS generation, installer/signing, update channel, and broader automated UI workflow smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly release hardening: native PDF/XPS generation, installer/signing, update channel, and broader end-to-end workflow automation.
 
 ## Current WinUI Coverage
 
@@ -23,7 +23,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly release
 - Output: SVG/HTML export, full document HTML report, HTML presentation deck, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
-- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script coverage, and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
+- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script coverage, and solution build; launch/UI smoke scripts cover startup, main window, toolbar commands, theme toggle, domain/content explorer tabs, and concept creation; publish script emits self-contained WinUI output plus release manifest/zip.
 
 ## Remaining Gaps
 
@@ -50,12 +50,12 @@ It is still not a complete legacy replacement. Remaining gaps are mostly release
 ### P2 - Product/Release Hardening
 
 - Self-contained publish output is scripted; installer, signing, and update channel remain to be defined.
-- Automated UI smoke covers launch, optional startup documents, and main-window creation; broader workflow automation should cover theme switching, open/save, create/edit, and report/generation.
+- Automated UI smoke covers launch, optional startup documents, main-window creation, theme switching, explorer tab switching, toolbar presence, and concept creation; broader workflow automation should cover open/save dialogs and report/generation file outputs.
 - Product options/licensing checks remain a product decision.
 
 ## Recommended Backlog
 
 1. Build a spreadsheet-like grid editor for table details and base-table records.
 2. Add native PDF/XPS only if printable HTML plus browser save-to-PDF is not sufficient.
-3. Add UI automation smoke tests around theme switching, open/save, create/edit, and report/generation.
+3. Extend UI automation smoke around open/save dialogs and report/generation file outputs.
 4. Define installer, signing, and update-channel packaging.

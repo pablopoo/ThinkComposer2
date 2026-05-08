@@ -117,12 +117,16 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                 <Button
+                    AutomationProperties.AutomationId="FocusCanvasButton"
+                    AutomationProperties.Name="Focus canvas"
                     Click="FocusButton_Click"
                     Style="{StaticResource ChromeButtonStyle}"
                     ToolTipService.ToolTip="Focus canvas">
                     <SymbolIcon Symbol="FullScreen" />
                 </Button>
                 <Button
+                    AutomationProperties.AutomationId="ThemeToggleButton"
+                    AutomationProperties.Name="Toggle theme"
                     Click="ThemeButton_Click"
                     Style="{StaticResource ChromeButtonStyle}"
                     ToolTipService.ToolTip="Toggle theme">
