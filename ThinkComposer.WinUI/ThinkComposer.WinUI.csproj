@@ -62,8 +62,12 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <!-- WinRT.Runtime fails during startup on the self-contained net10 publish when ReadyToRun is enabled. -->
+    <PublishReadyToRun>False</PublishReadyToRun>
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
+
+  <Target Name="CleanWinUIPublishDirectory" BeforeTargets="ComputeFilesToPublish" Condition="'$(PublishDir)' != ''">
+    <RemoveDir Directories="$(PublishDir)" />
+  </Target>
 </Project>
