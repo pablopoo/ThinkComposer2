@@ -2,8 +2,8 @@ using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
-using Microsoft.UI;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.Foundation;
@@ -39,69 +39,70 @@ public sealed partial class CompositionCanvas : UserControl
     {
         InitializeComponent();
         _selectedNode = _nodes[0];
+        ActualThemeChanged += (_, _) => DrawingSurface.Invalidate();
     }
 
     private void DrawingSurface_Draw(CanvasControl sender, CanvasDrawEventArgs args)
     {
         var session = args.DrawingSession;
-        session.Clear(Colors.Transparent);
+        var palette = CanvasPalette.ForTheme(ActualTheme);
+        session.Clear(palette.Background);
 
-        DrawGrid(session, sender.ActualWidth, sender.ActualHeight);
+        DrawGrid(session, sender.ActualWidth, sender.ActualHeight, palette);
 
         session.Transform = Matrix3x2.CreateScale((float)_zoom) * Matrix3x2.CreateTranslation(_pan);
-        DrawConnectors(session);
-        DrawNodes(session);
+        DrawConnectors(session, palette);
+        DrawNodes(session, palette);
         session.Transform = Matrix3x2.Identity;
 
-        DrawViewportLabel(session, sender.ActualWidth, sender.ActualHeight);
+        DrawViewportLabel(session, sender.ActualWidth, sender.ActualHeight, palette);
     }
 
-    private void DrawGrid(CanvasDrawingSession session, double width, double height)
+    private void DrawGrid(CanvasDrawingSession session, double width, double height, CanvasPalette palette)
     {
         const float spacing = 24;
         for (var x = _pan.X % spacing; x < width; x += spacing)
         {
-            session.DrawLine((float)x, 0, (float)x, (float)height, Colors.LightGray, 0.5f);
+            session.DrawLine((float)x, 0, (float)x, (float)height, palette.GridLine, 0.5f);
         }
 
         for (var y = _pan.Y % spacing; y < height; y += spacing)
         {
-            session.DrawLine(0, (float)y, (float)width, (float)y, Colors.LightGray, 0.5f);
+            session.DrawLine(0, (float)y, (float)width, (float)y, palette.GridLine, 0.5f);
         }
     }
 
-    private void DrawConnectors(CanvasDrawingSession session)
+    private void DrawConnectors(CanvasDrawingSession session, CanvasPalette palette)
     {
         foreach (var connector in _connectors)
         {
             var source = _nodes.First(node => node.Id == connector.Source).Center;
             var target = _nodes.First(node => node.Id == connector.Target).Center;
-            session.DrawLine((float)source.X, (float)source.Y, (float)target.X, (float)target.Y, Colors.SteelBlue, 2);
+            session.DrawLine((float)source.X, (float)source.Y, (float)target.X, (float)target.Y, palette.Connector, 2);
         }
     }
 
-    private void DrawNodes(CanvasDrawingSession session)
+    private void DrawNodes(CanvasDrawingSession session, CanvasPalette palette)
     {
         foreach (var node in _nodes)
         {
             var bounds = node.Bounds;
-            var fill = Colors.White;
-            var stroke = node == _selectedNode ? Colors.DodgerBlue : Colors.LightSlateGray;
+            var stroke = node == _selectedNode ? palette.SelectedStroke : palette.NodeStroke;
             var strokeWidth = node == _selectedNode ? 3 : 1;
 
-            session.FillRoundedRectangle(bounds, 8, 8, fill);
+            session.FillRoundedRectangle(bounds, 8, 8, palette.NodeFill);
             session.DrawRoundedRectangle(bounds, 8, 8, stroke, strokeWidth);
-            session.DrawText(node.Title, new Rect(bounds.X + 12, bounds.Y + 10, bounds.Width - 24, 24), Colors.Black, TitleFormat);
-            session.DrawText(node.Subtitle, new Rect(bounds.X + 12, bounds.Y + 38, bounds.Width - 24, 36), Colors.DimGray, BodyFormat);
+            session.DrawText(node.Title, new Rect(bounds.X + 12, bounds.Y + 10, bounds.Width - 24, 24), palette.Text, TitleFormat);
+            session.DrawText(node.Subtitle, new Rect(bounds.X + 12, bounds.Y + 38, bounds.Width - 24, 36), palette.MutedText, BodyFormat);
         }
     }
 
-    private void DrawViewportLabel(CanvasDrawingSession session, double width, double height)
+    private void DrawViewportLabel(CanvasDrawingSession session, double width, double height, CanvasPalette palette)
     {
         var label = $"Win2D canvas  |  zoom {Math.Round(_zoom * 100)}%";
-        session.FillRoundedRectangle(new Rect(width - 206, height - 42, 190, 30), 6, 6, Colors.White);
-        session.DrawRoundedRectangle(new Rect(width - 206, height - 42, 190, 30), 6, 6, Colors.LightSlateGray);
-        session.DrawText(label, new Rect(width - 194, height - 36, 168, 22), Colors.DimGray, BodyFormat);
+        session.FillRoundedRectangle(new Rect(width - 206, height - 42, 190, 30), 6, 6, palette.NodeFill);
+        session.DrawRoundedRectangle(new Rect(width - 206, height - 42, 190, 30), 6, 6, palette.NodeStroke);
+        session.DrawText(label, new Rect(width - 194, height - 36, 168, 22), palette.MutedText, BodyFormat);
     }
 
     private void DrawingSurface_PointerPressed(object sender, PointerRoutedEventArgs e)
@@ -202,5 +203,46 @@ public sealed partial class CompositionCanvas : UserControl
         public string Subtitle { get; } = subtitle;
         public Rect Bounds { get; set; } = bounds;
         public Point Center => new(Bounds.X + Bounds.Width / 2, Bounds.Y + Bounds.Height / 2);
+    }
+
+    private sealed record CanvasPalette(
+        Windows.UI.Color Background,
+        Windows.UI.Color GridLine,
+        Windows.UI.Color Connector,
+        Windows.UI.Color NodeFill,
+        Windows.UI.Color NodeStroke,
+        Windows.UI.Color SelectedStroke,
+        Windows.UI.Color Text,
+        Windows.UI.Color MutedText)
+    {
+        public static CanvasPalette ForTheme(ElementTheme theme)
+        {
+            return theme == ElementTheme.Dark ? Dark : Light;
+        }
+
+        private static CanvasPalette Light { get; } = new(
+            Rgb(255, 255, 255),
+            Rgb(235, 235, 235),
+            Rgb(43, 120, 198),
+            Rgb(255, 255, 255),
+            Rgb(138, 155, 168),
+            Rgb(0, 122, 204),
+            Rgb(31, 31, 31),
+            Rgb(96, 96, 96));
+
+        private static CanvasPalette Dark { get; } = new(
+            Rgb(30, 30, 30),
+            Rgb(45, 45, 48),
+            Rgb(55, 148, 255),
+            Rgb(37, 37, 38),
+            Rgb(80, 80, 80),
+            Rgb(55, 148, 255),
+            Rgb(220, 220, 220),
+            Rgb(166, 166, 166));
+
+        private static Windows.UI.Color Rgb(byte red, byte green, byte blue)
+        {
+            return Windows.UI.Color.FromArgb(255, red, green, blue);
+        }
     }
 }

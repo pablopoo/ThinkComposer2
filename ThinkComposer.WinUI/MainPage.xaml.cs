@@ -49,7 +49,7 @@ public sealed partial class MainPage : Page
     private void ThemeButton_Click(object sender, RoutedEventArgs e)
     {
         _isDarkTheme = !_isDarkTheme;
-        RootLayout.RequestedTheme = _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
+        RootPage.RequestedTheme = _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
     }
 
     private void ApplyPanelState()
