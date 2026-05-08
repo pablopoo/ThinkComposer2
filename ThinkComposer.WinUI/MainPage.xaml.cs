@@ -22,6 +22,12 @@ public sealed partial class MainPage : Page
         Diagnostics
     }
 
+    private enum ExplorerMode
+    {
+        Content,
+        Domain
+    }
+
     private sealed record ExplorerTreeEntry(
         string Title,
         CompositionCommandEntryKind Kind,
@@ -57,6 +63,7 @@ public sealed partial class MainPage : Page
     private bool _isBottomVisible = true;
     private bool _isDarkTheme;
     private bool _isDirty;
+    private ExplorerMode _explorerMode = ExplorerMode.Content;
     private string? _snapshotPath;
     private CompositionDocumentSnapshot? _currentDocument;
     private CompositionViewSnapshot? _currentSnapshot;
@@ -96,6 +103,16 @@ public sealed partial class MainPage : Page
         _isExplorerVisible = !_isExplorerVisible;
         ApplyPanelState();
         SaveWorkspaceSettings();
+    }
+
+    private void ExplorerContentTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetExplorerMode(ExplorerMode.Content);
+    }
+
+    private void ExplorerDomainTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetExplorerMode(ExplorerMode.Domain);
     }
 
     private void InspectorButton_Click(object sender, RoutedEventArgs e)
@@ -1139,6 +1156,14 @@ public sealed partial class MainPage : Page
     private void UpdateExplorer(CompositionViewSnapshot snapshot)
     {
         ExplorerTree.RootNodes.Clear();
+        ExplorerContentTabButton.IsEnabled = _explorerMode != ExplorerMode.Content;
+        ExplorerDomainTabButton.IsEnabled = _explorerMode != ExplorerMode.Domain;
+
+        if (_explorerMode == ExplorerMode.Domain)
+        {
+            UpdateDomainExplorer(snapshot);
+            return;
+        }
 
         var root = new TreeViewNode
         {
@@ -1170,23 +1195,24 @@ public sealed partial class MainPage : Page
         }
 
         ExplorerTree.RootNodes.Add(relations);
+    }
 
-        if (_currentDocument is not null)
+    private void UpdateDomainExplorer(CompositionViewSnapshot snapshot)
+    {
+        var document = _currentDocument ?? CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot);
+        var domain = document.Domain;
+        var domainNode = new TreeViewNode
         {
-            var domain = _currentDocument.Domain;
-            var domainNode = new TreeViewNode
-            {
-                Content = new ExplorerTreeEntry($"Domain: {domain.Name}", CompositionCommandEntryKind.Command),
-                IsExpanded = true
-            };
-            AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions, CompositionDefinitionGroup.Concept);
-            AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions, CompositionDefinitionGroup.Relationship);
-            AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions, CompositionDefinitionGroup.Marker);
-            AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions, CompositionDefinitionGroup.Table);
-            AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages, CompositionDefinitionGroup.ExternalLanguage);
-            AddTemplateGroup(domainNode, domain.Templates);
-            ExplorerTree.RootNodes.Add(domainNode);
-        }
+            Content = new ExplorerTreeEntry($"Domain: {domain.Name}", CompositionCommandEntryKind.Command),
+            IsExpanded = true
+        };
+        AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions, CompositionDefinitionGroup.Concept);
+        AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions, CompositionDefinitionGroup.Relationship);
+        AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions, CompositionDefinitionGroup.Marker);
+        AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions, CompositionDefinitionGroup.Table);
+        AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages, CompositionDefinitionGroup.ExternalLanguage);
+        AddTemplateGroup(domainNode, domain.Templates);
+        ExplorerTree.RootNodes.Add(domainNode);
 
         static void AddDefinitionGroup(
             TreeViewNode parent,
@@ -1236,6 +1262,25 @@ public sealed partial class MainPage : Page
             }
 
             parent.Children.Add(group);
+        }
+    }
+
+    private void SetExplorerMode(ExplorerMode mode)
+    {
+        if (_explorerMode == mode)
+        {
+            return;
+        }
+
+        _explorerMode = mode;
+        if (_currentSnapshot is not null)
+        {
+            if (mode == ExplorerMode.Domain)
+            {
+                EnsureCurrentDocument();
+            }
+
+            UpdateExplorer(_currentSnapshot);
         }
     }
 
