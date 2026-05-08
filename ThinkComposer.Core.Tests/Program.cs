@@ -33,6 +33,122 @@ AssertTrue(previewText.Contains("Concepts (3)", StringComparison.Ordinal), "prev
 AssertTrue(previewText.Contains("Customer Need", StringComparison.Ordinal), "preview node");
 AssertTrue(previewText.Contains("Relationships (2)", StringComparison.Ordinal), "preview relationships");
 
+var modernDocument = new CompositionDocumentSnapshot(
+    Id: "doc-1",
+    Title: "Modern Document",
+    Domain: new CompositionDomainSnapshot(
+        Id: "domain-1",
+        Name: "All Purpose",
+        Summary: "General diagramming",
+        ConceptDefinitions:
+        [
+            new CompositionDefinitionSnapshot(
+                Id: "concept-def",
+                Name: "Concept",
+                Kind: "Concept",
+                Style: new CompositionStyleSnapshot(Fill: "#ffffff", Stroke: "#8a9ba8"))
+        ],
+        RelationshipDefinitions:
+        [
+            new CompositionDefinitionSnapshot(
+                Id: "relationship-def",
+                Name: "Relationship",
+                Kind: "Relationship",
+                Style: new CompositionStyleSnapshot(Stroke: "#2b78c6"))
+        ],
+        MarkerDefinitions:
+        [
+            new CompositionDefinitionSnapshot(Id: "marker-def", Name: "Risk", Kind: "Marker")
+        ],
+        TableDefinitions:
+        [
+            new CompositionDefinitionSnapshot(Id: "table-def", Name: "Checklist", Kind: "Table")
+        ],
+        ExternalLanguages:
+        [
+            new CompositionDefinitionSnapshot(Id: "sql", Name: "SQL", Kind: "ExternalLanguage")
+        ],
+        Templates:
+        [
+            new CompositionExtensionSnapshot("composition.template.sql", "select * from ideas")
+        ],
+        Extensions:
+        [
+            new CompositionExtensionSnapshot("legacy.domain.raw", "<domain />")
+        ]),
+    Ideas:
+    [
+        new CompositionIdeaSnapshot(
+            Id: "idea-1",
+            Name: "Customer Need",
+            DefinitionId: "concept-def",
+            Summary: "A need",
+            Details:
+            [
+                new CompositionDetailSnapshot("detail-1", "Attachment", "Spec", "spec.pdf")
+            ],
+            Markers:
+            [
+                "marker-def"
+            ],
+            Style: new CompositionStyleSnapshot(Fill: "#f8f8f8"),
+            Extensions:
+            [
+                new CompositionExtensionSnapshot("legacy.idea.raw", "<idea />")
+            ])
+    ],
+    Relationships:
+    [
+        new CompositionRelationshipSnapshot(
+            Id: "rel-1",
+            Name: "Addresses",
+            SourceIdeaId: "idea-1",
+            TargetIdeaId: "idea-1",
+            DefinitionId: "relationship-def",
+            Details:
+            [
+                new CompositionDetailSnapshot("detail-2", "CustomField", "Priority", "High")
+            ],
+            Style: new CompositionStyleSnapshot(Stroke: "#2b78c6"),
+            Extensions:
+            [
+                new CompositionExtensionSnapshot("legacy.relationship.raw", "<relationship />")
+            ])
+    ],
+    Views:
+    [
+        new CompositionViewLayerSnapshot(
+            Id: "view-1",
+            Name: "Main",
+            Nodes:
+            [
+                new CompositionNodeView("idea-1", "Customer Need", new TcPoint(10, 20), new TcSize(160, 80))
+            ],
+            Connectors:
+            [
+                new CompositionConnectorView("rel-1", "idea-1", "idea-1", "Addresses")
+            ],
+            Complements:
+            [
+                new CompositionExtensionSnapshot("legend", "Legend")
+            ],
+            Style: new CompositionStyleSnapshot(Fill: "#ffffff"),
+            Extensions:
+            [
+                new CompositionExtensionSnapshot("legacy.view.raw", "<view />")
+            ])
+    ],
+    Extensions:
+    [
+        new CompositionExtensionSnapshot("legacy.package.raw", "<package />")
+    ]);
+AssertEqual(CompositionDocumentSnapshot.CurrentSchemaVersion, modernDocument.SchemaVersion, "modern schema");
+AssertEqual("All Purpose", modernDocument.Domain.Name, "modern domain");
+AssertEqual("Concept", modernDocument.Domain.ConceptDefinitions[0].Name, "modern concept definition");
+AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail");
+AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
+AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {
