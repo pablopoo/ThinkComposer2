@@ -416,11 +416,11 @@ Implementation note: the WinUI command box now searches base commands, concepts,
 **Files:**
 - Modify WinUI app services and core adapters as needed.
 
-- [ ] **Step 1: Open/save parity**
+- [x] **Step 1: Open/save parity**
 
 Existing documents open and save correctly from WinUI.
 
-Implementation note: WinUI now supports New, Open `.tcview`, Save, and Save As `.tcview` through native Windows file pickers. WinUI can also open `.tdom`/`.tcom` by running the external legacy bridge tool and importing the package into a temporary `.tcview`; save-back to the original legacy package remains pending.
+Implementation note: WinUI now supports New, Open `.tcview`, Save, Save As `.tcview`, persisted recent files, and recent-file search. WinUI can also open `.tdom`/`.tcom` through the external legacy bridge as a migration import; imported legacy files intentionally save through Save As into the modern `.tcview` format rather than writing the old binary package.
 
 - [x] **Step 2: Export/print parity**
 

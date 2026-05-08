@@ -70,6 +70,7 @@
                 <AppBarButton Click="NewConceptButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Add" Label="New concept" ToolTipService.ToolTip="New concept" />
                 <AppBarButton Click="NewRelationshipButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Link" Label="Link" ToolTipService.ToolTip="Create relationship from selected concept" />
                 <AppBarButton Click="OpenButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Open" ToolTipService.ToolTip="Open .tcview" />
+                <AppBarButton x:Name="RecentButton" Click="RecentButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Recent" ToolTipService.ToolTip="Open recent document" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
                 <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcview" />
                 <AppBarButton Click="ExportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Export" ToolTipService.ToolTip="Export HTML or SVG" />

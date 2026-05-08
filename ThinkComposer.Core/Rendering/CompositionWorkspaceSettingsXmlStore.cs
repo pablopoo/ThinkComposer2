@@ -25,7 +25,8 @@ public static class CompositionWorkspaceSettingsXmlStore
                     : CompositionWorkspaceSettings.Default.Theme,
                 ReadBool(root, "explorer", CompositionWorkspaceSettings.Default.IsExplorerVisible),
                 ReadBool(root, "inspector", CompositionWorkspaceSettings.Default.IsInspectorVisible),
-                ReadBool(root, "bottom", CompositionWorkspaceSettings.Default.IsBottomVisible));
+                ReadBool(root, "bottom", CompositionWorkspaceSettings.Default.IsBottomVisible),
+                ReadRecentFiles(root));
         }
         catch
         {
@@ -57,12 +58,27 @@ public static class CompositionWorkspaceSettingsXmlStore
                 new XAttribute("theme", settings.Theme),
                 new XAttribute("explorer", settings.IsExplorerVisible),
                 new XAttribute("inspector", settings.IsInspectorVisible),
-                new XAttribute("bottom", settings.IsBottomVisible)))
+                new XAttribute("bottom", settings.IsBottomVisible),
+                new XElement(
+                    "Recent",
+                    settings.RecentFiles.Select(path => new XElement("File", new XAttribute("path", path))))))
             .Save(filePath);
     }
 
     private static bool ReadBool(XElement element, string attributeName, bool defaultValue)
     {
         return bool.TryParse(element.Attribute(attributeName)?.Value, out var value) ? value : defaultValue;
+    }
+
+    private static IReadOnlyList<string> ReadRecentFiles(XElement root)
+    {
+        return root.Element("Recent")
+                ?.Elements("File")
+                .Select(element => element.Attribute("path")?.Value)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Cast<string>()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()
+            ?? Array.Empty<string>();
     }
 }

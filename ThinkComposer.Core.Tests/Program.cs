@@ -40,13 +40,16 @@ try
         Theme: CompositionWorkspaceTheme.Dark,
         IsExplorerVisible: false,
         IsInspectorVisible: true,
-        IsBottomVisible: false);
+        IsBottomVisible: false,
+        RecentFiles: ["C:\\Docs\\One.tcview", "C:\\Docs\\Two.tdom"]);
     CompositionWorkspaceSettingsXmlStore.Save(settings, settingsPath);
     var reloadedSettings = CompositionWorkspaceSettingsXmlStore.LoadOrDefault(settingsPath);
     AssertEqual(CompositionWorkspaceTheme.Dark, reloadedSettings.Theme, "settings theme");
     AssertEqual(false, reloadedSettings.IsExplorerVisible, "settings explorer");
     AssertEqual(true, reloadedSettings.IsInspectorVisible, "settings inspector");
     AssertEqual(false, reloadedSettings.IsBottomVisible, "settings bottom");
+    AssertEqual(2, reloadedSettings.RecentFiles.Count, "settings recent count");
+    AssertEqual("C:\\Docs\\One.tcview", reloadedSettings.RecentFiles[0], "settings recent first");
 }
 finally
 {

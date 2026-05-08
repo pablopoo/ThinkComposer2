@@ -55,6 +55,7 @@ public sealed partial class MainPage : Page
     private string? _pendingRelationshipSourceId;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
+    private List<string> _recentFiles = [];
     private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
 
     public MainPage()
@@ -167,6 +168,7 @@ public sealed partial class MainPage : Page
         {
             CompositionViewSnapshotXmlStore.Save(_currentSnapshot, _snapshotPath);
             _isDirty = false;
+            AddRecentFile(_snapshotPath);
             StatusContextText.Text = $"Saved {Path.GetFileName(_snapshotPath)}";
             MessagesText.Text =
                 $"Snapshot saved{Environment.NewLine}" +
@@ -203,6 +205,37 @@ public sealed partial class MainPage : Page
         }
 
         await LoadDocumentFromPathAsync(file.Path);
+    }
+
+    private void RecentButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recentFiles.Count == 0)
+        {
+            StatusContextText.Text = "No recent documents";
+            return;
+        }
+
+        var flyout = new MenuFlyout();
+        foreach (var recentFile in _recentFiles)
+        {
+            var item = new MenuFlyoutItem
+            {
+                Text = Path.GetFileName(recentFile),
+                Tag = recentFile
+            };
+            item.Click += RecentFileMenuItem_Click;
+            flyout.Items.Add(item);
+        }
+
+        flyout.ShowAt(RecentButton);
+    }
+
+    private async void RecentFileMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: string filePath })
+        {
+            await OpenRecentDocumentAsync(filePath);
+        }
     }
 
     private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
@@ -471,8 +504,14 @@ public sealed partial class MainPage : Page
         _isInspectorVisible = settings.IsInspectorVisible;
         _isBottomVisible = settings.IsBottomVisible;
         _isDarkTheme = settings.Theme == CompositionWorkspaceTheme.Dark;
+        _recentFiles = settings.RecentFiles
+            .Where(File.Exists)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .ToList();
         RootPage.RequestedTheme = CurrentTheme;
         ApplyPanelState();
+        RefreshRecentButton();
     }
 
     private void SaveWorkspaceSettings()
@@ -483,13 +522,54 @@ public sealed partial class MainPage : Page
                 _isDarkTheme ? CompositionWorkspaceTheme.Dark : CompositionWorkspaceTheme.Light,
                 _isExplorerVisible,
                 _isInspectorVisible,
-                _isBottomVisible);
+                _isBottomVisible,
+                _recentFiles);
             CompositionWorkspaceSettingsXmlStore.Save(settings, _settingsPath);
         }
         catch (Exception problem)
         {
             Debug.WriteLine(problem);
         }
+    }
+
+    private void AddRecentFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        _recentFiles.RemoveAll(path => string.Equals(path, fullPath, StringComparison.OrdinalIgnoreCase));
+        _recentFiles.Insert(0, fullPath);
+        if (_recentFiles.Count > 10)
+        {
+            _recentFiles.RemoveRange(10, _recentFiles.Count - 10);
+        }
+
+        RefreshRecentButton();
+        RefreshCommandCatalog();
+        SaveWorkspaceSettings();
+    }
+
+    private void RefreshRecentButton()
+    {
+        RecentButton.IsEnabled = _recentFiles.Count > 0;
+    }
+
+    private async Task OpenRecentDocumentAsync(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            _recentFiles.RemoveAll(path => string.Equals(path, filePath, StringComparison.OrdinalIgnoreCase));
+            RefreshRecentButton();
+            RefreshCommandCatalog();
+            SaveWorkspaceSettings();
+            StatusContextText.Text = "Recent document was not found";
+            return;
+        }
+
+        await LoadDocumentFromPathAsync(filePath);
     }
 
     private void LoadStartupSnapshot()
@@ -500,15 +580,19 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        LoadSnapshotFromPath(snapshotPath);
+        LoadSnapshotFromPath(snapshotPath, addToRecent: false);
     }
 
-    private void LoadSnapshotFromPath(string snapshotPath)
+    private void LoadSnapshotFromPath(string snapshotPath, bool addToRecent = true)
     {
         try
         {
             var snapshot = CompositionViewSnapshotXmlStore.Load(snapshotPath);
             ApplySnapshot(snapshot, snapshotPath);
+            if (addToRecent)
+            {
+                AddRecentFile(snapshotPath);
+            }
         }
         catch (Exception problem)
         {
@@ -579,11 +663,14 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        LoadSnapshotFromPath(outputPath);
-        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}";
+        LoadSnapshotFromPath(outputPath, addToRecent: false);
+        _snapshotPath = null;
+        AddRecentFile(legacyPath);
+        StatusContextText.Text = $"Imported {Path.GetFileName(legacyPath)}; save as .tcview";
         MessagesText.Text =
             $"Legacy document imported{Environment.NewLine}" +
-            output.Trim();
+            $"{output.Trim()}{Environment.NewLine}" +
+            "Use Save or Save As to store it as a modern .tcview document.";
     }
 
     private void SaveSnapshotToPath(string snapshotPath)
@@ -598,6 +685,7 @@ public sealed partial class MainPage : Page
             CompositionViewSnapshotXmlStore.Save(_currentSnapshot, snapshotPath);
             _snapshotPath = snapshotPath;
             _isDirty = false;
+            AddRecentFile(snapshotPath);
             StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
             MessagesText.Text =
                 $"Snapshot saved{Environment.NewLine}" +
@@ -1078,6 +1166,13 @@ public sealed partial class MainPage : Page
 
     private void ExecuteCommandEntry(CompositionCommandEntry entry)
     {
+        if (entry.Id.StartsWith("recent.", StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(entry.TargetId))
+        {
+            _ = OpenRecentDocumentAsync(entry.TargetId);
+            return;
+        }
+
         switch (entry.Kind)
         {
             case CompositionCommandEntryKind.Node when !string.IsNullOrWhiteSpace(entry.TargetId):
@@ -1142,7 +1237,16 @@ public sealed partial class MainPage : Page
 
     private void RefreshCommandCatalog()
     {
-        _commandEntries = CompositionCommandCatalog.ForSnapshot(_currentSnapshot);
+        var entries = new List<CompositionCommandEntry>(CompositionCommandCatalog.ForSnapshot(_currentSnapshot));
+        entries.AddRange(_recentFiles.Select(filePath =>
+            new CompositionCommandEntry(
+                $"recent.{filePath}",
+                Path.GetFileName(filePath),
+                CompositionCommandEntryKind.Command,
+                filePath,
+                "Recent file")));
+        _commandEntries = entries;
+        RefreshSearchResults();
     }
 
     private static string GetNodeTitle(CompositionNodeView node)

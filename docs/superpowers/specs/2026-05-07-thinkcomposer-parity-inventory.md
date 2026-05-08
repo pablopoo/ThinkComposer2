@@ -8,7 +8,7 @@ Date: 2026-05-07
 - New
 - Save
 - Save As
-- Recent files
+- Recent files: persisted in WinUI settings and available from toolbar/search.
 
 ## Composition Canvas
 
