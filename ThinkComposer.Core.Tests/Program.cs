@@ -1,3 +1,4 @@
+using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 
 var snapshot = DemoCompositionViewSource.CreateSnapshot();
@@ -86,6 +87,47 @@ finally
         File.Delete(snapshotPath);
     }
 }
+
+var fitNodes = new[]
+{
+    new CompositionNodeView("left", "Left", new TcPoint(100, 200), new TcSize(100, 50)),
+    new CompositionNodeView("right", "Right", new TcPoint(300, 400), new TcSize(100, 50))
+};
+
+var fit = CompositionViewportFitter.FitNodes(fitNodes, 1000, 800, margin: 56, minZoom: 0.35, maxZoom: 2.4);
+AssertEqual(2.4, Math.Round(fit.Zoom, 4), "fit zoom");
+AssertEqual(-100.0, Math.Round(fit.PanX, 4), "fit pan x");
+AssertEqual(-380.0, Math.Round(fit.PanY, 4), "fit pan y");
+
+var emptyFit = CompositionViewportFitter.FitNodes(Array.Empty<CompositionNodeView>(), 1000, 800);
+AssertEqual(1.0, emptyFit.Zoom, "empty fit zoom");
+AssertEqual(0.0, emptyFit.PanX, "empty fit pan x");
+AssertEqual(0.0, emptyFit.PanY, "empty fit pan y");
+
+var compactLabel = CompositionNodeLabelPolicy.ForNode(
+    new CompositionNodeView("small", "Small", new TcPoint(0, 0), new TcSize(80, 24)));
+AssertEqual(false, compactLabel.ShowsSubtitle, "compact label subtitle");
+AssertEqual(11.0, compactLabel.TitleFontSize, "compact label font");
+AssertEqual(false, compactLabel.AllowsWrapping, "compact label wrapping");
+
+var expandedLabel = CompositionNodeLabelPolicy.ForNode(
+    new CompositionNodeView("large", "Large", new TcPoint(0, 0), new TcSize(164, 82)));
+AssertEqual(true, expandedLabel.ShowsSubtitle, "expanded label subtitle");
+AssertEqual(14.0, expandedLabel.TitleFontSize, "expanded label font");
+AssertEqual(true, expandedLabel.AllowsWrapping, "expanded label wrapping");
+
+var indexedSnapshot = new CompositionViewSnapshot(
+    "indexed",
+    "Indexed",
+    fitNodes,
+    [
+        new CompositionConnectorView("left-to-right", "left", "right"),
+        new CompositionConnectorView("right-to-left", "right", "left")
+    ]);
+var index = CompositionSnapshotIndex.FromSnapshot(indexedSnapshot);
+AssertEqual(1, index.CountOutgoing("left"), "left outgoing");
+AssertEqual(1, index.CountIncoming("left"), "left incoming");
+AssertEqual(0, index.CountIncoming("missing"), "missing incoming");
 
 static void AssertEqual<T>(T expected, T actual, string name)
 {

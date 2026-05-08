@@ -161,7 +161,7 @@
                             Foreground="{ThemeResource MutedForegroundBrush}"
                             Text="Domain" />
                     </Grid>
-                    <TreeView Grid.Row="2" Margin="8,10,8,8">
+                    <TreeView x:Name="ExplorerTree" Grid.Row="2" Margin="8,10,8,8">
                         <TreeView.RootNodes>
                             <TreeViewNode Content="Composition 1" IsExpanded="True">
                                 <TreeViewNode.Children>
@@ -270,16 +270,33 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Name" />
-                                    <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Text="Customer Need" />
+                                    <TextBox
+                                        x:Name="InspectorNameBox"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        IsReadOnly="True"
+                                        Text="Customer Need" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Kind" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                    <ComboBox
+                                        x:Name="InspectorKindBox"
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        IsEnabled="False"
+                                        SelectedIndex="0">
                                         <ComboBoxItem Content="Concept" />
                                         <ComboBoxItem Content="Role" />
                                     </ComboBox>
 
                                     <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Status" />
-                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                    <ComboBox
+                                        x:Name="InspectorStatusBox"
+                                        Grid.Row="2"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        IsEnabled="False"
+                                        SelectedIndex="0">
                                         <ComboBoxItem Content="Draft" />
                                         <ComboBoxItem Content="Reviewed" />
                                     </ComboBox>
@@ -300,16 +317,39 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="X" />
-                                    <NumberBox Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="120" />
+                                    <NumberBox
+                                        x:Name="InspectorXBox"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        SpinButtonPlacementMode="Compact"
+                                        Value="120" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Y" />
-                                    <NumberBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="132" />
+                                    <NumberBox
+                                        x:Name="InspectorYBox"
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        SpinButtonPlacementMode="Compact"
+                                        Value="132" />
 
                                     <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Width" />
-                                    <NumberBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="164" />
+                                    <NumberBox
+                                        x:Name="InspectorWidthBox"
+                                        Grid.Row="2"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        SpinButtonPlacementMode="Compact"
+                                        Value="164" />
 
                                     <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Height" />
-                                    <NumberBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" SpinButtonPlacementMode="Compact" Value="82" />
+                                    <NumberBox
+                                        x:Name="InspectorHeightBox"
+                                        Grid.Row="3"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        SpinButtonPlacementMode="Compact"
+                                        Value="82" />
                                 </Grid>
                             </Expander>
 
@@ -325,10 +365,10 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Outgoing" />
-                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="1" />
+                                    <TextBlock x:Name="OutgoingText" Grid.Column="1" VerticalAlignment="Center" Text="1" />
 
                                     <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Incoming" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="0" />
+                                    <TextBlock x:Name="IncomingText" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="0" />
                                 </Grid>
                             </Expander>
                         </StackPanel>

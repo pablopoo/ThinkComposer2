@@ -14,11 +14,13 @@ namespace Instrumind.ThinkComposer.WinUI.Canvas;
 public sealed partial class CompositionCanvas : UserControl
 {
     private readonly List<CanvasNode> _nodes = [];
+    private readonly Dictionary<string, CanvasNode> _nodesById = new(StringComparer.Ordinal);
     private readonly List<CompositionConnectorView> _connectors = [];
 
     private Vector2 _pan = new(0, 0);
     private double _zoom = 1.0;
     private CanvasNode? _selectedNode;
+    private bool _needsInitialFit;
     private bool _isPanning;
     private Point _panStartScreen;
     private Vector2 _panStart;
@@ -28,7 +30,18 @@ public sealed partial class CompositionCanvas : UserControl
         InitializeComponent();
         LoadSnapshot(DemoCompositionViewSource.CreateSnapshot());
         ActualThemeChanged += (_, _) => DrawingSurface.Invalidate();
+        DrawingSurface.SizeChanged += (_, _) =>
+        {
+            if (_needsInitialFit)
+            {
+                FitSnapshotToViewport();
+            }
+        };
     }
+
+    public event EventHandler<CompositionNodeView?>? SelectedNodeChanged;
+
+    public CompositionNodeView? SelectedNode => _selectedNode?.Source;
 
     public void LoadSnapshot(CompositionViewSnapshot snapshot)
     {
@@ -36,29 +49,40 @@ public sealed partial class CompositionCanvas : UserControl
 
         _nodes.Clear();
         _nodes.AddRange(snapshot.Nodes.Select(CanvasNode.FromView));
+        _nodesById.Clear();
+        foreach (var node in _nodes)
+        {
+            _nodesById[node.Id] = node;
+        }
 
         _connectors.Clear();
         _connectors.AddRange(snapshot.Connectors);
 
-        _selectedNode = _nodes.FirstOrDefault();
-        FitContentToOrigin();
-        DrawingSurface?.Invalidate();
+        SetSelectedNode(_nodes.FirstOrDefault());
+        _needsInitialFit = true;
+        FitSnapshotToViewport();
     }
 
-    private void FitContentToOrigin()
+    public void FitSnapshotToViewport()
     {
-        _zoom = 1.0;
-
-        if (_nodes.Count == 0)
+        if (DrawingSurface.ActualWidth <= 0 || DrawingSurface.ActualHeight <= 0)
         {
-            _pan = Vector2.Zero;
+            _needsInitialFit = true;
             return;
         }
 
-        const float margin = 56;
-        var left = _nodes.Min(node => node.Bounds.Left);
-        var top = _nodes.Min(node => node.Bounds.Top);
-        _pan = new Vector2((float)(margin - left), (float)(margin - top));
+        var fit = CompositionViewportFitter.FitNodes(
+            _nodes.Select(node => node.Source),
+            DrawingSurface.ActualWidth,
+            DrawingSurface.ActualHeight,
+            margin: 72,
+            minZoom: 0.35,
+            maxZoom: 2.4);
+
+        _zoom = fit.Zoom;
+        _pan = new Vector2((float)fit.PanX, (float)fit.PanY);
+        _needsInitialFit = false;
+        DrawingSurface.Invalidate();
     }
 
     private void DrawingSurface_Draw(CanvasControl sender, CanvasDrawEventArgs args)
@@ -95,10 +119,8 @@ public sealed partial class CompositionCanvas : UserControl
     {
         foreach (var connector in _connectors)
         {
-            var sourceNode = _nodes.FirstOrDefault(node => node.Id == connector.SourceId);
-            var targetNode = _nodes.FirstOrDefault(node => node.Id == connector.TargetId);
-
-            if (sourceNode is null || targetNode is null)
+            if (!_nodesById.TryGetValue(connector.SourceId, out var sourceNode) ||
+                !_nodesById.TryGetValue(connector.TargetId, out var targetNode))
             {
                 continue;
             }
@@ -119,9 +141,40 @@ public sealed partial class CompositionCanvas : UserControl
 
             session.FillRoundedRectangle(bounds, 8, 8, palette.NodeFill);
             session.DrawRoundedRectangle(bounds, 8, 8, stroke, strokeWidth);
-            session.DrawText(node.Title, new Rect(bounds.X + 12, bounds.Y + 10, bounds.Width - 24, 24), palette.Text, TitleFormat);
-            session.DrawText(node.Subtitle, new Rect(bounds.X + 12, bounds.Y + 38, bounds.Width - 24, 36), palette.MutedText, BodyFormat);
+
+            var label = CompositionNodeLabelPolicy.ForNode(node.Source);
+            var padding = label.Padding;
+            if (!label.ShowsSubtitle)
+            {
+                session.DrawText(
+                    node.Title,
+                    CreateCompactTextRect(bounds, padding),
+                    palette.Text,
+                    CompactTitleFormat);
+                continue;
+            }
+
+            session.DrawText(
+                node.Title,
+                new Rect(bounds.X + padding, bounds.Y + 10, Math.Max(1, bounds.Width - padding * 2), 24),
+                palette.Text,
+                TitleFormat);
+            session.DrawText(
+                node.Subtitle,
+                new Rect(bounds.X + padding, bounds.Y + 38, Math.Max(1, bounds.Width - padding * 2), Math.Max(1, bounds.Height - 48)),
+                palette.MutedText,
+                BodyFormat);
         }
+    }
+
+    private static Rect CreateCompactTextRect(Rect bounds, double horizontalPadding)
+    {
+        const double lineHeight = 18;
+        return new Rect(
+            bounds.X + horizontalPadding,
+            bounds.Y + Math.Max(3, (bounds.Height - lineHeight) / 2),
+            Math.Max(1, bounds.Width - horizontalPadding * 2),
+            lineHeight);
     }
 
     private void DrawViewportLabel(CanvasDrawingSession session, double width, double height, CanvasPalette palette)
@@ -137,7 +190,10 @@ public sealed partial class CompositionCanvas : UserControl
         var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
         var worldPoint = ToWorld(screenPoint);
         var hitNode = HitTest(worldPoint);
-        _selectedNode = hitNode ?? _selectedNode;
+        if (hitNode is not null)
+        {
+            SetSelectedNode(hitNode);
+        }
 
         if (hitNode is null)
         {
@@ -191,11 +247,33 @@ public sealed partial class CompositionCanvas : UserControl
         return _nodes.LastOrDefault(node => node.Bounds.Contains(worldPoint));
     }
 
+    private void SetSelectedNode(CanvasNode? node)
+    {
+        if (ReferenceEquals(_selectedNode, node))
+        {
+            return;
+        }
+
+        _selectedNode = node;
+        SelectedNodeChanged?.Invoke(this, node?.Source);
+    }
+
     private static CanvasTextFormat TitleFormat { get; } = new()
     {
         FontFamily = "Segoe UI",
         FontSize = 14,
-        FontWeight = FontWeights.SemiBold
+        FontWeight = FontWeights.SemiBold,
+        WordWrapping = CanvasWordWrapping.NoWrap
+    };
+
+    private static CanvasTextFormat CompactTitleFormat { get; } = new()
+    {
+        FontFamily = "Segoe UI",
+        FontSize = 11,
+        FontWeight = FontWeights.SemiBold,
+        WordWrapping = CanvasWordWrapping.NoWrap,
+        TrimmingGranularity = CanvasTextTrimmingGranularity.Character,
+        TrimmingSign = CanvasTrimmingSign.Ellipsis
     };
 
     private static CanvasTextFormat BodyFormat { get; } = new()
@@ -205,12 +283,13 @@ public sealed partial class CompositionCanvas : UserControl
         WordWrapping = CanvasWordWrapping.Wrap
     };
 
-    private sealed class CanvasNode(string id, string title, string subtitle, Rect bounds)
+    private sealed class CanvasNode(string id, string title, string subtitle, Rect bounds, CompositionNodeView source)
     {
         public string Id { get; } = id;
         public string Title { get; } = title;
         public string Subtitle { get; } = subtitle;
         public Rect Bounds { get; set; } = bounds;
+        public CompositionNodeView Source { get; } = source;
         public Point Center => new(Bounds.X + Bounds.Width / 2, Bounds.Y + Bounds.Height / 2);
 
         public static CanvasNode FromView(CompositionNodeView node)
@@ -219,7 +298,8 @@ public sealed partial class CompositionCanvas : UserControl
                 node.Id,
                 node.Text,
                 "Read-only snapshot",
-                new Rect(node.Position.X, node.Position.Y, node.Size.Width, node.Size.Height));
+                new Rect(node.Position.X, node.Position.Y, node.Size.Width, node.Size.Height),
+                node);
         }
     }
 
