@@ -19,8 +19,16 @@ public sealed record CompositionDocumentValidationResult(IReadOnlyList<Compositi
 
 public static class CompositionDocumentValidationCodes
 {
+    public const string EmptyDocumentTitle = "empty.document.title";
+    public const string EmptyIdeaName = "empty.idea.name";
+    public const string DuplicateIdeaName = "duplicate.idea.name";
     public const string DuplicateIdeaId = "duplicate.idea.id";
+    public const string EmptyRelationshipName = "empty.relationship.name";
+    public const string DuplicateRelationshipName = "duplicate.relationship.name";
     public const string DuplicateRelationshipId = "duplicate.relationship.id";
+    public const string EmptyDefinitionName = "empty.definition.name";
+    public const string DuplicateDefinitionName = "duplicate.definition.name";
+    public const string EmptyTemplateKey = "empty.template.key";
     public const string DuplicateTemplateKey = "duplicate.template.key";
     public const string MissingIdeaDefinition = "missing.idea.definition";
     public const string MissingRelationshipDefinition = "missing.relationship.definition";

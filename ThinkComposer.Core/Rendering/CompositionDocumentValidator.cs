@@ -18,8 +18,46 @@ public static class CompositionDocumentValidator
         var ideaIdSet = ideaIds.ToHashSet(StringComparer.Ordinal);
         var relationshipIdSet = relationshipIds.ToHashSet(StringComparer.Ordinal);
 
+        if (string.IsNullOrWhiteSpace(document.Title))
+        {
+            issues.Add(Error(
+                CompositionDocumentValidationCodes.EmptyDocumentTitle,
+                "Document title is required.",
+                document.Id));
+        }
+
         AddDuplicates(issues, ideaIds, CompositionDocumentValidationCodes.DuplicateIdeaId, "Duplicate concept id");
+        AddEmptyNames(
+            issues,
+            document.Ideas.Select(idea => (idea.Id, idea.Name)),
+            CompositionDocumentValidationCodes.EmptyIdeaName,
+            "Concept name is required");
+        AddDuplicateNames(
+            issues,
+            document.Ideas.Select(idea => (idea.Id, idea.Name)),
+            CompositionDocumentValidationCodes.DuplicateIdeaName,
+            "Duplicate concept name");
         AddDuplicates(issues, relationshipIds, CompositionDocumentValidationCodes.DuplicateRelationshipId, "Duplicate relationship id");
+        AddEmptyNames(
+            issues,
+            document.Relationships.Select(relationship => (relationship.Id, relationship.Name)),
+            CompositionDocumentValidationCodes.EmptyRelationshipName,
+            "Relationship name is required");
+        AddDuplicateNames(
+            issues,
+            document.Relationships.Select(relationship => (relationship.Id, relationship.Name)),
+            CompositionDocumentValidationCodes.DuplicateRelationshipName,
+            "Duplicate relationship name");
+        ValidateDefinitionNames(document.Domain.ConceptDefinitions, "Concept definition", issues);
+        ValidateDefinitionNames(document.Domain.RelationshipDefinitions, "Relationship definition", issues);
+        ValidateDefinitionNames(document.Domain.MarkerDefinitions, "Marker definition", issues);
+        ValidateDefinitionNames(document.Domain.TableDefinitions, "Table definition", issues);
+        ValidateDefinitionNames(document.Domain.ExternalLanguages, "External language", issues);
+        AddEmptyValues(
+            issues,
+            document.Domain.Templates.Select(template => template.Key),
+            CompositionDocumentValidationCodes.EmptyTemplateKey,
+            "Template key is required");
         AddDuplicates(issues, document.Domain.Templates.Select(template => template.Key), CompositionDocumentValidationCodes.DuplicateTemplateKey, "Duplicate template key");
         ValidateIdeas(document.Ideas, conceptDefinitionIds, markerDefinitionIds, issues);
         ValidateRelationships(document.Relationships, relationshipDefinitionIds, markerDefinitionIds, ideaIdSet, issues);
@@ -46,6 +84,23 @@ public static class CompositionDocumentValidator
 
             ValidateMarkers(idea.Markers, markerDefinitionIds, idea.Id, issues);
         }
+    }
+
+    private static void ValidateDefinitionNames(
+        IReadOnlyList<CompositionDefinitionSnapshot> definitions,
+        string label,
+        ICollection<CompositionDocumentValidationIssue> issues)
+    {
+        AddEmptyNames(
+            issues,
+            definitions.Select(definition => (definition.Id, definition.Name)),
+            CompositionDocumentValidationCodes.EmptyDefinitionName,
+            $"{label} name is required");
+        AddDuplicateNames(
+            issues,
+            definitions.Select(definition => (definition.Id, definition.Name)),
+            CompositionDocumentValidationCodes.DuplicateDefinitionName,
+            $"Duplicate {label.ToLowerInvariant()} name");
     }
 
     private static void ValidateRelationships(
@@ -144,6 +199,46 @@ public static class CompositionDocumentValidator
             .Select(group => group.Key))
         {
             issues.Add(Error(code, $"{message}: '{duplicate}'.", duplicate));
+        }
+    }
+
+    private static void AddEmptyNames(
+        ICollection<CompositionDocumentValidationIssue> issues,
+        IEnumerable<(string Id, string Name)> entries,
+        string code,
+        string message)
+    {
+        foreach (var entry in entries.Where(entry => string.IsNullOrWhiteSpace(entry.Name)))
+        {
+            issues.Add(Error(code, $"{message}.", entry.Id));
+        }
+    }
+
+    private static void AddDuplicateNames(
+        ICollection<CompositionDocumentValidationIssue> issues,
+        IEnumerable<(string Id, string Name)> entries,
+        string code,
+        string message)
+    {
+        foreach (var duplicate in entries
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Name))
+            .GroupBy(entry => entry.Name.Trim(), StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key))
+        {
+            issues.Add(Error(code, $"{message}: '{duplicate}'.", duplicate));
+        }
+    }
+
+    private static void AddEmptyValues(
+        ICollection<CompositionDocumentValidationIssue> issues,
+        IEnumerable<string> values,
+        string code,
+        string message)
+    {
+        foreach (var value in values.Where(string.IsNullOrWhiteSpace))
+        {
+            issues.Add(Error(code, $"{message}.", value));
         }
     }
 

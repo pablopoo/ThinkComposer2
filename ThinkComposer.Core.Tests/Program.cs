@@ -194,6 +194,45 @@ AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValid
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateTemplateKey), "validation duplicate template");
 AssertTrue(!CompositionDocumentValidator.Validate(modernDocument).HasErrors, "valid modern document");
 
+var invalidNamesDocument = modernDocument with
+{
+    Title = "",
+    Ideas =
+    [
+        modernDocument.Ideas[0] with { Name = "" },
+        modernDocument.Ideas[0] with { Id = "idea-2", Name = "Customer Need" },
+        modernDocument.Ideas[0] with { Id = "idea-3", Name = "Customer Need" }
+    ],
+    Relationships =
+    [
+        modernDocument.Relationships[0] with { Name = "" },
+        modernDocument.Relationships[0] with { Id = "rel-2", Name = "Addresses" },
+        modernDocument.Relationships[0] with { Id = "rel-3", Name = "Addresses" }
+    ],
+    Domain = modernDocument.Domain with
+    {
+        ConceptDefinitions =
+        [
+            modernDocument.Domain.ConceptDefinitions[0] with { Name = "" },
+            new CompositionDefinitionSnapshot("concept-def-2", "Concept", "Concept"),
+            new CompositionDefinitionSnapshot("concept-def-3", "Concept", "Concept")
+        ],
+        Templates =
+        [
+            new CompositionExtensionSnapshot("", "empty")
+        ]
+    }
+};
+var nameValidation = CompositionDocumentValidator.Validate(invalidNamesDocument);
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.EmptyDocumentTitle), "validation empty title");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.EmptyIdeaName), "validation empty idea name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateIdeaName), "validation duplicate idea name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.EmptyRelationshipName), "validation empty relationship name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateRelationshipName), "validation duplicate relationship name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.EmptyDefinitionName), "validation empty definition name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateDefinitionName), "validation duplicate definition name");
+AssertTrue(nameValidation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.EmptyTemplateKey), "validation empty template key");
+
 var modernReportHtml = CompositionDocumentReportHtmlExporter.Export(modernDocument);
 AssertTrue(modernReportHtml.Contains("<!doctype html>", StringComparison.OrdinalIgnoreCase), "modern report doctype");
 AssertTrue(modernReportHtml.Contains("Modern Document", StringComparison.Ordinal), "modern report title");
