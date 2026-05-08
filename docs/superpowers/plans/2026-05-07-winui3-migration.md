@@ -440,15 +440,19 @@ Implementation note: WinUI now persists theme plus explorer, inspector, and bott
 - Modify solution/startup docs.
 - Modify packaging/deployment files.
 
-- [ ] **Step 1: Make WinUI primary executable**
+- [x] **Step 1: Make WinUI primary executable**
 
 Expected: normal launch path starts WinUI, not WPF.
 
-- [ ] **Step 2: Run parity inventory**
+Implementation note: the legacy WPF app project was removed as a top-level project from `Instrumind_ThinkComposer.sln`. It remains buildable only as a project reference of `ThinkComposer.LegacyBridge` for legacy document import; the main app project in the solution is now `ThinkComposer.WinUI`.
+
+- [x] **Step 2: Run parity inventory**
 
 Use `docs/superpowers/specs/2026-05-07-thinkcomposer-parity-inventory.md`.
 
 Expected: all required parity items pass or have documented replacement behavior.
+
+Implementation note: parity inventory now records WinUI coverage for document workflows, canvas editing, panels, output, settings, and the supported legacy import path.
 
 ## Phase 9: Remove WPF UI Dependency
 
@@ -456,11 +460,13 @@ Expected: all required parity items pass or have documented replacement behavior
 - Remove or archive WPF app project after WinUI parity.
 - Keep reusable non-WPF libraries only.
 
-- [ ] **Step 1: Remove WPF startup app**
+- [x] **Step 1: Remove WPF startup app**
 
 Expected: final app does not require the old WPF shell.
 
-- [ ] **Step 2: Verify final WinUI app**
+Implementation note: the solution no longer exposes the WPF shell as an application project. `ThinkComposer.WinUI` does not reference WPF assemblies or the WPF project.
+
+- [x] **Step 2: Verify final WinUI app**
 
 Run:
 
@@ -469,6 +475,8 @@ dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86
 ```
 
 Expected: solution builds and WinUI is the primary app.
+
+Implementation note: final verification passed with `dotnet build Instrumind_ThinkComposer.sln -p:Configuration=Debug -p:Platform=x86`, core tests, legacy bridge tests, no WPF references in `ThinkComposer.WinUI`/`ThinkComposer.Core`, and a WinUI smoke-launch screenshot.
 
 ## First Concrete Milestone
 
