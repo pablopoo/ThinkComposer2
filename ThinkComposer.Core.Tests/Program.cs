@@ -22,6 +22,47 @@ foreach (var connector in snapshot.Connectors)
     AssertTrue(nodeIds.Contains(connector.TargetId), $"connector {connector.Id} target exists");
 }
 
+var sourceSymbol = new VisualSymbol(
+    Guid.Parse("11111111-1111-1111-1111-111111111111"),
+    new LegacyRect(10, 20, 160, 80),
+    new VisualRepresentation(new Idea("Source Concept")));
+var targetSymbol = new VisualSymbol(
+    Guid.Parse("22222222-2222-2222-2222-222222222222"),
+    new LegacyRect(310, 220, 180, 90),
+    new VisualRepresentation(new Idea("Target Concept")));
+var connectorSymbol = new VisualConnector(
+    Guid.Parse("33333333-3333-3333-3333-333333333333"),
+    sourceSymbol,
+    targetSymbol);
+var legacyComposition = new LegacyComposition(
+    Guid.Parse("44444444-4444-4444-4444-444444444444"),
+    "Legacy Composition",
+    new LegacyView(
+    [
+        new LegacyViewChild(sourceSymbol),
+        new LegacyViewChild(connectorSymbol),
+        new LegacyViewChild(targetSymbol)
+    ]));
+
+var legacySnapshot = LegacyCompositionSnapshotMapper.FromComposition(legacyComposition);
+
+AssertEqual("Legacy Composition", legacySnapshot.Title, "legacy snapshot title");
+AssertEqual("44444444-4444-4444-4444-444444444444", legacySnapshot.Id, "legacy snapshot id");
+AssertEqual(2, legacySnapshot.Nodes.Count, "legacy node count");
+AssertEqual(1, legacySnapshot.Connectors.Count, "legacy connector count");
+
+var sourceNode = legacySnapshot.Nodes.Single(node => node.Id == "11111111-1111-1111-1111-111111111111");
+AssertEqual("Source Concept", sourceNode.Text, "legacy source text");
+AssertEqual(10.0, sourceNode.Position.X, "legacy source x");
+AssertEqual(20.0, sourceNode.Position.Y, "legacy source y");
+AssertEqual(160.0, sourceNode.Size.Width, "legacy source width");
+AssertEqual(80.0, sourceNode.Size.Height, "legacy source height");
+
+var legacyConnector = legacySnapshot.Connectors.Single();
+AssertEqual("33333333-3333-3333-3333-333333333333", legacyConnector.Id, "legacy connector id");
+AssertEqual(sourceSymbol.GlobalId.ToString(), legacyConnector.SourceId, "legacy connector source");
+AssertEqual(targetSymbol.GlobalId.ToString(), legacyConnector.TargetId, "legacy connector target");
+
 static void AssertEqual<T>(T expected, T actual, string name)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
@@ -36,4 +77,54 @@ static void AssertTrue(bool condition, string name)
     {
         throw new InvalidOperationException($"{name}: expected true");
     }
+}
+
+public sealed class LegacyComposition(Guid globalId, string name, LegacyView activeView)
+{
+    public Guid GlobalId { get; } = globalId;
+    public string Name { get; } = name;
+    public LegacyView ActiveView { get; } = activeView;
+    public LegacyView RootView { get; } = activeView;
+}
+
+public sealed class LegacyView(IReadOnlyList<LegacyViewChild> viewChildren)
+{
+    public IReadOnlyList<LegacyViewChild> ViewChildren { get; } = viewChildren;
+}
+
+public sealed class LegacyViewChild(object key)
+{
+    public object Key { get; } = key;
+}
+
+public sealed class VisualSymbol(Guid globalId, LegacyRect baseArea, VisualRepresentation ownerRepresentation)
+{
+    public Guid GlobalId { get; } = globalId;
+    public LegacyRect BaseArea { get; } = baseArea;
+    public VisualRepresentation OwnerRepresentation { get; } = ownerRepresentation;
+}
+
+public sealed class VisualConnector(Guid globalId, VisualSymbol originSymbol, VisualSymbol targetSymbol)
+{
+    public Guid GlobalId { get; } = globalId;
+    public VisualSymbol OriginSymbol { get; } = originSymbol;
+    public VisualSymbol TargetSymbol { get; } = targetSymbol;
+}
+
+public sealed class VisualRepresentation(Idea representedIdea)
+{
+    public Idea RepresentedIdea { get; } = representedIdea;
+}
+
+public sealed class Idea(string name)
+{
+    public string Name { get; } = name;
+}
+
+public sealed class LegacyRect(double x, double y, double width, double height)
+{
+    public double X { get; } = x;
+    public double Y { get; } = y;
+    public double Width { get; } = width;
+    public double Height { get; } = height;
 }

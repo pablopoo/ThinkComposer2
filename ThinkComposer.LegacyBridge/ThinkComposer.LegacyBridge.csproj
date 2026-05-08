@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Instrumind.ThinkComposer.LegacyBridge</RootNamespace>
+    <AssemblyName>Instrumind.ThinkComposer.LegacyBridge</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ThinkComposer.Core\ThinkComposer.Core.csproj" />
+    <ProjectReference Include="..\ThinkComposer\ThinkComposer.csproj" />
+  </ItemGroup>
+
+</Project>

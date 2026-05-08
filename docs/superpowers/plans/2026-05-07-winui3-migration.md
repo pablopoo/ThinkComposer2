@@ -330,6 +330,12 @@ Expected: WinUI shows real data without WPF controls.
 
 Implementation note: `ThinkComposer.WinUI` now renders `CompositionViewSnapshot` data from Core instead of private hardcoded canvas data. Canvas remains read-only for model data: select, pan, and zoom are allowed; model writeback is deferred to Phase 5.
 
+- [x] **Step 3: Add legacy package bridge**
+
+Load legacy `.tdom`/`.tcom` packages through an isolated .NET Framework bridge and map their model objects to `CompositionViewSnapshot`.
+
+Implementation note: added `LegacyCompositionSnapshotMapper` in `ThinkComposer.Core` using reflection so Core stays WPF-free, plus `ThinkComposer.LegacyBridge` targeting `net48` for BinaryFormatter package compatibility. `ThinkComposer.WinUI` does not reference the bridge or legacy WPF project; the next step is deciding whether WinUI consumes exported snapshots or a migrated modern document format.
+
 ## Phase 5: Port Editing Workflows
 
 **Files:**
