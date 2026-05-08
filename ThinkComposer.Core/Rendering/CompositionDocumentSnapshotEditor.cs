@@ -144,6 +144,26 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot SetIdeaDefinition(
+        CompositionDocumentSnapshot document,
+        string ideaId,
+        string definitionId)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        ValidateDefinitionId(document.Domain.ConceptDefinitions, definitionId, nameof(definitionId));
+
+        return document with
+        {
+            Ideas = document.Ideas.Select(idea => string.Equals(idea.Id, ideaId, StringComparison.Ordinal)
+                ? idea with { DefinitionId = definitionId }
+                : idea).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot SetIdeaStyle(
         CompositionDocumentSnapshot document,
         string ideaId,
@@ -236,6 +256,27 @@ public static class CompositionDocumentSnapshotEditor
             Relationships = document.Relationships.Select(relationship =>
                 string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)
                     ? relationship with { Markers = NormalizeMarkers(markers) }
+                    : relationship).ToArray()
+        };
+    }
+
+    public static CompositionDocumentSnapshot SetRelationshipDefinition(
+        CompositionDocumentSnapshot document,
+        string relationshipId,
+        string definitionId)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        ValidateDefinitionId(document.Domain.RelationshipDefinitions, definitionId, nameof(definitionId));
+
+        return document with
+        {
+            Relationships = document.Relationships.Select(relationship =>
+                string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)
+                    ? relationship with { DefinitionId = definitionId }
                     : relationship).ToArray()
         };
     }
@@ -404,6 +445,22 @@ public static class CompositionDocumentSnapshotEditor
             .Select(marker => marker.Trim())
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static void ValidateDefinitionId(
+        IReadOnlyList<CompositionDefinitionSnapshot> definitions,
+        string definitionId,
+        string argumentName)
+    {
+        if (string.IsNullOrWhiteSpace(definitionId))
+        {
+            throw new ArgumentException("Definition id is required.", argumentName);
+        }
+
+        if (!definitions.Any(definition => string.Equals(definition.Id, definitionId, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException($"Definition '{definitionId}' was not found.");
+        }
     }
 
     private static CompositionDomainSnapshot UpsertDefinition(

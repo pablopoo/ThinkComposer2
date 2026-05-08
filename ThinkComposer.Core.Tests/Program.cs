@@ -337,6 +337,18 @@ var styledRelationshipDocument = CompositionDocumentSnapshotEditor.SetRelationsh
     "rel-1",
     new CompositionStyleSnapshot(Stroke: "#9333ea", StrokeThickness: 3));
 AssertEqual("#9333ea", styledRelationshipDocument.Relationships.Single(relationship => relationship.Id == "rel-1").Style.Stroke, "relationship style stroke updated");
+var typedDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+    styledRelationshipDocument,
+    CompositionDefinitionGroup.Concept,
+    new CompositionDefinitionSnapshot("concept-opportunity", "Opportunity", "Concept"));
+typedDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+    typedDocument,
+    CompositionDefinitionGroup.Relationship,
+    new CompositionDefinitionSnapshot("relationship-blocks", "Blocks", "Relationship"));
+var typedIdeaDocument = CompositionDocumentSnapshotEditor.SetIdeaDefinition(typedDocument, "idea-1", "concept-opportunity");
+AssertEqual("concept-opportunity", typedIdeaDocument.Ideas.Single(idea => idea.Id == "idea-1").DefinitionId, "idea definition updated");
+var typedRelationshipDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(typedIdeaDocument, "rel-1", "relationship-blocks");
+AssertEqual("relationship-blocks", typedRelationshipDocument.Relationships.Single(relationship => relationship.Id == "rel-1").DefinitionId, "relationship definition updated");
 var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(styledRelationshipDocument, "idea-1", "detail-added");
 AssertTrue(!deletedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Any(detail => detail.Id == "detail-added"), "idea detail deleted");
 

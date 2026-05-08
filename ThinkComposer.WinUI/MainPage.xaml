@@ -334,6 +334,7 @@
                                         Grid.Column="1"
                                         HorizontalAlignment="Stretch"
                                         IsEnabled="False"
+                                        SelectionChanged="InspectorKindBox_SelectionChanged"
                                         SelectedIndex="0">
                                         <ComboBoxItem Content="Concept" />
                                         <ComboBoxItem Content="Role" />

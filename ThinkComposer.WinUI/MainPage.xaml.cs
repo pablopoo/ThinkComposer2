@@ -1339,6 +1339,33 @@ public sealed partial class MainPage : Page
         ApplyInspectorLayout();
     }
 
+    private void InspectorKindBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isApplyingInspector || _currentSnapshot is null || InspectorKindBox.SelectedItem is not ComboBoxItem item)
+        {
+            return;
+        }
+
+        if (item.Tag is not string definitionId || string.IsNullOrWhiteSpace(definitionId))
+        {
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        if (!string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetIdeaDefinition(document, _selectedNodeId, definitionId);
+            MarkDocumentMetadataChanged("Concept definition updated");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(document, _selectedConnectorId, definitionId);
+            MarkDocumentMetadataChanged("Relationship definition updated");
+        }
+    }
+
     private void InspectorDetailsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (InspectorDetailsList.SelectedItem is not DetailListEntry detail)
@@ -1563,7 +1590,7 @@ public sealed partial class MainPage : Page
         InspectorNameBox.Text = GetNodeTitle(node);
         var idea = FindIdea(node.Id);
         var definition = FindDefinition(idea?.DefinitionId);
-        SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Concept");
+        SetDefinitionComboItems(CompositionDefinitionGroup.Concept, idea?.DefinitionId, definition?.Name ?? "Concept");
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
         SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
         SetTemplateInspector(null);
@@ -1653,7 +1680,7 @@ public sealed partial class MainPage : Page
             InspectorNameBox.Text = connector.Text;
             var relationship = FindRelationship(connector.Id);
             var definition = FindDefinition(relationship?.DefinitionId);
-            SetComboFirstItem(InspectorKindBox, definition?.Name ?? "Relationship");
+            SetDefinitionComboItems(CompositionDefinitionGroup.Relationship, relationship?.DefinitionId, definition?.Name ?? "Relationship");
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
             SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
             SetTemplateInspector(null);
@@ -2235,17 +2262,48 @@ public sealed partial class MainPage : Page
 
     private static void SetComboFirstItem(ComboBox comboBox, string text)
     {
-        if (comboBox.Items.Count == 0)
-        {
-            comboBox.Items.Add(new ComboBoxItem());
-        }
-
-        if (comboBox.Items[0] is ComboBoxItem item)
-        {
-            item.Content = text;
-        }
-
+        comboBox.Items.Clear();
+        comboBox.Items.Add(new ComboBoxItem { Content = text });
         comboBox.SelectedIndex = 0;
+        comboBox.IsEnabled = false;
+    }
+
+    private void SetDefinitionComboItems(
+        CompositionDefinitionGroup group,
+        string? selectedDefinitionId,
+        string fallbackText)
+    {
+        InspectorKindBox.Items.Clear();
+
+        var definitions = _currentDocument is null
+            ? Array.Empty<CompositionDefinitionSnapshot>()
+            : GetDefinitions(_currentDocument.Domain, group);
+        if (definitions.Count == 0)
+        {
+            InspectorKindBox.Items.Add(new ComboBoxItem { Content = fallbackText });
+            InspectorKindBox.SelectedIndex = 0;
+            InspectorKindBox.IsEnabled = false;
+            return;
+        }
+
+        var selectedIndex = 0;
+        for (var index = 0; index < definitions.Count; index++)
+        {
+            var definition = definitions[index];
+            InspectorKindBox.Items.Add(new ComboBoxItem
+            {
+                Content = definition.Name,
+                Tag = definition.Id
+            });
+
+            if (string.Equals(definition.Id, selectedDefinitionId, StringComparison.Ordinal))
+            {
+                selectedIndex = index;
+            }
+        }
+
+        InspectorKindBox.SelectedIndex = selectedIndex;
+        InspectorKindBox.IsEnabled = true;
     }
 
     private bool TryCompletePendingRelationship(CompositionNodeView? targetNode)
