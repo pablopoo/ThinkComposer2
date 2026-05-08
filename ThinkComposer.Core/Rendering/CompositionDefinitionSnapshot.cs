@@ -7,7 +7,8 @@ public sealed record CompositionDefinitionSnapshot(
     string Summary = "",
     CompositionStyleSnapshot? Style = null,
     IReadOnlyList<CompositionDetailSnapshot>? Details = null,
-    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null)
+    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null,
+    CompositionDetailTableSnapshot? TableRecords = null)
 {
     public CompositionStyleSnapshot Style { get; init; } = Style ?? new CompositionStyleSnapshot();
 
@@ -16,4 +17,7 @@ public sealed record CompositionDefinitionSnapshot(
 
     public IReadOnlyList<CompositionExtensionSnapshot> Extensions { get; init; } =
         Extensions ?? Array.Empty<CompositionExtensionSnapshot>();
+
+    public CompositionDetailTableSnapshot TableRecords { get; init; } =
+        TableRecords ?? new CompositionDetailTableSnapshot();
 }

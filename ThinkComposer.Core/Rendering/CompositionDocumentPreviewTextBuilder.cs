@@ -53,6 +53,10 @@ public static class CompositionDocumentPreviewTextBuilder
         foreach (var definition in definitions.OrderBy(definition => definition.Name, StringComparer.OrdinalIgnoreCase))
         {
             builder.AppendLine($"  - {definition.Name}");
+            if (definition.TableRecords.Rows.Count > 0)
+            {
+                builder.AppendLine($"    Records: {definition.TableRecords.Rows.Count}");
+            }
         }
     }
 

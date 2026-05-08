@@ -454,6 +454,35 @@ var shortcutDocument = CompositionDocumentSnapshotEditor.CreateShortcut(
     new TcSize(164, 82));
 AssertEqual("customer", shortcutDocument.Ideas.Single(idea => idea.Id == "customer-shortcut").ShortcutTargetId, "shortcut target");
 AssertTrue(shortcutDocument.Views[0].Nodes.Any(node => node.Id == "customer-shortcut"), "shortcut node in view");
+var tableRecordsDocument = CompositionDocumentSnapshotEditor.SetTableDefinitionRecords(
+    modernDocument,
+    "table-def",
+    new CompositionDetailTableSnapshot(
+        ["Key", "Label"],
+        [
+            ["risk", "Risk"],
+            ["owner", "Owner"]
+        ]));
+var tableDefinitionRecords = tableRecordsDocument.Domain.TableDefinitions.Single(definition => definition.Id == "table-def").TableRecords;
+AssertEqual("Key", tableDefinitionRecords.Columns[0], "base table records column");
+AssertEqual("Owner", tableDefinitionRecords.Rows[1][1], "base table records value");
+AssertTrue(CompositionDocumentPreviewTextBuilder.Build(tableRecordsDocument).Contains("Records: 2", StringComparison.Ordinal), "base table records preview");
+AssertTrue(CompositionDocumentReportHtmlExporter.Export(tableRecordsDocument).Contains("Owner", StringComparison.Ordinal), "base table records report");
+var tableRecordsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-table-records-{Guid.NewGuid():N}.tcdoc");
+try
+{
+    CompositionDocumentSnapshotXmlStore.Save(tableRecordsDocument, tableRecordsPath);
+    var reloadedTableRecords = CompositionDocumentSnapshotXmlStore.Load(tableRecordsPath)
+        .Domain.TableDefinitions.Single(definition => definition.Id == "table-def").TableRecords;
+    AssertEqual("Risk", reloadedTableRecords.Rows[0][1], "base table records roundtrip");
+}
+finally
+{
+    if (File.Exists(tableRecordsPath))
+    {
+        File.Delete(tableRecordsPath);
+    }
+}
 
 var detailedDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     modernDocument,

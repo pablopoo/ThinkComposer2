@@ -93,6 +93,7 @@ public sealed partial class MainPage : Page
     private string? _selectedTemplateKey;
     private string? _selectedComplementKey;
     private string? _selectedTableDetailId;
+    private string? _selectedTableDefinitionId;
     private string? _pendingRelationshipSourceId;
     private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
@@ -1816,7 +1817,8 @@ public sealed partial class MainPage : Page
 
     private void UpsertTableRowButton_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_selectedTableDetailId))
+        if (string.IsNullOrWhiteSpace(_selectedTableDetailId) &&
+            string.IsNullOrWhiteSpace(_selectedTableDefinitionId))
         {
             return;
         }
@@ -1849,7 +1851,9 @@ public sealed partial class MainPage : Page
 
     private void SaveTableDetailButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentSnapshot is null || string.IsNullOrWhiteSpace(_selectedTableDetailId))
+        if (_currentSnapshot is null ||
+            (string.IsNullOrWhiteSpace(_selectedTableDetailId) &&
+                string.IsNullOrWhiteSpace(_selectedTableDefinitionId)))
         {
             return;
         }
@@ -1862,6 +1866,17 @@ public sealed partial class MainPage : Page
         }
 
         var rows = _tableEditorRows.Select(row => (IReadOnlyList<string>)ParseCsvRecord(row)).ToArray();
+        if (!string.IsNullOrWhiteSpace(_selectedTableDefinitionId))
+        {
+            var document = EnsureCurrentDocument();
+            _currentDocument = CompositionDocumentSnapshotEditor.SetTableDefinitionRecords(
+                document,
+                _selectedTableDefinitionId,
+                new CompositionDetailTableSnapshot(columns, rows));
+            MarkDocumentMetadataChanged("Table records saved");
+            return;
+        }
+
         var detailName = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Table" : DetailNameBox.Text.Trim();
         SaveDetail(
             CompositionDetailFactory.CreateTable(detailName, columns, rows, _selectedTableDetailId),
@@ -2270,6 +2285,9 @@ public sealed partial class MainPage : Page
             SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(null);
             SetComplementInspector();
+            SetTableDefinitionEditor(
+                group == CompositionDefinitionGroup.Table ? definition : null,
+                isEnabled: group == CompositionDefinitionGroup.Table);
             SetStyleInspector(definition.Style, isEnabled: false);
             InspectorXBox.Value = 0;
             InspectorYBox.Value = 0;
@@ -2791,12 +2809,15 @@ public sealed partial class MainPage : Page
         var isTable = detail is not null &&
             string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal);
         _selectedTableDetailId = isTable ? detail!.Id : null;
+        _selectedTableDefinitionId = null;
 
         if (isTable)
         {
             var table = CompositionDetailTableCsv.Parse(detail!.Value);
             TableColumnsBox.Text = FormatCsvRecord(table.Columns);
             _tableEditorRows = table.Rows.Select(FormatCsvRecord).ToList();
+            TableEditorExpander.Header = "Table editor";
+            SaveTableDetailButton.Content = "Save table detail";
             TableEditorExpander.IsExpanded = true;
         }
         else
@@ -2804,10 +2825,45 @@ public sealed partial class MainPage : Page
             TableColumnsBox.Text = string.Empty;
             TableRowValuesBox.Text = string.Empty;
             _tableEditorRows = [];
+            TableEditorExpander.Header = "Table editor";
+            SaveTableDetailButton.Content = "Save table detail";
         }
 
         RefreshTableRowsList();
         var canEdit = isEnabled && isTable;
+        TableColumnsBox.IsEnabled = canEdit;
+        InspectorTableRowsList.IsEnabled = canEdit;
+        TableRowValuesBox.IsEnabled = canEdit;
+        UpsertTableRowButton.IsEnabled = canEdit;
+        DeleteTableRowButton.IsEnabled = canEdit;
+        SaveTableDetailButton.IsEnabled = canEdit;
+    }
+
+    private void SetTableDefinitionEditor(CompositionDefinitionSnapshot? definition, bool isEnabled)
+    {
+        var isTableDefinition = definition is not null;
+        _selectedTableDetailId = null;
+        _selectedTableDefinitionId = isTableDefinition ? definition!.Id : null;
+
+        if (isTableDefinition)
+        {
+            TableColumnsBox.Text = FormatCsvRecord(definition!.TableRecords.Columns);
+            _tableEditorRows = definition.TableRecords.Rows.Select(FormatCsvRecord).ToList();
+            TableEditorExpander.Header = "Base table records";
+            SaveTableDetailButton.Content = "Save table records";
+            TableEditorExpander.IsExpanded = true;
+        }
+        else
+        {
+            TableColumnsBox.Text = string.Empty;
+            TableRowValuesBox.Text = string.Empty;
+            _tableEditorRows = [];
+            TableEditorExpander.Header = "Table editor";
+            SaveTableDetailButton.Content = "Save table detail";
+        }
+
+        RefreshTableRowsList();
+        var canEdit = isEnabled && isTableDefinition;
         TableColumnsBox.IsEnabled = canEdit;
         InspectorTableRowsList.IsEnabled = canEdit;
         TableRowValuesBox.IsEnabled = canEdit;

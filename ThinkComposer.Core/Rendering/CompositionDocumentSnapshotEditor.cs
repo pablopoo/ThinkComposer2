@@ -41,6 +41,52 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot SetTableDefinitionRecords(
+        CompositionDocumentSnapshot document,
+        string definitionId,
+        CompositionDetailTableSnapshot records)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (records is null)
+        {
+            throw new ArgumentNullException(nameof(records));
+        }
+
+        if (string.IsNullOrWhiteSpace(definitionId))
+        {
+            throw new ArgumentException("Table definition id is required.", nameof(definitionId));
+        }
+
+        var found = false;
+        var definitions = document.Domain.TableDefinitions.Select(definition =>
+        {
+            if (!string.Equals(definition.Id, definitionId, StringComparison.Ordinal))
+            {
+                return definition;
+            }
+
+            found = true;
+            return definition with { TableRecords = records };
+        }).ToArray();
+
+        if (!found)
+        {
+            throw new InvalidOperationException($"Table definition '{definitionId}' was not found.");
+        }
+
+        return document with
+        {
+            Domain = document.Domain with
+            {
+                TableDefinitions = definitions
+            }
+        };
+    }
+
     public static CompositionDocumentSnapshot UpsertDomainTemplate(
         CompositionDocumentSnapshot document,
         CompositionExtensionSnapshot template)

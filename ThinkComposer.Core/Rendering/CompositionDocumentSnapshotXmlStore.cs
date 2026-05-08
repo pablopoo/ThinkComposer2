@@ -86,6 +86,7 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("summary", definition.Summary),
             WriteStyle(definition.Style),
             WriteDetails(definition.Details),
+            WriteTableRecords(definition.TableRecords),
             WriteExtensions("Extensions", definition.Extensions));
     }
 
@@ -171,6 +172,17 @@ public static class CompositionDocumentSnapshotXmlStore
                 WriteExtensions("Extensions", detail.Extensions))));
     }
 
+    private static XElement WriteTableRecords(CompositionDetailTableSnapshot records)
+    {
+        return new XElement(
+            "TableRecords",
+            new XElement("Columns", records.Columns.Select(column =>
+                new XElement("Column", new XAttribute("value", column)))),
+            new XElement("Rows", records.Rows.Select(row =>
+                new XElement("Record", row.Select(value =>
+                    new XElement("Cell", new XAttribute("value", value)))))));
+    }
+
     private static XElement WriteStyle(CompositionStyleSnapshot style)
     {
         return new XElement(
@@ -226,7 +238,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadString(element, "summary"),
                 ReadStyle(element.Element("Style")),
                 ReadDetails(element.Element("Details")),
-                ReadExtensions(element.Element("Extensions")))).ToArray()
+                ReadExtensions(element.Element("Extensions")),
+                ReadTableRecords(element.Element("TableRecords")))).ToArray()
             ?? Array.Empty<CompositionDefinitionSnapshot>();
     }
 
@@ -313,6 +326,27 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadString(element, "value"),
                 ReadExtensions(element.Element("Extensions")))).ToArray()
             ?? Array.Empty<CompositionDetailSnapshot>();
+    }
+
+    private static CompositionDetailTableSnapshot ReadTableRecords(XElement? container)
+    {
+        if (container is null)
+        {
+            return new CompositionDetailTableSnapshot();
+        }
+
+        var columns = container.Element("Columns")?.Elements("Column")
+                .Select(element => ReadString(element, "value"))
+                .ToArray()
+            ?? Array.Empty<string>();
+        var rows = container.Element("Rows")?.Elements("Record")
+                .Select(record => (IReadOnlyList<string>)record.Elements("Cell")
+                    .Select(element => ReadString(element, "value"))
+                    .ToArray())
+                .ToArray()
+            ?? Array.Empty<IReadOnlyList<string>>();
+
+        return new CompositionDetailTableSnapshot(columns, rows);
     }
 
     private static IReadOnlyList<string> ReadMarkers(XElement? container)

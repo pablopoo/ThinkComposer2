@@ -4,9 +4,9 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: presentation/multi-sheet print, PDF/XPS output, installer/signing, and broader automated UI smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -19,6 +19,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Canvas complements: render group regions plus legend/info/quote cards from current-view complements.
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
 - Details: custom fields, links, attachments, CSV table details with a structured row editor.
+- Base tables: table definitions persist and edit row records, with records included in preview/report output.
 - Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
@@ -33,8 +34,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ### P1 - Tables And Structured Editors
 
-- Table details persist as CSV and can be edited through a structured row editor, but there is no full spreadsheet-like cell grid.
-- Base-table definitions are listed/editable as definitions, but base-table records are not a dedicated workflow.
+- Table details and base-table records persist as CSV-style rows and can be edited through a structured row editor, but there is no full spreadsheet-like cell grid.
 
 ### P1 - Composite Navigation And Complements
 
@@ -55,7 +55,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ## Recommended Backlog
 
-1. Build a spreadsheet-like grid editor and base-table record workflows.
+1. Build a spreadsheet-like grid editor for table details and base-table records.
 2. Add PDF/XPS or an explicit supported replacement path.
 3. Add UI automation smoke tests around launch, theme switching, open/save, create/edit, and report/generation.
 4. Define installer, signing, and update-channel packaging.

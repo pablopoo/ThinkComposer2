@@ -32,6 +32,9 @@ public static class CompositionDocumentReportHtmlExporter
         builder.AppendLine("    .card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; break-inside: avoid; background: #fff; }");
         builder.AppendLine("    .meta { color: var(--muted); font-size: 12px; margin: 2px 0; }");
         builder.AppendLine("    .detail { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; }");
+        builder.AppendLine("    table { border-collapse: collapse; width: 100%; margin-top: 6px; font-size: 12px; }");
+        builder.AppendLine("    th, td { border: 1px solid var(--border); padding: 4px 6px; text-align: left; vertical-align: top; }");
+        builder.AppendLine("    th { background: var(--fill); font-weight: 600; }");
         builder.AppendLine("    .view svg { width: 100%; height: auto; border: 1px solid var(--border); background: #fff; }");
         builder.AppendLine("    ul { margin: 6px 0 0 18px; padding: 0; }");
         builder.AppendLine("    li { margin: 3px 0; }");
@@ -157,9 +160,43 @@ public static class CompositionDocumentReportHtmlExporter
         builder.AppendLine($"    <div class=\"detail\"><strong>{Encode(title)}</strong><ul>");
         foreach (var definition in definitions)
         {
-            builder.AppendLine($"      <li>{Encode(definition.Name)} <span class=\"meta\">{Encode(definition.Kind)}</span></li>");
+            builder.AppendLine($"      <li>{Encode(definition.Name)} <span class=\"meta\">{Encode(definition.Kind)}</span>");
+            AppendTableRecords(builder, definition.TableRecords);
+            builder.AppendLine("      </li>");
         }
         builder.AppendLine("    </ul></div>");
+    }
+
+    private static void AppendTableRecords(StringBuilder builder, CompositionDetailTableSnapshot records)
+    {
+        if (records.Rows.Count == 0)
+        {
+            return;
+        }
+
+        builder.AppendLine("        <table>");
+        if (records.Columns.Count > 0)
+        {
+            builder.AppendLine("          <thead><tr>");
+            foreach (var column in records.Columns)
+            {
+                builder.AppendLine($"            <th>{Encode(column)}</th>");
+            }
+            builder.AppendLine("          </tr></thead>");
+        }
+
+        builder.AppendLine("          <tbody>");
+        foreach (var row in records.Rows)
+        {
+            builder.AppendLine("            <tr>");
+            foreach (var value in row)
+            {
+                builder.AppendLine($"              <td>{Encode(value)}</td>");
+            }
+            builder.AppendLine("            </tr>");
+        }
+        builder.AppendLine("          </tbody>");
+        builder.AppendLine("        </table>");
     }
 
     private static void AppendSummary(StringBuilder builder, string summary)
