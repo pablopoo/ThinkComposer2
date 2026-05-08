@@ -362,6 +362,14 @@ var detailedDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     "idea-1",
     new CompositionDetailSnapshot("detail-added", "CustomField", "Owner", "Pablo"));
 AssertEqual("Pablo", detailedDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Single(detail => detail.Name == "Owner").Value, "idea detail added");
+var linkDetail = CompositionDetailFactory.CreateLink("Spec Link", "https://example.test/spec");
+AssertEqual(CompositionDetailKinds.Link, linkDetail.Kind, "link detail kind");
+AssertEqual("spec-link", linkDetail.Id, "link detail id");
+var attachmentDetail = CompositionDetailFactory.CreateAttachment(@"C:\Temp\spec.pdf");
+AssertEqual(CompositionDetailKinds.Attachment, attachmentDetail.Kind, "attachment detail kind");
+AssertEqual("spec.pdf", attachmentDetail.Name, "attachment detail name");
+var tableDetail = CompositionDetailFactory.CreateTable("Checklist");
+AssertEqual(CompositionDetailKinds.Table, tableDetail.Kind, "table detail kind");
 var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     detailedDocument,
     "idea-1",

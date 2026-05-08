@@ -422,6 +422,30 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="AddLinkDetailButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="AddLinkDetailButton_Click"
+                                            Content="Link" />
+                                        <Button
+                                            x:Name="AddAttachmentDetailButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="AddAttachmentDetailButton_Click"
+                                            Content="Attach" />
+                                        <Button
+                                            x:Name="AddTableDetailButton"
+                                            Grid.Column="2"
+                                            HorizontalAlignment="Stretch"
+                                            Click="AddTableDetailButton_Click"
+                                            Content="Table" />
+                                    </Grid>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <Button
                                             x:Name="UpsertDetailButton"

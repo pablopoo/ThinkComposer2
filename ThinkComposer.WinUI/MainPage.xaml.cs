@@ -1405,15 +1405,50 @@ public sealed partial class MainPage : Page
         var kind = string.IsNullOrWhiteSpace(DetailKindBox.Text) ? "CustomField" : DetailKindBox.Text.Trim();
         var detailId = InspectorDetailsList.SelectedItem is DetailListEntry selectedDetail
             ? selectedDetail.Id
-            : CreateDetailId(name);
-        var detail = new CompositionDetailSnapshot(detailId, kind, name, DetailValueBox.Text);
-        var document = EnsureCurrentDocument();
-        _currentDocument = !string.IsNullOrWhiteSpace(_selectedNodeId)
-            ? CompositionDocumentSnapshotEditor.UpsertIdeaDetail(document, _selectedNodeId, detail)
-            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
-                ? CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(document, _selectedConnectorId, detail)
-                : document;
-        MarkDocumentMetadataChanged("Detail saved");
+            : null;
+        SaveDetail(CompositionDetailFactory.Create(kind, name, DetailValueBox.Text, detailId), "Detail saved");
+    }
+
+    private void AddLinkDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        var name = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Link" : DetailNameBox.Text.Trim();
+        var value = DetailValueBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            StatusContextText.Text = "Link URL is required";
+            return;
+        }
+
+        SaveDetail(CompositionDetailFactory.CreateLink(name, value), "Link detail saved");
+    }
+
+    private async void AddAttachmentDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var picker = new FileOpenPicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+        };
+        InitializePicker(picker);
+        picker.FileTypeFilter.Add("*");
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        SaveDetail(CompositionDetailFactory.CreateAttachment(file.Path), "Attachment detail saved");
+    }
+
+    private void AddTableDetailButton_Click(object sender, RoutedEventArgs e)
+    {
+        var name = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Table" : DetailNameBox.Text.Trim();
+        var value = string.IsNullOrWhiteSpace(DetailValueBox.Text) ? "Rows: 0" : DetailValueBox.Text;
+        SaveDetail(CompositionDetailFactory.CreateTable(name, value), "Table detail saved");
     }
 
     private void DeleteDetailButton_Click(object sender, RoutedEventArgs e)
@@ -1425,7 +1460,9 @@ public sealed partial class MainPage : Page
 
         var detailId = InspectorDetailsList.SelectedItem is DetailListEntry selectedDetail
             ? selectedDetail.Id
-            : CreateDetailId(DetailNameBox.Text.Trim());
+            : string.IsNullOrWhiteSpace(DetailNameBox.Text)
+                ? string.Empty
+                : CompositionDetailFactory.CreateCustomField(DetailNameBox.Text.Trim(), string.Empty).Id;
         if (string.IsNullOrWhiteSpace(detailId))
         {
             return;
@@ -1440,6 +1477,25 @@ public sealed partial class MainPage : Page
         DetailNameBox.Text = string.Empty;
         DetailValueBox.Text = string.Empty;
         MarkDocumentMetadataChanged("Detail removed");
+    }
+
+    private void SaveDetail(CompositionDetailSnapshot detail, string status)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? CompositionDocumentSnapshotEditor.UpsertIdeaDetail(document, _selectedNodeId, detail)
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? CompositionDocumentSnapshotEditor.UpsertRelationshipDetail(document, _selectedConnectorId, detail)
+                : document;
+        DetailNameBox.Text = detail.Name;
+        DetailValueBox.Text = detail.Value;
+        DetailKindBox.Text = detail.Kind;
+        MarkDocumentMetadataChanged(status);
     }
 
     private void ApplyMarkersButton_Click(object sender, RoutedEventArgs e)
@@ -2172,7 +2228,7 @@ public sealed partial class MainPage : Page
         MarkerIdsBox.Text = markers is null ? string.Empty : string.Join(", ", markers);
         DetailNameBox.Text = string.Empty;
         DetailValueBox.Text = string.Empty;
-        DetailKindBox.Text = "CustomField";
+        DetailKindBox.Text = CompositionDetailKinds.CustomField;
         DetailNameBox.IsEnabled = isEnabled;
         DetailValueBox.IsEnabled = isEnabled;
         DetailKindBox.IsEnabled = isEnabled;
@@ -2193,15 +2249,6 @@ public sealed partial class MainPage : Page
         return details
             .Select(detail => new DetailListEntry(detail.Id, detail.Kind, detail.Name, detail.Value))
             .ToArray();
-    }
-
-    private static string CreateDetailId(string name)
-    {
-        var normalized = new string(name.Trim()
-            .Select(character => char.IsLetterOrDigit(character) ? char.ToLowerInvariant(character) : '-')
-            .ToArray())
-            .Trim('-');
-        return string.IsNullOrWhiteSpace(normalized) ? $"detail-{Guid.NewGuid():N}" : normalized;
     }
 
     private static IReadOnlyList<string> ParseMarkerIds(string text)
