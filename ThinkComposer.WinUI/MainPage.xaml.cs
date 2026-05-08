@@ -294,8 +294,8 @@ public sealed partial class MainPage : Page
 
         var picker = new FileSavePicker();
         InitializePicker(picker);
-        picker.FileTypeChoices.Add("ThinkComposer document", [".tcdoc"]);
-        picker.FileTypeChoices.Add("ThinkComposer view", [".tcview"]);
+        picker.FileTypeChoices.Add("ThinkComposer full document", [".tcdoc"]);
+        picker.FileTypeChoices.Add("View snapshot only", [".tcview"]);
         picker.SuggestedFileName = string.IsNullOrWhiteSpace(_currentSnapshot.Title) ? "Untitled" : _currentSnapshot.Title;
         picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 
@@ -987,21 +987,45 @@ public sealed partial class MainPage : Page
                 var document = BuildCurrentDocument();
                 _currentDocument = document;
                 CompositionDocumentSnapshotXmlStore.Save(document, snapshotPath);
+                _snapshotPath = snapshotPath;
+                _isDirty = false;
+                AddRecentFile(snapshotPath);
+                StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
+                MessagesText.Text =
+                    $"Document saved{Environment.NewLine}" +
+                    $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
+                    $"Path: {snapshotPath}";
             }
             else
             {
+                var document = BuildCurrentDocument();
+                var wasDirty = _isDirty;
+                var requiresModernDocument = CompositionDocumentPersistenceAdvisor.RequiresModernDocument(document);
                 CompositionViewSnapshotXmlStore.Save(_currentSnapshot, snapshotPath);
-                _currentDocument = null;
-            }
+                AddRecentFile(snapshotPath);
 
-            _snapshotPath = snapshotPath;
-            _isDirty = false;
-            AddRecentFile(snapshotPath);
-            StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
-            MessagesText.Text =
-                $"Document saved{Environment.NewLine}" +
-                $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
-                $"Path: {snapshotPath}";
+                if (requiresModernDocument)
+                {
+                    _currentDocument = document;
+                    _isDirty = wasDirty;
+                    StatusContextText.Text = $"Exported view {Path.GetFileName(snapshotPath)}";
+                    MessagesText.Text =
+                        $"View snapshot exported{Environment.NewLine}" +
+                        "This .tcview does not contain full domain/details/templates data. Use .tcdoc to preserve the complete document." +
+                        $"{Environment.NewLine}Path: {snapshotPath}";
+                }
+                else
+                {
+                    _currentDocument = null;
+                    _snapshotPath = snapshotPath;
+                    _isDirty = false;
+                    StatusContextText.Text = $"Saved {Path.GetFileName(snapshotPath)}";
+                    MessagesText.Text =
+                        $"Document saved{Environment.NewLine}" +
+                        $"Document: {_currentSnapshot.Title}{Environment.NewLine}" +
+                        $"Path: {snapshotPath}";
+                }
+            }
         }
         catch (Exception problem)
         {

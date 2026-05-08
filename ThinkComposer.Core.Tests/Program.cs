@@ -247,6 +247,9 @@ AssertEqual(snapshot.Connectors.Count, modernFromView.Relationships.Count, "adap
 AssertEqual("Default Domain", modernFromView.Domain.Name, "adapter default domain");
 AssertEqual("Customer Need", modernFromView.Ideas.Single(idea => idea.Id == "customer").Name, "adapter idea name");
 AssertEqual("capability", modernFromView.Relationships.Single(relationship => relationship.Id == "customer-capability").TargetIdeaId, "adapter relationship target");
+AssertTrue(CompositionDocumentPersistenceAdvisor.RequiresModernDocument(modernDocument), "modern document requires modern persistence");
+AssertTrue(CompositionDocumentPersistenceAdvisor.RequiresModernDocument(templateEditedDocument), "template document requires modern persistence");
+AssertTrue(!CompositionDocumentPersistenceAdvisor.RequiresModernDocument(modernFromView), "view projection does not require modern persistence");
 
 var projectedSnapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(modernFromView);
 AssertEqual(snapshot.Id, projectedSnapshot.Id, "adapter projected id");
