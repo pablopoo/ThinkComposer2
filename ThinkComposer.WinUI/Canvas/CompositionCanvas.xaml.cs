@@ -18,6 +18,7 @@ public sealed partial class CompositionCanvas : UserControl
     private readonly List<CanvasNode> _nodes = [];
     private readonly Dictionary<string, CanvasNode> _nodesById = new(StringComparer.Ordinal);
     private readonly List<CompositionConnectorView> _connectors = [];
+    private readonly List<CompositionExtensionSnapshot> _complements = [];
     private readonly HashSet<string> _selectedNodeIds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Rect> _dragStartBoundsByNodeId = new(StringComparer.Ordinal);
 
@@ -63,7 +64,8 @@ public sealed partial class CompositionCanvas : UserControl
         CompositionViewSnapshot snapshot,
         string? selectedNodeId = null,
         bool fitToViewport = true,
-        string? selectedConnectorId = null)
+        string? selectedConnectorId = null,
+        IReadOnlyList<CompositionExtensionSnapshot>? complements = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -77,6 +79,12 @@ public sealed partial class CompositionCanvas : UserControl
 
         _connectors.Clear();
         _connectors.AddRange(snapshot.Connectors);
+        _complements.Clear();
+        if (complements is not null)
+        {
+            _complements.AddRange(complements);
+        }
+
         _selectedNodeIds.Clear();
 
         SetSelectedNode(FindNode(selectedNodeId) ?? (string.IsNullOrWhiteSpace(selectedConnectorId) ? _nodes.FirstOrDefault() : null));
@@ -157,8 +165,10 @@ public sealed partial class CompositionCanvas : UserControl
         DrawGrid(session, sender.ActualWidth, sender.ActualHeight, palette);
 
         session.Transform = Matrix3x2.CreateScale((float)_zoom) * Matrix3x2.CreateTranslation(_pan);
+        DrawComplementRegions(session, palette);
         DrawConnectors(session, palette);
         DrawNodes(session, palette);
+        DrawComplementCards(session, palette);
         session.Transform = Matrix3x2.Identity;
 
         DrawViewportLabel(session, sender.ActualWidth, sender.ActualHeight, palette);
@@ -241,6 +251,56 @@ public sealed partial class CompositionCanvas : UserControl
                 palette.MutedText,
                 BodyFormat);
         }
+    }
+
+    private void DrawComplementRegions(CanvasDrawingSession session, CanvasPalette palette)
+    {
+        foreach (var item in BuildComplementItems().Where(item => item.Kind == "Group"))
+        {
+            var bounds = ToRect(item);
+            session.FillRoundedRectangle(bounds, 8, 8, WithAlpha(palette.SelectedStroke, 24));
+            session.DrawRoundedRectangle(bounds, 8, 8, WithAlpha(palette.SelectedStroke, 130), 1.2f);
+            session.DrawText(
+                item.Title,
+                new Rect(bounds.X + 12, bounds.Y + 8, Math.Max(1, bounds.Width - 24), 22),
+                palette.SelectedStroke,
+                BodyFormat);
+        }
+    }
+
+    private void DrawComplementCards(CanvasDrawingSession session, CanvasPalette palette)
+    {
+        foreach (var item in BuildComplementItems().Where(item => item.Kind != "Group"))
+        {
+            var bounds = ToRect(item);
+            session.FillRoundedRectangle(bounds, 7, 7, palette.NodeFill);
+            session.DrawRoundedRectangle(bounds, 7, 7, WithAlpha(palette.SelectedStroke, 150), 1.1f);
+            session.DrawText(
+                item.Title,
+                new Rect(bounds.X + 12, bounds.Y + 10, Math.Max(1, bounds.Width - 24), 22),
+                palette.Text,
+                CompactTitleFormat);
+            session.DrawText(
+                string.IsNullOrWhiteSpace(item.Body) ? item.Key : item.Body,
+                new Rect(bounds.X + 12, bounds.Y + 36, Math.Max(1, bounds.Width - 24), Math.Max(1, bounds.Height - 44)),
+                palette.MutedText,
+                BodyFormat);
+        }
+    }
+
+    private IReadOnlyList<CompositionComplementRenderItem> BuildComplementItems()
+    {
+        return CompositionViewComplementLayout.Build(_complements, _nodes.Select(node => node.Source).ToArray());
+    }
+
+    private static Rect ToRect(CompositionComplementRenderItem item)
+    {
+        return new Rect(item.Position.X, item.Position.Y, item.Size.Width, item.Size.Height);
+    }
+
+    private static Windows.UI.Color WithAlpha(Windows.UI.Color color, byte alpha)
+    {
+        return Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B);
     }
 
     private static Rect CreateCompactTextRect(Rect bounds, double horizontalPadding)

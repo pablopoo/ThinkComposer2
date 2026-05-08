@@ -545,6 +545,11 @@ var complementDeletedDocument = CompositionDocumentSnapshotEditor.DeleteViewComp
 AssertTrue(!complementDeletedDocument.Views[0].Complements.Any(complement => complement.Key == "group.region"), "view complement deleted");
 var complementCommands = CompositionCommandCatalog.ForDocument(complementAddedDocument);
 AssertTrue(complementCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Complement && entry.TargetId == "group.region"), "document command complement");
+var complementLayout = CompositionViewComplementLayout.Build(
+    complementAddedDocument.Views[0].Complements,
+    complementAddedDocument.Views[0].Nodes);
+AssertTrue(complementLayout.Any(item => item.Kind == "Legend" && item.Title == "Legend"), "complement layout legend");
+AssertTrue(complementLayout.Any(item => item.Kind == "Group" && item.Size.Width > complementAddedDocument.Views[0].Nodes[0].Size.Width), "complement layout group");
 
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",

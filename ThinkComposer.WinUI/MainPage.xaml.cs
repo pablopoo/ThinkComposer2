@@ -1268,7 +1268,8 @@ public sealed partial class MainPage : Page
         UpdateDocumentTitleIndicator();
 
         UpdateExplorer(snapshot);
-        CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport, selectedConnectorId);
+        var complements = GetCurrentView(_currentDocument)?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
+        CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport, selectedConnectorId, complements);
         if (CanvasView.SelectedConnector is not null)
         {
             ApplySelectedConnector(CanvasView.SelectedConnector);

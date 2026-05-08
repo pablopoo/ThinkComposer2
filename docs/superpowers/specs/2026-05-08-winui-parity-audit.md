@@ -4,7 +4,7 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, complements, styles, templates, reports, generation, validation, clipboard/multi-select, and migration checks.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, and migration checks.
 
 It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, deeper composite/shortcut authoring, presentation/multi-sheet print, PDF/XPS output, release packaging, and automated UI smoke coverage.
 
@@ -16,6 +16,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Canvas: render concepts/relationships, pan, zoom, select, multi-select, move, precise keyboard move, create concept, create relationship, delete, undo/redo.
 - Navigation: browse/switch modern document views from Explorer and command search; preserve composite/shortcut metadata in `.tcdoc`.
 - Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, current-view complements, and generation templates.
+- Canvas complements: render group regions plus legend/info/quote cards from current-view complements.
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
 - Details: custom fields, links, attachments, CSV table details with a structured row editor.
 - Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
@@ -38,7 +39,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 ### P1 - Composite Navigation And Shortcuts
 
 - Modern documents preserve composite/shortcut metadata and support view switching, but creating composite views and shortcut objects is not yet a dedicated WinUI workflow.
-- Complements can be edited as view extensions, but specialized visual rendering for group regions, legends, quotes, and info cards is still basic.
+- Complements render as basic group regions and cards, but do not yet support all legacy complement-specific styling and geometry.
 
 ### P1 - Output Parity
 
