@@ -5,6 +5,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
@@ -54,6 +55,7 @@ public sealed partial class MainPage : Page
     private string? _selectedNodeId;
     private string? _selectedConnectorId;
     private string? _pendingRelationshipSourceId;
+    private CompositionSnapshotSelection? _clipboardSelection;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
     private List<string> _recentFiles = [];
@@ -63,6 +65,7 @@ public sealed partial class MainPage : Page
     {
         InitializeComponent();
         CanvasView.SelectedNodeChanged += CanvasView_SelectedNodeChanged;
+        CanvasView.SelectedNodesChanged += CanvasView_SelectedNodesChanged;
         CanvasView.SelectedConnectorChanged += CanvasView_SelectedConnectorChanged;
         CanvasView.NodeMoved += CanvasView_NodeMoved;
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
@@ -355,6 +358,16 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        var selectedNodeIds = GetSelectedNodeIds();
+        if (selectedNodeIds.Count > 1)
+        {
+            ApplyEditedSnapshot(
+                CompositionSnapshotSelectionEditor.Delete(_currentSnapshot, selectedNodeIds),
+                selectedNodeId: null,
+                fitToViewport: false);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(_selectedConnectorId))
         {
             ApplyEditedSnapshot(
@@ -375,6 +388,51 @@ public sealed partial class MainPage : Page
             CompositionSnapshotEditor.DeleteNode(_currentSnapshot, _selectedNodeId),
             remainingNodeId,
             fitToViewport: false);
+    }
+
+    private void CutButton_Click(object sender, RoutedEventArgs e)
+    {
+        CopySelectionToClipboard();
+        DeleteButton_Click(sender, e);
+    }
+
+    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    {
+        CopySelectionToClipboard();
+    }
+
+    private void PasteButton_Click(object sender, RoutedEventArgs e)
+    {
+        PasteClipboardSelection();
+    }
+
+    private void CopyKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        CopySelectionToClipboard();
+        args.Handled = true;
+    }
+
+    private void CutKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        CutButton_Click(sender, new RoutedEventArgs());
+        args.Handled = true;
+    }
+
+    private void PasteKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        PasteClipboardSelection();
+        args.Handled = true;
+    }
+
+    private void SelectAllKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (_currentSnapshot is not null)
+        {
+            CanvasView.SelectNodes(_currentSnapshot.Nodes.Select(node => node.Id));
+            StatusContextText.Text = $"Selected {_currentSnapshot.Nodes.Count} concepts";
+        }
+
+        args.Handled = true;
     }
 
     private void UndoButton_Click(object sender, RoutedEventArgs e)
@@ -468,7 +526,10 @@ public sealed partial class MainPage : Page
 
     private void RefreshDiagnostics()
     {
-        var selection = !string.IsNullOrWhiteSpace(_selectedNodeId)
+        var selectedNodesCount = CanvasView?.SelectedNodes.Count ?? 0;
+        var selection = selectedNodesCount > 1
+            ? $"{selectedNodesCount} nodes"
+            : !string.IsNullOrWhiteSpace(_selectedNodeId)
             ? $"Node: {_selectedNodeId}"
             : !string.IsNullOrWhiteSpace(_selectedConnectorId)
                 ? $"Relationship: {_selectedConnectorId}"
@@ -918,6 +979,16 @@ public sealed partial class MainPage : Page
         ApplySelectedNode(node);
     }
 
+    private void CanvasView_SelectedNodesChanged(object? sender, IReadOnlyList<CompositionNodeView> nodes)
+    {
+        if (nodes.Count <= 1)
+        {
+            return;
+        }
+
+        ApplySelectedNodes(nodes);
+    }
+
     private void CanvasView_SelectedConnectorChanged(object? sender, CompositionConnectorView? connector)
     {
         ApplySelectedConnector(connector);
@@ -1032,6 +1103,43 @@ public sealed partial class MainPage : Page
         IncomingLabel.Text = "Incoming";
         OutgoingText.Text = (_snapshotIndex?.CountOutgoing(node.Id) ?? 0).ToString();
         IncomingText.Text = (_snapshotIndex?.CountIncoming(node.Id) ?? 0).ToString();
+        }
+        finally
+        {
+            _isApplyingInspector = false;
+            RefreshDiagnostics();
+        }
+    }
+
+    private void ApplySelectedNodes(IReadOnlyList<CompositionNodeView> nodes)
+    {
+        _isApplyingInspector = true;
+        try
+        {
+            _selectedNodeId = null;
+            _selectedConnectorId = null;
+            _pendingRelationshipSourceId = null;
+            ObjectExpander.Header = "Multiple selection";
+            InspectorNameBox.Text = $"{nodes.Count} concepts selected";
+            InspectorNameBox.IsEnabled = false;
+            InspectorXBox.IsEnabled = false;
+            InspectorYBox.IsEnabled = false;
+            InspectorWidthBox.IsEnabled = false;
+            InspectorHeightBox.IsEnabled = false;
+            InspectorRelationshipButton.IsEnabled = false;
+            InspectorDeleteButton.IsEnabled = true;
+            InspectorXBox.Value = 0;
+            InspectorYBox.Value = 0;
+            InspectorWidthBox.Value = 0;
+            InspectorHeightBox.Value = 0;
+            SetComboFirstItem(InspectorKindBox, "Concept selection");
+            SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
+            InspectorDetailsList.ItemsSource = nodes.Select(node => GetNodeTitle(node)).ToArray();
+            SetStyleInspector(new CompositionStyleSnapshot());
+            OutgoingLabel.Text = "Outgoing";
+            IncomingLabel.Text = "Incoming";
+            OutgoingText.Text = nodes.Sum(node => _snapshotIndex?.CountOutgoing(node.Id) ?? 0).ToString();
+            IncomingText.Text = nodes.Sum(node => _snapshotIndex?.CountIncoming(node.Id) ?? 0).ToString();
         }
         finally
         {
@@ -1236,6 +1344,60 @@ public sealed partial class MainPage : Page
     private CompositionConnectorView? FindConnector(string connectorId)
     {
         return _currentSnapshot?.Connectors.FirstOrDefault(connector => string.Equals(connector.Id, connectorId, StringComparison.Ordinal));
+    }
+
+    private IReadOnlyList<string> GetSelectedNodeIds()
+    {
+        var ids = CanvasView.SelectedNodes.Select(node => node.Id).ToArray();
+        if (ids.Length > 0)
+        {
+            return ids;
+        }
+
+        return string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? Array.Empty<string>()
+            : [_selectedNodeId];
+    }
+
+    private void CopySelectionToClipboard()
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var selectedNodeIds = GetSelectedNodeIds();
+        if (selectedNodeIds.Count == 0)
+        {
+            StatusContextText.Text = "No concepts selected";
+            return;
+        }
+
+        _clipboardSelection = CompositionSnapshotSelectionEditor.Copy(_currentSnapshot, selectedNodeIds);
+        var package = new DataPackage();
+        package.SetText(string.Join(Environment.NewLine, _clipboardSelection.Nodes.Select(node => node.Text)));
+        Clipboard.SetContent(package);
+        StatusContextText.Text = $"Copied {_clipboardSelection.Nodes.Count} concept(s)";
+    }
+
+    private void PasteClipboardSelection()
+    {
+        if (_currentSnapshot is null || _clipboardSelection is null || _clipboardSelection.Nodes.Count == 0)
+        {
+            StatusContextText.Text = "Clipboard is empty";
+            return;
+        }
+
+        var existingIds = _currentSnapshot.Nodes.Select(node => node.Id).ToHashSet(StringComparer.Ordinal);
+        var pastedSnapshot = CompositionSnapshotSelectionEditor.Paste(_currentSnapshot, _clipboardSelection, new TcPoint(24, 24));
+        var pastedNodeIds = pastedSnapshot.Nodes
+            .Where(node => !existingIds.Contains(node.Id))
+            .Select(node => node.Id)
+            .ToArray();
+
+        ApplyEditedSnapshot(pastedSnapshot, pastedNodeIds.FirstOrDefault(), fitToViewport: false);
+        CanvasView.SelectNodes(pastedNodeIds);
+        StatusContextText.Text = $"Pasted {pastedNodeIds.Length} concept(s)";
     }
 
     private CompositionIdeaSnapshot? FindIdea(string ideaId)

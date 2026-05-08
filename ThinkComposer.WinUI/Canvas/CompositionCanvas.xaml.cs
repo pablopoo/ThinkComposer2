@@ -17,6 +17,8 @@ public sealed partial class CompositionCanvas : UserControl
     private readonly List<CanvasNode> _nodes = [];
     private readonly Dictionary<string, CanvasNode> _nodesById = new(StringComparer.Ordinal);
     private readonly List<CompositionConnectorView> _connectors = [];
+    private readonly HashSet<string> _selectedNodeIds = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Rect> _dragStartBoundsByNodeId = new(StringComparer.Ordinal);
 
     private Vector2 _pan = new(0, 0);
     private double _zoom = 1.0;
@@ -28,7 +30,6 @@ public sealed partial class CompositionCanvas : UserControl
     private Vector2 _panStart;
     private CanvasNode? _draggedNode;
     private Point _dragStartWorld;
-    private Rect _dragStartBounds;
 
     public CompositionCanvas()
     {
@@ -45,11 +46,16 @@ public sealed partial class CompositionCanvas : UserControl
     }
 
     public event EventHandler<CompositionNodeView?>? SelectedNodeChanged;
+    public event EventHandler<IReadOnlyList<CompositionNodeView>>? SelectedNodesChanged;
     public event EventHandler<CompositionConnectorView?>? SelectedConnectorChanged;
     public event EventHandler<CompositionNodeView>? NodeMoved;
     public event EventHandler<CompositionNodeView>? NodeMoveCompleted;
 
     public CompositionNodeView? SelectedNode => _selectedNode?.Source;
+    public IReadOnlyList<CompositionNodeView> SelectedNodes => _nodes
+        .Where(node => _selectedNodeIds.Contains(node.Id))
+        .Select(node => node.Source)
+        .ToArray();
     public CompositionConnectorView? SelectedConnector => _selectedConnector;
 
     public void LoadSnapshot(
@@ -70,6 +76,7 @@ public sealed partial class CompositionCanvas : UserControl
 
         _connectors.Clear();
         _connectors.AddRange(snapshot.Connectors);
+        _selectedNodeIds.Clear();
 
         SetSelectedNode(FindNode(selectedNodeId) ?? (string.IsNullOrWhiteSpace(selectedConnectorId) ? _nodes.FirstOrDefault() : null));
         SetSelectedConnector(FindConnector(selectedConnectorId));
@@ -96,6 +103,18 @@ public sealed partial class CompositionCanvas : UserControl
     {
         SetSelectedConnector(null);
         SetSelectedNode(FindNode(nodeId));
+        DrawingSurface.Invalidate();
+    }
+
+    public void SelectNodes(IEnumerable<string> nodeIds)
+    {
+        var nodes = nodeIds
+            .Select(FindNode)
+            .Where(node => node is not null)
+            .Cast<CanvasNode>()
+            .ToArray();
+        SetSelectedConnector(null);
+        SetSelectedNodes(nodes);
         DrawingSurface.Invalidate();
     }
 
@@ -185,8 +204,9 @@ public sealed partial class CompositionCanvas : UserControl
         foreach (var node in _nodes)
         {
             var bounds = node.Bounds;
-            var stroke = node == _selectedNode ? palette.SelectedStroke : palette.NodeStroke;
-            var strokeWidth = node == _selectedNode ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : 1;
+            var isSelected = _selectedNodeIds.Contains(node.Id);
+            var stroke = isSelected ? palette.SelectedStroke : palette.NodeStroke;
+            var strokeWidth = isSelected ? CompositionCanvasRenderDefaults.SelectedNodeStrokeWidth : 1;
 
             session.FillRoundedRectangle(bounds, 7, 7, palette.NodeFill);
             session.DrawRoundedRectangle(bounds, 7, 7, stroke, strokeWidth);
@@ -239,13 +259,26 @@ public sealed partial class CompositionCanvas : UserControl
         var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
         var worldPoint = ToWorld(screenPoint);
         var hitNode = HitTest(worldPoint);
+        var extendsSelection = e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Control) ||
+            e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift);
         if (hitNode is not null)
         {
             SetSelectedConnector(null);
-            SetSelectedNode(hitNode);
-            _draggedNode = hitNode;
-            _dragStartWorld = worldPoint;
-            _dragStartBounds = hitNode.Bounds;
+            if (extendsSelection)
+            {
+                ToggleSelectedNode(hitNode);
+                if (!_selectedNodeIds.Contains(hitNode.Id))
+                {
+                    DrawingSurface.Invalidate();
+                    return;
+                }
+            }
+            else if (!_selectedNodeIds.Contains(hitNode.Id))
+            {
+                SetSelectedNode(hitNode);
+            }
+
+            BeginNodeDrag(hitNode, worldPoint);
         }
 
         if (hitNode is null)
@@ -258,6 +291,12 @@ public sealed partial class CompositionCanvas : UserControl
             }
             else
             {
+                if (!extendsSelection)
+                {
+                    SetSelectedNode(null);
+                    SetSelectedConnector(null);
+                }
+
                 _isPanning = true;
                 _panStartScreen = screenPoint;
                 _panStart = _pan;
@@ -316,11 +355,19 @@ public sealed partial class CompositionCanvas : UserControl
         if (_draggedNode is not null)
         {
             var worldPoint = ToWorld(screenPoint);
-            _draggedNode.MoveTo(
-                _dragStartBounds.X + worldPoint.X - _dragStartWorld.X,
-                _dragStartBounds.Y + worldPoint.Y - _dragStartWorld.Y);
+            var deltaX = worldPoint.X - _dragStartWorld.X;
+            var deltaY = worldPoint.Y - _dragStartWorld.Y;
+            foreach (var node in _nodes.Where(node => _selectedNodeIds.Contains(node.Id)))
+            {
+                if (!_dragStartBoundsByNodeId.TryGetValue(node.Id, out var startBounds))
+                {
+                    continue;
+                }
 
-            NodeMoved?.Invoke(this, _draggedNode.Source);
+                node.MoveTo(startBounds.X + deltaX, startBounds.Y + deltaY);
+                NodeMoved?.Invoke(this, node.Source);
+            }
+
             DrawingSurface.Invalidate();
             return;
         }
@@ -336,10 +383,13 @@ public sealed partial class CompositionCanvas : UserControl
 
     private void DrawingSurface_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        var movedNode = _draggedNode;
+        var movedNodes = _draggedNode is null
+            ? Array.Empty<CanvasNode>()
+            : _nodes.Where(node => _selectedNodeIds.Contains(node.Id)).ToArray();
         _isPanning = false;
         _draggedNode = null;
-        if (movedNode is not null)
+        _dragStartBoundsByNodeId.Clear();
+        foreach (var movedNode in movedNodes)
         {
             NodeMoveCompleted?.Invoke(this, movedNode.Source);
         }
@@ -391,8 +441,53 @@ public sealed partial class CompositionCanvas : UserControl
             return;
         }
 
+        _selectedNodeIds.Clear();
+        if (node is not null)
+        {
+            _selectedNodeIds.Add(node.Id);
+        }
+
         _selectedNode = node;
         SelectedNodeChanged?.Invoke(this, node?.Source);
+        SelectedNodesChanged?.Invoke(this, SelectedNodes);
+    }
+
+    private void SetSelectedNodes(IReadOnlyList<CanvasNode> nodes)
+    {
+        _selectedNodeIds.Clear();
+        foreach (var node in nodes)
+        {
+            _selectedNodeIds.Add(node.Id);
+        }
+
+        _selectedNode = nodes.Count == 1 ? nodes[0] : null;
+        SelectedNodeChanged?.Invoke(this, _selectedNode?.Source);
+        SelectedNodesChanged?.Invoke(this, SelectedNodes);
+    }
+
+    private void ToggleSelectedNode(CanvasNode node)
+    {
+        if (!_selectedNodeIds.Add(node.Id))
+        {
+            _selectedNodeIds.Remove(node.Id);
+        }
+
+        _selectedNode = _selectedNodeIds.Count == 1
+            ? _nodes.FirstOrDefault(candidate => _selectedNodeIds.Contains(candidate.Id))
+            : null;
+        SelectedNodeChanged?.Invoke(this, _selectedNode?.Source);
+        SelectedNodesChanged?.Invoke(this, SelectedNodes);
+    }
+
+    private void BeginNodeDrag(CanvasNode node, Point worldPoint)
+    {
+        _draggedNode = node;
+        _dragStartWorld = worldPoint;
+        _dragStartBoundsByNodeId.Clear();
+        foreach (var selectedNode in _nodes.Where(candidate => _selectedNodeIds.Contains(candidate.Id)))
+        {
+            _dragStartBoundsByNodeId[selectedNode.Id] = selectedNode.Bounds;
+        }
     }
 
     private void SetSelectedConnector(CompositionConnectorView? connector)
@@ -403,6 +498,14 @@ public sealed partial class CompositionCanvas : UserControl
         }
 
         _selectedConnector = connector;
+        if (connector is not null)
+        {
+            _selectedNodeIds.Clear();
+            _selectedNode = null;
+            SelectedNodeChanged?.Invoke(this, null);
+            SelectedNodesChanged?.Invoke(this, SelectedNodes);
+        }
+
         SelectedConnectorChanged?.Invoke(this, connector);
     }
 

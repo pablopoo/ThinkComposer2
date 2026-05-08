@@ -443,6 +443,20 @@ AssertEqual(
 var deletedRelationshipSnapshot = CompositionSnapshotEditor.DeleteConnector(relationshipSnapshot, "created-relationship");
 AssertEqual(2, deletedRelationshipSnapshot.Connectors.Count, "delete relationship count");
 
+var copiedSelection = CompositionSnapshotSelectionEditor.Copy(indexedSnapshot, ["left", "right"]);
+AssertEqual(2, copiedSelection.Nodes.Count, "copy selection node count");
+AssertEqual(2, copiedSelection.Connectors.Count, "copy selection connector count");
+
+var pastedSelectionSnapshot = CompositionSnapshotSelectionEditor.Paste(indexedSnapshot, copiedSelection, new TcPoint(25, 35));
+AssertEqual(4, pastedSelectionSnapshot.Nodes.Count, "paste selection node count");
+AssertEqual(4, pastedSelectionSnapshot.Connectors.Count, "paste selection connector count");
+AssertEqual(125.0, pastedSelectionSnapshot.Nodes.Single(node => node.Id == "left-copy").Position.X, "paste selection x");
+AssertEqual("right-copy", pastedSelectionSnapshot.Connectors.Single(connector => connector.Id == "left-to-right-copy").TargetId, "paste selection connector target");
+
+var deletedSelectionSnapshot = CompositionSnapshotSelectionEditor.Delete(indexedSnapshot, ["left", "right"]);
+AssertEqual(0, deletedSelectionSnapshot.Nodes.Count, "delete selection node count");
+AssertEqual(0, deletedSelectionSnapshot.Connectors.Count, "delete selection connector count");
+
 var editSession = new CompositionEditingSession(indexedSnapshot);
 editSession.Apply(renamedSnapshot);
 AssertEqual(true, editSession.CanUndo, "session can undo");

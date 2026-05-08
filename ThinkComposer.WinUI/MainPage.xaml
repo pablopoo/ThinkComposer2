@@ -46,6 +46,13 @@
         </Style>
     </Page.Resources>
 
+    <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="C" Modifiers="Control" Invoked="CopyKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="X" Modifiers="Control" Invoked="CutKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="V" Modifiers="Control" Invoked="PasteKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="A" Modifiers="Control" Invoked="SelectAllKeyboardAccelerator_Invoked" />
+    </Page.KeyboardAccelerators>
+
     <Grid x:Name="RootLayout" Background="{ThemeResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="44" />
@@ -80,6 +87,9 @@
                 <AppBarButton Click="RedoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Redo" Label="Redo" ToolTipService.ToolTip="Redo" />
                 <AppBarSeparator />
                 <AppBarButton Click="DeleteButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Delete" Label="Delete" ToolTipService.ToolTip="Delete selected concept" />
+                <AppBarButton Click="CutButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Cut" Label="Cut" ToolTipService.ToolTip="Cut selected concepts" />
+                <AppBarButton Click="CopyButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Copy" Label="Copy" ToolTipService.ToolTip="Copy selected concepts" />
+                <AppBarButton Click="PasteButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Paste" Label="Paste" ToolTipService.ToolTip="Paste concepts" />
             </CommandBar>
 
             <AutoSuggestBox
