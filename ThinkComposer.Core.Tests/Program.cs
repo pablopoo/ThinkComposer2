@@ -531,6 +531,12 @@ var deletedSelectionSnapshot = CompositionSnapshotSelectionEditor.Delete(indexed
 AssertEqual(0, deletedSelectionSnapshot.Nodes.Count, "delete selection node count");
 AssertEqual(0, deletedSelectionSnapshot.Connectors.Count, "delete selection connector count");
 
+var movedSelectionSnapshot = CompositionSnapshotSelectionEditor.Move(indexedSnapshot, ["left", "right"], new TcPoint(5, -10));
+AssertEqual(105.0, movedSelectionSnapshot.Nodes.Single(node => node.Id == "left").Position.X, "move selection left x");
+AssertEqual(190.0, movedSelectionSnapshot.Nodes.Single(node => node.Id == "left").Position.Y, "move selection left y");
+AssertEqual(305.0, movedSelectionSnapshot.Nodes.Single(node => node.Id == "right").Position.X, "move selection right x");
+AssertEqual(indexedSnapshot.Connectors.Count, movedSelectionSnapshot.Connectors.Count, "move selection preserves connectors");
+
 var editSession = new CompositionEditingSession(indexedSnapshot);
 editSession.Apply(renamedSnapshot);
 AssertEqual(true, editSession.CanUndo, "session can undo");

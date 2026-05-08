@@ -105,6 +105,30 @@ public static class CompositionSnapshotSelectionEditor
         };
     }
 
+    public static CompositionViewSnapshot Move(
+        CompositionViewSnapshot snapshot,
+        IReadOnlyCollection<string> nodeIds,
+        TcPoint delta)
+    {
+        if (snapshot is null)
+        {
+            throw new ArgumentNullException(nameof(snapshot));
+        }
+
+        if (nodeIds is null)
+        {
+            throw new ArgumentNullException(nameof(nodeIds));
+        }
+
+        var selectedNodeIds = nodeIds.ToHashSet(StringComparer.Ordinal);
+        return snapshot with
+        {
+            Nodes = snapshot.Nodes.Select(node => selectedNodeIds.Contains(node.Id)
+                ? node with { Position = new TcPoint(node.Position.X + delta.X, node.Position.Y + delta.Y) }
+                : node).ToArray()
+        };
+    }
+
     private static string CreateCopyId(string baseId, ISet<string> usedIds)
     {
         var candidate = $"{baseId}-copy";

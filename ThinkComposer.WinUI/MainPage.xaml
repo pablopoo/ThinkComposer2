@@ -51,6 +51,14 @@
         <KeyboardAccelerator Key="X" Modifiers="Control" Invoked="CutKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="V" Modifiers="Control" Invoked="PasteKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="A" Modifiers="Control" Invoked="SelectAllKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Left" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Right" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Up" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Down" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Left" Modifiers="Control" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Right" Modifiers="Control" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Up" Modifiers="Control" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Down" Modifiers="Control" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
     </Page.KeyboardAccelerators>
 
     <Grid x:Name="RootLayout" Background="{ThemeResource AppBackgroundBrush}">

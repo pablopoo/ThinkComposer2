@@ -561,6 +561,27 @@ public sealed partial class MainPage : Page
         args.Handled = true;
     }
 
+    private void MoveSelectionKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (IsTextInputFocused())
+        {
+            return;
+        }
+
+        var step = sender.Modifiers.HasFlag(VirtualKeyModifiers.Control) ? 10 : 1;
+        var delta = sender.Key switch
+        {
+            VirtualKey.Left => new TcPoint(-step, 0),
+            VirtualKey.Right => new TcPoint(step, 0),
+            VirtualKey.Up => new TcPoint(0, -step),
+            VirtualKey.Down => new TcPoint(0, step),
+            _ => new TcPoint(0, 0)
+        };
+
+        MoveSelectedNodesBy(delta);
+        args.Handled = true;
+    }
+
     private void UndoButton_Click(object sender, RoutedEventArgs e)
     {
         if (_editingSession is null || !_editingSession.CanUndo)
@@ -1562,6 +1583,32 @@ public sealed partial class MainPage : Page
         ApplyEditedSnapshot(pastedSnapshot, pastedNodeIds.FirstOrDefault(), fitToViewport: false);
         CanvasView.SelectNodes(pastedNodeIds);
         StatusContextText.Text = $"Pasted {pastedNodeIds.Length} concept(s)";
+    }
+
+    private void MoveSelectedNodesBy(TcPoint delta)
+    {
+        if (_currentSnapshot is null || (delta.X == 0 && delta.Y == 0))
+        {
+            return;
+        }
+
+        var selectedNodeIds = GetSelectedNodeIds();
+        if (selectedNodeIds.Count == 0)
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotSelectionEditor.Move(_currentSnapshot, selectedNodeIds, delta),
+            selectedNodeIds.Count == 1 ? selectedNodeIds[0] : null,
+            fitToViewport: false);
+        CanvasView.SelectNodes(selectedNodeIds);
+        StatusContextText.Text = $"Moved {selectedNodeIds.Count} concept(s)";
+    }
+
+    private static bool IsTextInputFocused()
+    {
+        return FocusManager.GetFocusedElement() is TextBox or AutoSuggestBox or NumberBox or ComboBox;
     }
 
     private CompositionIdeaSnapshot? FindIdea(string ideaId)
