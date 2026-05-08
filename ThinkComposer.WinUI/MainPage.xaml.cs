@@ -374,6 +374,12 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        var document = BuildCurrentDocument();
+        if (!CanUseDocumentForOutput(document))
+        {
+            return;
+        }
+
         var picker = new FileSavePicker();
         InitializePicker(picker);
         picker.FileTypeChoices.Add("Document report HTML", [".html"]);
@@ -388,7 +394,6 @@ public sealed partial class MainPage : Page
 
         try
         {
-            var document = BuildCurrentDocument();
             await FileIO.WriteTextAsync(file, CompositionDocumentReportHtmlExporter.Export(document));
             StatusContextText.Text = $"Report exported {Path.GetFileName(file.Path)}";
             MessagesText.Text =
@@ -413,6 +418,11 @@ public sealed partial class MainPage : Page
         try
         {
             var document = BuildCurrentDocument();
+            if (!CanUseDocumentForOutput(document))
+            {
+                return;
+            }
+
             var result = CompositionDocumentFileGenerator.Generate(document);
             if (result.Files.Count == 0)
             {
@@ -448,6 +458,22 @@ public sealed partial class MainPage : Page
                 $"Could not generate files{Environment.NewLine}" +
                 problem.Message;
         }
+    }
+
+    private bool CanUseDocumentForOutput(CompositionDocumentSnapshot document)
+    {
+        var validation = CompositionDocumentValidator.Validate(document);
+        if (!validation.HasErrors)
+        {
+            return true;
+        }
+
+        ShowBottomTab(BottomPanelTab.Diagnostics);
+        StatusContextText.Text = "Fix validation issues first";
+        MessagesText.Text =
+            $"Output blocked by validation{Environment.NewLine}" +
+            string.Join(Environment.NewLine, validation.Issues.Take(8).Select(issue => $"- {issue.Message}"));
+        return false;
     }
 
     private async void PrintPreviewButton_Click(object sender, RoutedEventArgs e)
