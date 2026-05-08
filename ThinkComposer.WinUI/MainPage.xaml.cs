@@ -724,6 +724,15 @@ public sealed partial class MainPage : Page
             : !string.IsNullOrWhiteSpace(_selectedConnectorId)
                 ? $"Relationship: {_selectedConnectorId}"
                 : "None";
+        var validation = _currentSnapshot is null
+            ? new CompositionDocumentValidationResult(Array.Empty<CompositionDocumentValidationIssue>())
+            : CompositionDocumentValidator.Validate(BuildCurrentDocument());
+        var issueText = validation.Issues.Count == 0
+            ? "0"
+            : $"{validation.Issues.Count}{Environment.NewLine}" +
+                string.Join(
+                    Environment.NewLine,
+                    validation.Issues.Take(8).Select(issue => $"- {issue.Code}: {issue.Message}"));
 
         DiagnosticsText.Text =
             $"Document: {_currentSnapshot?.Title ?? "(none)"}{Environment.NewLine}" +
@@ -732,6 +741,7 @@ public sealed partial class MainPage : Page
             $"Nodes: {_currentSnapshot?.Nodes.Count ?? 0}{Environment.NewLine}" +
             $"Relationships: {_currentSnapshot?.Connectors.Count ?? 0}{Environment.NewLine}" +
             $"Selection: {selection}{Environment.NewLine}" +
+            $"Validation issues: {issueText}{Environment.NewLine}" +
             $"Explorer: {_isExplorerVisible}{Environment.NewLine}" +
             $"Inspector: {_isInspectorVisible}{Environment.NewLine}" +
             $"Bottom panel: {_isBottomVisible}";

@@ -150,6 +150,50 @@ AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
 
+var invalidDocument = modernDocument with
+{
+    Ideas =
+    [
+        modernDocument.Ideas[0],
+        modernDocument.Ideas[0] with { Name = "Duplicate", DefinitionId = "missing-concept", Markers = ["missing-marker"] }
+    ],
+    Relationships =
+    [
+        modernDocument.Relationships[0] with
+        {
+            SourceIdeaId = "missing-source",
+            TargetIdeaId = "missing-target",
+            DefinitionId = "missing-relationship",
+            Markers = ["missing-marker"]
+        }
+    ],
+    Views =
+    [
+        modernDocument.Views[0] with
+        {
+            Nodes = [modernDocument.Views[0].Nodes[0] with { Id = "missing-view-idea" }],
+            Connectors = [modernDocument.Views[0].Connectors[0] with { SourceId = "missing-source" }]
+        }
+    ],
+    Domain = modernDocument.Domain with
+    {
+        Templates =
+        [
+            new CompositionExtensionSnapshot("template.concept.note", "one"),
+            new CompositionExtensionSnapshot("template.concept.note", "two")
+        ]
+    }
+};
+var validation = CompositionDocumentValidator.Validate(invalidDocument);
+AssertTrue(validation.HasErrors, "validation has errors");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateIdeaId), "validation duplicate idea");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingIdeaDefinition), "validation missing idea definition");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingRelationshipEndpoint), "validation missing relationship endpoint");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingMarkerDefinition), "validation missing marker definition");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingViewNodeIdea), "validation missing view node idea");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateTemplateKey), "validation duplicate template");
+AssertTrue(!CompositionDocumentValidator.Validate(modernDocument).HasErrors, "valid modern document");
+
 var modernReportHtml = CompositionDocumentReportHtmlExporter.Export(modernDocument);
 AssertTrue(modernReportHtml.Contains("<!doctype html>", StringComparison.OrdinalIgnoreCase), "modern report doctype");
 AssertTrue(modernReportHtml.Contains("Modern Document", StringComparison.Ordinal), "modern report title");
