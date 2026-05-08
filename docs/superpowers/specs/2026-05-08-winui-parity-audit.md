@@ -6,7 +6,7 @@ Date: 2026-05-08
 
 The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: legacy presentation output, native PDF/XPS generation, installer/signing, and broader automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly release hardening and deeper automation: native PDF/XPS generation, installer/signing, update channel, and broader automated UI workflow smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -20,7 +20,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
 - Details: custom fields, links, attachments, CSV table details with a structured row editor.
 - Base tables: table definitions persist and edit row records, with records included in preview/report output.
-- Output: SVG/HTML export, full document HTML report, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
+- Output: SVG/HTML export, full document HTML report, HTML presentation deck, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
 - Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script coverage, and solution build; publish script emits self-contained WinUI output plus release manifest/zip.
@@ -45,7 +45,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 - HTML report and generation are implemented.
 - Native PDF/XPS report export is not ported; the supported replacement path is the full-document printable HTML preview plus browser print/save-to-PDF.
-- Presentation command is not ported.
+- Legacy native presentation output is replaced by an HTML presentation deck generated from document views.
 
 ### P2 - Product/Release Hardening
 

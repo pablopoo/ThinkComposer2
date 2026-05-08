@@ -8,6 +8,7 @@ public static class CompositionCommandIds
     public const string SaveAs = "document.saveAs";
     public const string ExportHtml = "document.exportHtml";
     public const string ReportHtml = "document.reportHtml";
+    public const string PresentationHtml = "document.presentationHtml";
     public const string GenerateFiles = "document.generateFiles";
     public const string MergeDocument = "document.merge";
     public const string PrintPreview = "document.printPreview";

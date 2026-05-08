@@ -264,6 +264,10 @@ AssertTrue(modernReportHtml.Contains("Source: Customer Need", StringComparison.O
 AssertTrue(modernReportHtml.Contains("Link role: Source Role", StringComparison.Ordinal), "modern report link role");
 AssertTrue(modernReportHtml.Contains("<svg", StringComparison.Ordinal), "modern report view svg");
 AssertTrue(modernReportHtml.Contains("Checklist", StringComparison.Ordinal), "modern report table definition");
+var presentationHtml = CompositionDocumentPresentationHtmlExporter.Export(modernDocument);
+AssertTrue(presentationHtml.Contains("<section class=\"slide\"", StringComparison.Ordinal), "presentation slide section");
+AssertTrue(presentationHtml.Contains("Customer Need Detail", StringComparison.Ordinal), "presentation view slide");
+AssertTrue(presentationHtml.Contains("<svg", StringComparison.Ordinal), "presentation svg");
 
 var generationDocument = modernDocument with
 {

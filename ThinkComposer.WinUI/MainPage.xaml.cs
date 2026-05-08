@@ -429,6 +429,47 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void PresentationButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var document = BuildCurrentDocument();
+        if (!CanUseDocumentForOutput(document))
+        {
+            return;
+        }
+
+        var picker = new FileSavePicker();
+        InitializePicker(picker);
+        picker.FileTypeChoices.Add("HTML presentation", [".html"]);
+        picker.SuggestedFileName = $"{(_currentSnapshot.Title.Length == 0 ? "Untitled" : _currentSnapshot.Title)}-presentation";
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await FileIO.WriteTextAsync(file, CompositionDocumentPresentationHtmlExporter.Export(document));
+            StatusContextText.Text = $"Presentation exported {Path.GetFileName(file.Path)}";
+            MessagesText.Text =
+                $"HTML presentation exported{Environment.NewLine}" +
+                $"Path: {file.Path}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not export presentation{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
     private async void GenerateFilesButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -3259,6 +3300,9 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandIds.ReportHtml:
                 ReportButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.PresentationHtml:
+                PresentationButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.GenerateFiles:
                 GenerateFilesButton_Click(this, new RoutedEventArgs());
