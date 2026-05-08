@@ -6,6 +6,8 @@ public static class CompositionCommandIds
     public const string Open = "document.open";
     public const string Save = "document.save";
     public const string SaveAs = "document.saveAs";
+    public const string ExportHtml = "document.exportHtml";
+    public const string PrintPreview = "document.printPreview";
     public const string NewConcept = "concept.new";
     public const string NewRelationship = "relationship.new";
     public const string Delete = "edit.delete";

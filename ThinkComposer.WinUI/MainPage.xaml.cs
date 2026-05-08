@@ -4,6 +4,7 @@ using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
 
@@ -14,6 +15,11 @@ public sealed partial class MainPage : Page
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
+
+    private readonly string _settingsPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ThinkComposer",
+        "workspace-settings.xml");
 
     private bool _isExplorerVisible = true;
     private bool _isInspectorVisible = true;
@@ -37,27 +43,33 @@ public sealed partial class MainPage : Page
         CanvasView.SelectedConnectorChanged += CanvasView_SelectedConnectorChanged;
         CanvasView.NodeMoved += CanvasView_NodeMoved;
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
+        LoadWorkspaceSettings();
         LoadStartupSnapshot();
     }
 
     public event EventHandler<ElementTheme>? AppThemeChanged;
 
+    public ElementTheme CurrentTheme => _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
+
     private void ExplorerButton_Click(object sender, RoutedEventArgs e)
     {
         _isExplorerVisible = !_isExplorerVisible;
         ApplyPanelState();
+        SaveWorkspaceSettings();
     }
 
     private void InspectorButton_Click(object sender, RoutedEventArgs e)
     {
         _isInspectorVisible = !_isInspectorVisible;
         ApplyPanelState();
+        SaveWorkspaceSettings();
     }
 
     private void BottomButton_Click(object sender, RoutedEventArgs e)
     {
         _isBottomVisible = !_isBottomVisible;
         ApplyPanelState();
+        SaveWorkspaceSettings();
     }
 
     private void FocusButton_Click(object sender, RoutedEventArgs e)
@@ -67,6 +79,7 @@ public sealed partial class MainPage : Page
         _isInspectorVisible = showPanels;
         _isBottomVisible = showPanels;
         ApplyPanelState();
+        SaveWorkspaceSettings();
         DispatcherQueue.TryEnqueue(() => CanvasView.FitSnapshotToViewport());
     }
 
@@ -76,6 +89,7 @@ public sealed partial class MainPage : Page
         var theme = _isDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
         RootPage.RequestedTheme = theme;
         AppThemeChanged?.Invoke(this, theme);
+        SaveWorkspaceSettings();
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -162,6 +176,76 @@ public sealed partial class MainPage : Page
         }
 
         SaveSnapshotToPath(file.Path);
+    }
+
+    private async void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var picker = new FileSavePicker();
+        InitializePicker(picker);
+        picker.FileTypeChoices.Add("Printable HTML", [".html"]);
+        picker.FileTypeChoices.Add("SVG image", [".svg"]);
+        picker.SuggestedFileName = string.IsNullOrWhiteSpace(_currentSnapshot.Title) ? "Untitled" : _currentSnapshot.Title;
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var extension = Path.GetExtension(file.Path);
+            var content = string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase)
+                ? CompositionSnapshotSvgExporter.Export(_currentSnapshot)
+                : CompositionSnapshotHtmlExporter.Export(_currentSnapshot);
+
+            await FileIO.WriteTextAsync(file, content);
+            StatusContextText.Text = $"Exported {Path.GetFileName(file.Path)}";
+            MessagesText.Text =
+                $"Document exported{Environment.NewLine}" +
+                $"Path: {file.Path}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not export document{Environment.NewLine}" +
+                problem.Message;
+        }
+    }
+
+    private async void PrintPreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var previewPath = Path.Combine(
+                Path.GetTempPath(),
+                $"thinkcomposer-print-preview-{Guid.NewGuid():N}.html");
+            File.WriteAllText(previewPath, CompositionSnapshotHtmlExporter.Export(_currentSnapshot));
+
+            var previewFile = await StorageFile.GetFileFromPathAsync(previewPath);
+            var launched = await Launcher.LaunchFileAsync(previewFile);
+            StatusContextText.Text = launched ? "Print preview opened" : "Print preview not opened";
+            MessagesText.Text =
+                $"Printable preview generated{Environment.NewLine}" +
+                $"Path: {previewPath}";
+        }
+        catch (Exception problem)
+        {
+            MessagesText.Text =
+                $"Could not open print preview{Environment.NewLine}" +
+                problem.Message;
+        }
     }
 
     private void NewConceptButton_Click(object sender, RoutedEventArgs e)
@@ -253,6 +337,34 @@ public sealed partial class MainPage : Page
         ExplorerPanel.Visibility = _isExplorerVisible ? Visibility.Visible : Visibility.Collapsed;
         InspectorPanel.Visibility = _isInspectorVisible ? Visibility.Visible : Visibility.Collapsed;
         BottomPanel.Visibility = _isBottomVisible ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void LoadWorkspaceSettings()
+    {
+        var settings = CompositionWorkspaceSettingsXmlStore.LoadOrDefault(_settingsPath);
+        _isExplorerVisible = settings.IsExplorerVisible;
+        _isInspectorVisible = settings.IsInspectorVisible;
+        _isBottomVisible = settings.IsBottomVisible;
+        _isDarkTheme = settings.Theme == CompositionWorkspaceTheme.Dark;
+        RootPage.RequestedTheme = CurrentTheme;
+        ApplyPanelState();
+    }
+
+    private void SaveWorkspaceSettings()
+    {
+        try
+        {
+            var settings = new CompositionWorkspaceSettings(
+                _isDarkTheme ? CompositionWorkspaceTheme.Dark : CompositionWorkspaceTheme.Light,
+                _isExplorerVisible,
+                _isInspectorVisible,
+                _isBottomVisible);
+            CompositionWorkspaceSettingsXmlStore.Save(settings, _settingsPath);
+        }
+        catch (Exception problem)
+        {
+            Debug.WriteLine(problem);
+        }
     }
 
     private void LoadStartupSnapshot()
@@ -805,6 +917,12 @@ public sealed partial class MainPage : Page
                 break;
             case CompositionCommandIds.SaveAs:
                 SaveAsButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.ExportHtml:
+                ExportButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.PrintPreview:
+                PrintPreviewButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.NewConcept:
                 NewConceptButton_Click(this, new RoutedEventArgs());

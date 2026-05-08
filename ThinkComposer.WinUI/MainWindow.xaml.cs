@@ -15,12 +15,14 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon("Assets/AppIcon.ico");
         RootFrame.Navigate(typeof(MainPage));
 
+        var initialTheme = ElementTheme.Light;
         if (RootFrame.Content is MainPage page)
         {
             page.AppThemeChanged += (_, theme) => ApplyTheme(theme);
+            initialTheme = page.CurrentTheme;
         }
 
-        ApplyTheme(ElementTheme.Light);
+        ApplyTheme(initialTheme);
     }
 
     private void ApplyTheme(ElementTheme theme)

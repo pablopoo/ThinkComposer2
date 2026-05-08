@@ -17,8 +17,43 @@ AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKi
 AssertEqual(CompositionDocumentFileKind.LegacyPackage, CompositionDocumentFileKindDetector.FromPath("sample.tcom"), "tcom extension");
 AssertEqual(CompositionDocumentFileKind.Unknown, CompositionDocumentFileKindDetector.FromPath("sample.txt"), "unknown extension");
 
+var exportedSvg = CompositionSnapshotSvgExporter.Export(snapshot);
+AssertTrue(exportedSvg.Contains("<svg", StringComparison.Ordinal), "svg root");
+AssertTrue(exportedSvg.Contains("Customer Need", StringComparison.Ordinal), "svg node text");
+AssertTrue(exportedSvg.Contains("<line", StringComparison.Ordinal), "svg line");
+
+var exportedHtml = CompositionSnapshotHtmlExporter.Export(snapshot);
+AssertTrue(exportedHtml.Contains("<!doctype html>", StringComparison.OrdinalIgnoreCase), "html doctype");
+AssertTrue(exportedHtml.Contains("Composition 1", StringComparison.Ordinal), "html title");
+AssertTrue(exportedHtml.Contains("<svg", StringComparison.Ordinal), "html svg");
+
+var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
+try
+{
+    var settings = new CompositionWorkspaceSettings(
+        Theme: CompositionWorkspaceTheme.Dark,
+        IsExplorerVisible: false,
+        IsInspectorVisible: true,
+        IsBottomVisible: false);
+    CompositionWorkspaceSettingsXmlStore.Save(settings, settingsPath);
+    var reloadedSettings = CompositionWorkspaceSettingsXmlStore.LoadOrDefault(settingsPath);
+    AssertEqual(CompositionWorkspaceTheme.Dark, reloadedSettings.Theme, "settings theme");
+    AssertEqual(false, reloadedSettings.IsExplorerVisible, "settings explorer");
+    AssertEqual(true, reloadedSettings.IsInspectorVisible, "settings inspector");
+    AssertEqual(false, reloadedSettings.IsBottomVisible, "settings bottom");
+}
+finally
+{
+    if (File.Exists(settingsPath))
+    {
+        File.Delete(settingsPath);
+    }
+}
+
 var commandEntries = CompositionCommandCatalog.ForSnapshot(snapshot);
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.Open), "command catalog open");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.ExportHtml), "command catalog export");
+AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Command && entry.Id == CompositionCommandIds.PrintPreview), "command catalog print preview");
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
 AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");
 AssertEqual(0, CompositionCommandCatalog.Search(commandEntries, "zzzz-not-found").Count, "command search miss");

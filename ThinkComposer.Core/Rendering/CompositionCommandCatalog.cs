@@ -8,6 +8,8 @@ public static class CompositionCommandCatalog
         new(CompositionCommandIds.Open, "Open", CompositionCommandEntryKind.Command, Subtitle: "Document"),
         new(CompositionCommandIds.Save, "Save", CompositionCommandEntryKind.Command, Subtitle: "Document"),
         new(CompositionCommandIds.SaveAs, "Save As", CompositionCommandEntryKind.Command, Subtitle: "Document"),
+        new(CompositionCommandIds.ExportHtml, "Export HTML/SVG", CompositionCommandEntryKind.Command, Subtitle: "Document"),
+        new(CompositionCommandIds.PrintPreview, "Print preview", CompositionCommandEntryKind.Command, Subtitle: "Document"),
         new(CompositionCommandIds.NewConcept, "New concept", CompositionCommandEntryKind.Command, Subtitle: "Canvas"),
         new(CompositionCommandIds.NewRelationship, "New relationship", CompositionCommandEntryKind.Command, Subtitle: "Canvas"),
         new(CompositionCommandIds.Delete, "Delete selection", CompositionCommandEntryKind.Command, Subtitle: "Edit"),

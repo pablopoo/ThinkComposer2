@@ -33,10 +33,10 @@ Date: 2026-05-07
 
 ## Output
 
-- Export
-- Print
+- Export: WinUI HTML/SVG export implemented.
+- Print: WinUI printable HTML preview implemented as replacement path.
 
 ## Settings
 
-- Theme
-- Workspace preferences
+- Theme: persisted in WinUI.
+- Workspace preferences: panel visibility persisted in WinUI.

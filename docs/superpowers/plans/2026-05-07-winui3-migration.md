@@ -416,13 +416,17 @@ Existing documents open and save correctly from WinUI.
 
 Implementation note: WinUI now supports New, Open `.tcview`, Save, and Save As `.tcview` through native Windows file pickers. WinUI can also open `.tdom`/`.tcom` by running the external legacy bridge tool and importing the package into a temporary `.tcview`; save-back to the original legacy package remains pending.
 
-- [ ] **Step 2: Export/print parity**
+- [x] **Step 2: Export/print parity**
 
 Port export and print workflows or define a supported replacement if current code is WPF-only.
 
-- [ ] **Step 3: Settings parity**
+Implementation note: WinUI now exports the active composition as printable HTML or SVG. The print workflow uses generated printable HTML launched through Windows as the supported WinUI replacement for the WPF print pipeline.
+
+- [x] **Step 3: Settings parity**
 
 Port workspace preferences and theme settings.
+
+Implementation note: WinUI now persists theme plus explorer, inspector, and bottom panel visibility under local app data and restores them on startup.
 
 ## Phase 8: Cut Over To WinUI
 

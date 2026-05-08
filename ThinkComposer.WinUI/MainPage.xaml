@@ -62,6 +62,8 @@
                 <AppBarButton Click="OpenButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="OpenFile" Label="Open" ToolTipService.ToolTip="Open .tcview" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
                 <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcview" />
+                <AppBarButton Click="ExportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Export" ToolTipService.ToolTip="Export HTML or SVG" />
+                <AppBarButton Click="PrintPreviewButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Print" Label="Print" ToolTipService.ToolTip="Open printable preview" />
                 <AppBarSeparator />
                 <AppBarButton Click="UndoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Undo" Label="Undo" ToolTipService.ToolTip="Undo" />
                 <AppBarButton Click="RedoButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Redo" Label="Redo" ToolTipService.ToolTip="Redo" />
