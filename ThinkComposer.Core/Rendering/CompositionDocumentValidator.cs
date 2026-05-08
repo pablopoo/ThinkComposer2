@@ -14,6 +14,7 @@ public static class CompositionDocumentValidator
         var relationshipIds = document.Relationships.Select(relationship => relationship.Id).ToArray();
         var conceptDefinitionIds = document.Domain.ConceptDefinitions.Select(definition => definition.Id).ToHashSet(StringComparer.Ordinal);
         var relationshipDefinitionIds = document.Domain.RelationshipDefinitions.Select(definition => definition.Id).ToHashSet(StringComparer.Ordinal);
+        var linkRoleDefinitionIds = document.Domain.LinkRoleDefinitions.Select(definition => definition.Id).ToHashSet(StringComparer.Ordinal);
         var markerDefinitionIds = document.Domain.MarkerDefinitions.Select(definition => definition.Id).ToHashSet(StringComparer.Ordinal);
         var ideaIdSet = ideaIds.ToHashSet(StringComparer.Ordinal);
         var relationshipIdSet = relationshipIds.ToHashSet(StringComparer.Ordinal);
@@ -50,6 +51,7 @@ public static class CompositionDocumentValidator
             "Duplicate relationship name");
         ValidateDefinitionNames(document.Domain.ConceptDefinitions, "Concept definition", issues);
         ValidateDefinitionNames(document.Domain.RelationshipDefinitions, "Relationship definition", issues);
+        ValidateDefinitionNames(document.Domain.LinkRoleDefinitions, "Link-role definition", issues);
         ValidateDefinitionNames(document.Domain.MarkerDefinitions, "Marker definition", issues);
         ValidateDefinitionNames(document.Domain.TableDefinitions, "Table definition", issues);
         ValidateDefinitionNames(document.Domain.ExternalLanguages, "External language", issues);
@@ -60,7 +62,7 @@ public static class CompositionDocumentValidator
             "Template key is required");
         AddDuplicates(issues, document.Domain.Templates.Select(template => template.Key), CompositionDocumentValidationCodes.DuplicateTemplateKey, "Duplicate template key");
         ValidateIdeas(document.Ideas, conceptDefinitionIds, markerDefinitionIds, issues);
-        ValidateRelationships(document.Relationships, relationshipDefinitionIds, markerDefinitionIds, ideaIdSet, issues);
+        ValidateRelationships(document.Relationships, relationshipDefinitionIds, linkRoleDefinitionIds, markerDefinitionIds, ideaIdSet, issues);
         ValidateViews(document.Views, ideaIdSet, relationshipIdSet, issues);
 
         return new CompositionDocumentValidationResult(issues);
@@ -106,6 +108,7 @@ public static class CompositionDocumentValidator
     private static void ValidateRelationships(
         IReadOnlyList<CompositionRelationshipSnapshot> relationships,
         ISet<string> relationshipDefinitionIds,
+        ISet<string> linkRoleDefinitionIds,
         ISet<string> markerDefinitionIds,
         ISet<string> ideaIds,
         ICollection<CompositionDocumentValidationIssue> issues)
@@ -126,6 +129,15 @@ public static class CompositionDocumentValidator
                 issues.Add(Error(
                     CompositionDocumentValidationCodes.MissingRelationshipEndpoint,
                     $"Relationship '{Display(relationship.Name, relationship.Id)}' references a missing endpoint.",
+                    relationship.Id));
+            }
+
+            if (!string.IsNullOrWhiteSpace(relationship.LinkRoleId) &&
+                !linkRoleDefinitionIds.Contains(relationship.LinkRoleId))
+            {
+                issues.Add(Error(
+                    CompositionDocumentValidationCodes.MissingLinkRoleDefinition,
+                    $"Relationship '{Display(relationship.Name, relationship.Id)}' references missing link role '{relationship.LinkRoleId}'.",
                     relationship.Id));
             }
 

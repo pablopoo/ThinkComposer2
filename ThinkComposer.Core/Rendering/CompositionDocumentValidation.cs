@@ -26,6 +26,7 @@ public static class CompositionDocumentValidationCodes
     public const string EmptyRelationshipName = "empty.relationship.name";
     public const string DuplicateRelationshipName = "duplicate.relationship.name";
     public const string DuplicateRelationshipId = "duplicate.relationship.id";
+    public const string MissingLinkRoleDefinition = "missing.link.role.definition";
     public const string EmptyDefinitionName = "empty.definition.name";
     public const string DuplicateDefinitionName = "duplicate.definition.name";
     public const string EmptyTemplateKey = "empty.template.key";

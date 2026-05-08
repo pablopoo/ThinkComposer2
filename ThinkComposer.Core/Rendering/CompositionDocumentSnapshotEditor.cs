@@ -322,6 +322,30 @@ public static class CompositionDocumentSnapshotEditor
         };
     }
 
+    public static CompositionDocumentSnapshot SetRelationshipLinkRole(
+        CompositionDocumentSnapshot document,
+        string relationshipId,
+        string linkRoleId)
+    {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        if (!string.IsNullOrWhiteSpace(linkRoleId))
+        {
+            ValidateDefinitionId(document.Domain.LinkRoleDefinitions, linkRoleId, nameof(linkRoleId));
+        }
+
+        return document with
+        {
+            Relationships = document.Relationships.Select(relationship =>
+                string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)
+                    ? relationship with { LinkRoleId = linkRoleId.Trim() }
+                    : relationship).ToArray()
+        };
+    }
+
     public static CompositionDocumentSnapshot SetRelationshipStyle(
         CompositionDocumentSnapshot document,
         string relationshipId,
@@ -519,6 +543,10 @@ public static class CompositionDocumentSnapshotEditor
             {
                 RelationshipDefinitions = UpsertDefinition(domain.RelationshipDefinitions, definition)
             },
+            CompositionDefinitionGroup.LinkRole => domain with
+            {
+                LinkRoleDefinitions = UpsertDefinition(domain.LinkRoleDefinitions, definition)
+            },
             CompositionDefinitionGroup.Marker => domain with
             {
                 MarkerDefinitions = UpsertDefinition(domain.MarkerDefinitions, definition)
@@ -549,6 +577,10 @@ public static class CompositionDocumentSnapshotEditor
             CompositionDefinitionGroup.Relationship => domain with
             {
                 RelationshipDefinitions = DeleteDefinition(domain.RelationshipDefinitions, definitionId)
+            },
+            CompositionDefinitionGroup.LinkRole => domain with
+            {
+                LinkRoleDefinitions = DeleteDefinition(domain.LinkRoleDefinitions, definitionId)
             },
             CompositionDefinitionGroup.Marker => domain with
             {

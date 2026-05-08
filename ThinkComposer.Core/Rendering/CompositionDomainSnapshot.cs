@@ -10,7 +10,8 @@ public sealed record CompositionDomainSnapshot(
     IReadOnlyList<CompositionDefinitionSnapshot>? TableDefinitions = null,
     IReadOnlyList<CompositionDefinitionSnapshot>? ExternalLanguages = null,
     IReadOnlyList<CompositionExtensionSnapshot>? Templates = null,
-    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null)
+    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null,
+    IReadOnlyList<CompositionDefinitionSnapshot>? LinkRoleDefinitions = null)
 {
     public IReadOnlyList<CompositionDefinitionSnapshot> ConceptDefinitions { get; init; } =
         ConceptDefinitions ?? Array.Empty<CompositionDefinitionSnapshot>();
@@ -26,6 +27,9 @@ public sealed record CompositionDomainSnapshot(
 
     public IReadOnlyList<CompositionDefinitionSnapshot> ExternalLanguages { get; init; } =
         ExternalLanguages ?? Array.Empty<CompositionDefinitionSnapshot>();
+
+    public IReadOnlyList<CompositionDefinitionSnapshot> LinkRoleDefinitions { get; init; } =
+        LinkRoleDefinitions ?? Array.Empty<CompositionDefinitionSnapshot>();
 
     public IReadOnlyList<CompositionExtensionSnapshot> Templates { get; init; } =
         Templates ?? Array.Empty<CompositionExtensionSnapshot>();

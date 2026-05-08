@@ -68,6 +68,7 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("summary", domain.Summary),
             new XElement("ConceptDefinitions", domain.ConceptDefinitions.Select(WriteDefinition)),
             new XElement("RelationshipDefinitions", domain.RelationshipDefinitions.Select(WriteDefinition)),
+            new XElement("LinkRoleDefinitions", domain.LinkRoleDefinitions.Select(WriteDefinition)),
             new XElement("MarkerDefinitions", domain.MarkerDefinitions.Select(WriteDefinition)),
             new XElement("TableDefinitions", domain.TableDefinitions.Select(WriteDefinition)),
             new XElement("ExternalLanguages", domain.ExternalLanguages.Select(WriteDefinition)),
@@ -111,6 +112,7 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("sourceIdeaId", relationship.SourceIdeaId),
             new XAttribute("targetIdeaId", relationship.TargetIdeaId),
             new XAttribute("definitionId", relationship.DefinitionId),
+            new XAttribute("linkRoleId", relationship.LinkRoleId),
             new XElement("Markers", relationship.Markers.Select(marker => new XElement("Marker", new XAttribute("id", marker)))),
             WriteStyle(relationship.Style),
             WriteDetails(relationship.Details),
@@ -205,7 +207,8 @@ public static class CompositionDocumentSnapshotXmlStore
             ReadDefinitions(element.Element("TableDefinitions")),
             ReadDefinitions(element.Element("ExternalLanguages")),
             ReadExtensions(element.Element("Templates")),
-            ReadExtensions(element.Element("Extensions")));
+            ReadExtensions(element.Element("Extensions")),
+            ReadDefinitions(element.Element("LinkRoleDefinitions")));
     }
 
     private static IReadOnlyList<CompositionDefinitionSnapshot> ReadDefinitions(XElement? container)
@@ -249,7 +252,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadDetails(element.Element("Details")),
                 ReadMarkers(element.Element("Markers")),
                 ReadStyle(element.Element("Style")),
-                ReadExtensions(element.Element("Extensions")))).ToArray()
+                ReadExtensions(element.Element("Extensions")),
+                ReadString(element, "linkRoleId"))).ToArray()
             ?? Array.Empty<CompositionRelationshipSnapshot>();
     }
 

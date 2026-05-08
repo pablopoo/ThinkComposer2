@@ -66,6 +66,7 @@ public static class CompositionDocumentMerger
         {
             ConceptDefinitions = MergeDefinitions(target.ConceptDefinitions, incoming.ConceptDefinitions),
             RelationshipDefinitions = MergeDefinitions(target.RelationshipDefinitions, incoming.RelationshipDefinitions),
+            LinkRoleDefinitions = MergeDefinitions(target.LinkRoleDefinitions, incoming.LinkRoleDefinitions),
             MarkerDefinitions = MergeDefinitions(target.MarkerDefinitions, incoming.MarkerDefinitions),
             TableDefinitions = MergeDefinitions(target.TableDefinitions, incoming.TableDefinitions),
             ExternalLanguages = MergeDefinitions(target.ExternalLanguages, incoming.ExternalLanguages),

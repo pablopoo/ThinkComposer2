@@ -37,9 +37,11 @@ public static class CompositionDocumentFileGenerator
         foreach (var relationship in document.Relationships)
         {
             var definition = FindDefinition(definitions, relationship.DefinitionId);
+            var linkRole = FindDefinition(definitions, relationship.LinkRoleId);
             var source = FindIdea(ideas, relationship.SourceIdeaId);
             var target = FindIdea(ideas, relationship.TargetIdeaId);
             var values = CreateBaseValues(document, relationship.Id, relationship.Name, string.Empty, definition);
+            AddDefinitionValues(values, "LinkRole", linkRole);
             values["Source.Id"] = source?.Id ?? relationship.SourceIdeaId;
             values["Source.Name"] = source?.Name ?? relationship.SourceIdeaId;
             values["Target.Id"] = target?.Id ?? relationship.TargetIdeaId;
@@ -133,6 +135,17 @@ public static class CompositionDocumentFileGenerator
         };
     }
 
+    private static void AddDefinitionValues(
+        IDictionary<string, string> values,
+        string prefix,
+        CompositionDefinitionSnapshot? definition)
+    {
+        values[$"{prefix}.Id"] = definition?.Id ?? string.Empty;
+        values[$"{prefix}.Name"] = definition?.Name ?? string.Empty;
+        values[$"{prefix}.Kind"] = definition?.Kind ?? string.Empty;
+        values[$"{prefix}.Summary"] = definition?.Summary ?? string.Empty;
+    }
+
     private static void AddDetails(
         IDictionary<string, string> values,
         string prefix,
@@ -153,6 +166,7 @@ public static class CompositionDocumentFileGenerator
     {
         return domain.ConceptDefinitions
             .Concat(domain.RelationshipDefinitions)
+            .Concat(domain.LinkRoleDefinitions)
             .Concat(domain.MarkerDefinitions)
             .Concat(domain.TableDefinitions)
             .Concat(domain.ExternalLanguages)

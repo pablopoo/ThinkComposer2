@@ -1319,6 +1319,7 @@ public sealed partial class MainPage : Page
         };
         AddDefinitionGroup(domainNode, "Concept definitions", domain.ConceptDefinitions, CompositionDefinitionGroup.Concept);
         AddDefinitionGroup(domainNode, "Relationship definitions", domain.RelationshipDefinitions, CompositionDefinitionGroup.Relationship);
+        AddDefinitionGroup(domainNode, "Link-role variants", domain.LinkRoleDefinitions, CompositionDefinitionGroup.LinkRole);
         AddDefinitionGroup(domainNode, "Markers", domain.MarkerDefinitions, CompositionDefinitionGroup.Marker);
         AddDefinitionGroup(domainNode, "Tables", domain.TableDefinitions, CompositionDefinitionGroup.Table);
         AddDefinitionGroup(domainNode, "External languages", domain.ExternalLanguages, CompositionDefinitionGroup.ExternalLanguage);
@@ -1534,6 +1535,30 @@ public sealed partial class MainPage : Page
             _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(document, _selectedConnectorId, definitionId);
             MarkDocumentMetadataChanged("Relationship definition updated");
         }
+    }
+
+    private void ApplyLinkRoleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isApplyingInspector ||
+            _currentSnapshot is null ||
+            string.IsNullOrWhiteSpace(_selectedConnectorId))
+        {
+            return;
+        }
+
+        var linkRoleId = InspectorLinkRoleBox.SelectedItem is ComboBoxItem item && item.Tag is string tag
+            ? tag
+            : string.Empty;
+        if (!string.IsNullOrWhiteSpace(linkRoleId) &&
+            FindDefinition(CompositionDefinitionGroup.LinkRole, linkRoleId) is null)
+        {
+            StatusContextText.Text = "Link role definition not found";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipLinkRole(document, _selectedConnectorId, linkRoleId);
+        MarkDocumentMetadataChanged("Link role updated");
     }
 
     private void InspectorDetailsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1871,6 +1896,7 @@ public sealed partial class MainPage : Page
             InspectorWidthBox.Value = 0;
             InspectorHeightBox.Value = 0;
             SetMetadataInspector(null, null, isEnabled: false);
+            SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(null);
             SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
@@ -1901,6 +1927,7 @@ public sealed partial class MainPage : Page
         SetDefinitionComboItems(CompositionDefinitionGroup.Concept, idea?.DefinitionId, definition?.Name ?? "Concept");
         SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(idea?.Markers));
         SetMetadataInspector(idea?.Details, idea?.Markers, isEnabled: true);
+        SetLinkRoleInspector(null, isEnabled: false);
         SetTemplateInspector(null);
         SetComplementInspector();
         SetStyleInspector(idea?.Style ?? definition?.Style ?? node.Style, isEnabled: true);
@@ -1948,6 +1975,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, "Concept selection");
             SetComboFirstItem(InspectorStatusBox, $"{nodes.Count} selected");
             SetMetadataInspector(null, null, isEnabled: false);
+            SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(null);
             SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
@@ -1971,6 +1999,7 @@ public sealed partial class MainPage : Page
             if (connector is null)
             {
                 _selectedConnectorId = null;
+                SetLinkRoleInspector(null, isEnabled: false);
                 return;
             }
 
@@ -1995,6 +2024,7 @@ public sealed partial class MainPage : Page
             SetDefinitionComboItems(CompositionDefinitionGroup.Relationship, relationship?.DefinitionId, definition?.Name ?? "Relationship");
             SetComboFirstItem(InspectorStatusBox, FormatMarkerSummary(relationship?.Markers));
             SetMetadataInspector(relationship?.Details, relationship?.Markers, isEnabled: true);
+            SetLinkRoleInspector(relationship?.LinkRoleId, isEnabled: true);
             SetTemplateInspector(null);
             SetComplementInspector();
             SetStyleInspector(relationship?.Style ?? definition?.Style ?? connector.Style, isEnabled: true);
@@ -2044,6 +2074,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, group.ToString());
             SetComboFirstItem(InspectorStatusBox, definition.Kind);
             SetMetadataInspector(definition.Details, null, isEnabled: false);
+            SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(null);
             SetComplementInspector();
             SetStyleInspector(definition.Style, isEnabled: false);
@@ -2093,6 +2124,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, "Generation template");
             SetComboFirstItem(InspectorStatusBox, TemplateScopeLabel(template.Key));
             SetMetadataInspector(null, null, isEnabled: false);
+            SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(template);
             SetComplementInspector();
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
@@ -2142,6 +2174,7 @@ public sealed partial class MainPage : Page
             SetComboFirstItem(InspectorKindBox, "View complement");
             SetComboFirstItem(InspectorStatusBox, "Complement");
             SetMetadataInspector(null, null, isEnabled: false);
+            SetLinkRoleInspector(null, isEnabled: false);
             SetTemplateInspector(null);
             SetComplementInspector(complement.Key);
             SetStyleInspector(new CompositionStyleSnapshot(), isEnabled: false);
@@ -2489,6 +2522,7 @@ public sealed partial class MainPage : Page
 
         return _currentDocument.Domain.ConceptDefinitions
             .Concat(_currentDocument.Domain.RelationshipDefinitions)
+            .Concat(_currentDocument.Domain.LinkRoleDefinitions)
             .Concat(_currentDocument.Domain.MarkerDefinitions)
             .Concat(_currentDocument.Domain.TableDefinitions)
             .Concat(_currentDocument.Domain.ExternalLanguages)
@@ -2526,6 +2560,7 @@ public sealed partial class MainPage : Page
         {
             CompositionDefinitionGroup.Concept => domain.ConceptDefinitions,
             CompositionDefinitionGroup.Relationship => domain.RelationshipDefinitions,
+            CompositionDefinitionGroup.LinkRole => domain.LinkRoleDefinitions,
             CompositionDefinitionGroup.Marker => domain.MarkerDefinitions,
             CompositionDefinitionGroup.Table => domain.TableDefinitions,
             CompositionDefinitionGroup.ExternalLanguage => domain.ExternalLanguages,
@@ -2551,6 +2586,50 @@ public sealed partial class MainPage : Page
         DeleteDetailButton.IsEnabled = isEnabled;
         MarkerIdsBox.IsEnabled = isEnabled;
         ApplyMarkersButton.IsEnabled = isEnabled;
+    }
+
+    private void SetLinkRoleInspector(string? selectedLinkRoleId, bool isEnabled)
+    {
+        InspectorLinkRoleBox.Items.Clear();
+        InspectorLinkRoleBox.Items.Add(new ComboBoxItem
+        {
+            Content = "(none)",
+            Tag = string.Empty
+        });
+
+        var selectedIndex = 0;
+        var definitions = _currentDocument is null
+            ? Array.Empty<CompositionDefinitionSnapshot>()
+            : GetDefinitions(_currentDocument.Domain, CompositionDefinitionGroup.LinkRole);
+
+        for (var index = 0; index < definitions.Count; index++)
+        {
+            var definition = definitions[index];
+            InspectorLinkRoleBox.Items.Add(new ComboBoxItem
+            {
+                Content = definition.Name,
+                Tag = definition.Id
+            });
+
+            if (string.Equals(definition.Id, selectedLinkRoleId, StringComparison.Ordinal))
+            {
+                selectedIndex = index + 1;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedLinkRoleId) && selectedIndex == 0)
+        {
+            InspectorLinkRoleBox.Items.Add(new ComboBoxItem
+            {
+                Content = selectedLinkRoleId,
+                Tag = selectedLinkRoleId
+            });
+            selectedIndex = InspectorLinkRoleBox.Items.Count - 1;
+        }
+
+        InspectorLinkRoleBox.SelectedIndex = selectedIndex;
+        InspectorLinkRoleBox.IsEnabled = isEnabled && InspectorLinkRoleBox.Items.Count > 1;
+        ApplyLinkRoleButton.IsEnabled = InspectorLinkRoleBox.IsEnabled;
     }
 
     private static IReadOnlyList<DetailListEntry> FormatDetailEntries(IReadOnlyList<CompositionDetailSnapshot>? details)

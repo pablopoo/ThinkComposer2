@@ -57,6 +57,10 @@ var modernDocument = new CompositionDocumentSnapshot(
                 Kind: "Relationship",
                 Style: new CompositionStyleSnapshot(Stroke: "#2b78c6"))
         ],
+        LinkRoleDefinitions:
+        [
+            new CompositionDefinitionSnapshot(Id: "source-role", Name: "Source Role", Kind: "LinkRole")
+        ],
         MarkerDefinitions:
         [
             new CompositionDefinitionSnapshot(Id: "marker-def", Name: "Risk", Kind: "Marker")
@@ -106,6 +110,7 @@ var modernDocument = new CompositionDocumentSnapshot(
             SourceIdeaId: "idea-1",
             TargetIdeaId: "idea-1",
             DefinitionId: "relationship-def",
+            LinkRoleId: "source-role",
             Details:
             [
                 new CompositionDetailSnapshot("detail-2", "CustomField", "Priority", "High")
@@ -146,6 +151,7 @@ var modernDocument = new CompositionDocumentSnapshot(
 AssertEqual(CompositionDocumentSnapshot.CurrentSchemaVersion, modernDocument.SchemaVersion, "modern schema");
 AssertEqual("All Purpose", modernDocument.Domain.Name, "modern domain");
 AssertEqual("Concept", modernDocument.Domain.ConceptDefinitions[0].Name, "modern concept definition");
+AssertEqual("Source Role", modernDocument.Domain.LinkRoleDefinitions[0].Name, "modern link role definition");
 AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail");
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
@@ -164,6 +170,7 @@ var invalidDocument = modernDocument with
             SourceIdeaId = "missing-source",
             TargetIdeaId = "missing-target",
             DefinitionId = "missing-relationship",
+            LinkRoleId = "missing-link-role",
             Markers = ["missing-marker"]
         }
     ],
@@ -189,6 +196,7 @@ AssertTrue(validation.HasErrors, "validation has errors");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateIdeaId), "validation duplicate idea");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingIdeaDefinition), "validation missing idea definition");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingRelationshipEndpoint), "validation missing relationship endpoint");
+AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingLinkRoleDefinition), "validation missing link role definition");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingMarkerDefinition), "validation missing marker definition");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.MissingViewNodeIdea), "validation missing view node idea");
 AssertTrue(validation.Issues.Any(issue => issue.Code == CompositionDocumentValidationCodes.DuplicateTemplateKey), "validation duplicate template");
@@ -241,6 +249,7 @@ AssertTrue(modernReportHtml.Contains("Customer Need", StringComparison.Ordinal),
 AssertTrue(modernReportHtml.Contains("Spec", StringComparison.Ordinal), "modern report idea detail");
 AssertTrue(modernReportHtml.Contains("Addresses", StringComparison.Ordinal), "modern report relationship");
 AssertTrue(modernReportHtml.Contains("Source: Customer Need", StringComparison.Ordinal), "modern report source");
+AssertTrue(modernReportHtml.Contains("Link role: Source Role", StringComparison.Ordinal), "modern report link role");
 AssertTrue(modernReportHtml.Contains("<svg", StringComparison.Ordinal), "modern report view svg");
 AssertTrue(modernReportHtml.Contains("Checklist", StringComparison.Ordinal), "modern report table definition");
 
@@ -255,7 +264,7 @@ var generationDocument = modernDocument with
                 "%%:FILENAME={{Name}}.md\n# {{Name}}\nDefinition={{Definition.Name}}\nSpec={{Details.Spec}}"),
             new CompositionExtensionSnapshot(
                 "legacy.template.relationship.default",
-                "%%:FILENAME={{Name}}.rel.txt\n{{Source.Name}} -> {{Target.Name}}: {{Name}}")
+                "%%:FILENAME={{Name}}.rel.txt\n{{Source.Name}} -> {{Target.Name}}: {{Name}}\nLinkRole={{LinkRole.Name}}")
         ]
     }
 };
@@ -267,10 +276,12 @@ AssertTrue(generatedConceptFile.Content.Contains("Definition=Concept", StringCom
 AssertTrue(generatedConceptFile.Content.Contains("Spec=spec.pdf", StringComparison.Ordinal), "modern generation detail");
 var generatedRelationshipFile = generatedFiles.Files.Single(file => file.RelativePath == "Addresses.rel.txt");
 AssertTrue(generatedRelationshipFile.Content.Contains("Customer Need -> Customer Need: Addresses", StringComparison.Ordinal), "modern generation relationship");
+AssertTrue(generatedRelationshipFile.Content.Contains("LinkRole=Source Role", StringComparison.Ordinal), "modern generation link role");
 var documentPreviewText = CompositionDocumentPreviewTextBuilder.Build(generationDocument);
 AssertTrue(documentPreviewText.Contains("Modern Document", StringComparison.Ordinal), "document preview title");
 AssertTrue(documentPreviewText.Contains("Domain: All Purpose", StringComparison.Ordinal), "document preview domain");
 AssertTrue(documentPreviewText.Contains("Concept: Customer Need", StringComparison.Ordinal), "document preview idea");
+AssertTrue(documentPreviewText.Contains("Link role: Source Role", StringComparison.Ordinal), "document preview link role");
 AssertTrue(documentPreviewText.Contains("Marker: Risk", StringComparison.Ordinal), "document preview marker");
 AssertTrue(documentPreviewText.Contains("Detail: Spec = spec.pdf", StringComparison.Ordinal), "document preview detail");
 AssertTrue(documentPreviewText.Contains("Generated files (2)", StringComparison.Ordinal), "document preview generated count");
@@ -278,6 +289,7 @@ AssertTrue(documentPreviewText.Contains("Customer Need.md", StringComparison.Ord
 AssertTrue(documentPreviewText.Contains("Addresses.rel.txt", StringComparison.Ordinal), "document preview generated relationship file");
 var documentCommands = CompositionCommandCatalog.ForDocument(generationDocument);
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "marker-def"), "document command marker definition");
+AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "source-role"), "document command link role definition");
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Template && entry.TargetId == "legacy.template.concept.default"), "document command template");
 var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
     modernDocument,
@@ -305,6 +317,7 @@ try
     AssertEqual("Modern Document", reloadedModernDocument.Title, "modern roundtrip title");
     AssertEqual("All Purpose", reloadedModernDocument.Domain.Name, "modern roundtrip domain");
     AssertEqual("Relationship", reloadedModernDocument.Domain.RelationshipDefinitions[0].Name, "modern roundtrip relationship definition");
+    AssertEqual("Source Role", reloadedModernDocument.Domain.LinkRoleDefinitions[0].Name, "modern roundtrip link role definition");
     AssertEqual("Risk", reloadedModernDocument.Domain.MarkerDefinitions[0].Name, "modern roundtrip marker definition");
     AssertEqual("Checklist", reloadedModernDocument.Domain.TableDefinitions[0].Name, "modern roundtrip table definition");
     AssertEqual("SQL", reloadedModernDocument.Domain.ExternalLanguages[0].Name, "modern roundtrip external language");
@@ -313,6 +326,7 @@ try
     AssertEqual("Spec", reloadedModernDocument.Ideas[0].Details[0].Name, "modern roundtrip idea detail");
     AssertEqual("marker-def", reloadedModernDocument.Ideas[0].Markers[0], "modern roundtrip idea marker");
     AssertEqual("#f8f8f8", reloadedModernDocument.Ideas[0].Style.Fill, "modern roundtrip idea style");
+    AssertEqual("source-role", reloadedModernDocument.Relationships[0].LinkRoleId, "modern roundtrip relationship link role");
     AssertEqual("High", reloadedModernDocument.Relationships[0].Details[0].Value, "modern roundtrip relationship detail");
     AssertEqual("Legend", reloadedModernDocument.Views[0].Complements[0].Value, "modern roundtrip complement");
     AssertEqual("legacy.package.raw", reloadedModernDocument.Extensions[0].Key, "modern roundtrip extension");
@@ -335,6 +349,19 @@ AssertEqual("Customer Need", modernFromView.Ideas.Single(idea => idea.Id == "cus
 AssertEqual("capability", modernFromView.Relationships.Single(relationship => relationship.Id == "customer-capability").TargetIdeaId, "adapter relationship target");
 AssertTrue(CompositionDocumentPersistenceAdvisor.RequiresModernDocument(modernDocument), "modern document requires modern persistence");
 AssertTrue(CompositionDocumentPersistenceAdvisor.RequiresModernDocument(templateEditedDocument), "template document requires modern persistence");
+AssertTrue(
+    CompositionDocumentPersistenceAdvisor.RequiresModernDocument(
+        modernFromView with
+        {
+            Domain = modernFromView.Domain with
+            {
+                LinkRoleDefinitions =
+                [
+                    new CompositionDefinitionSnapshot("0..n", "Zero to many", "LinkRole")
+                ]
+            }
+        }),
+    "link role domain requires modern persistence");
 AssertTrue(!CompositionDocumentPersistenceAdvisor.RequiresModernDocument(modernFromView), "view projection does not require modern persistence");
 
 var projectedSnapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(modernFromView);
@@ -458,6 +485,12 @@ var typedIdeaDocument = CompositionDocumentSnapshotEditor.SetIdeaDefinition(type
 AssertEqual("concept-opportunity", typedIdeaDocument.Ideas.Single(idea => idea.Id == "idea-1").DefinitionId, "idea definition updated");
 var typedRelationshipDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(typedIdeaDocument, "rel-1", "relationship-blocks");
 AssertEqual("relationship-blocks", typedRelationshipDocument.Relationships.Single(relationship => relationship.Id == "rel-1").DefinitionId, "relationship definition updated");
+typedRelationshipDocument = CompositionDocumentSnapshotEditor.UpsertDefinition(
+    typedRelationshipDocument,
+    CompositionDefinitionGroup.LinkRole,
+    new CompositionDefinitionSnapshot("link-role-target", "Target", "LinkRole"));
+var linkRoleDocument = CompositionDocumentSnapshotEditor.SetRelationshipLinkRole(typedRelationshipDocument, "rel-1", "link-role-target");
+AssertEqual("link-role-target", linkRoleDocument.Relationships.Single(relationship => relationship.Id == "rel-1").LinkRoleId, "relationship link role updated");
 var deletedDetailDocument = CompositionDocumentSnapshotEditor.DeleteIdeaDetail(styledRelationshipDocument, "idea-1", "detail-added");
 AssertTrue(!deletedDetailDocument.Ideas.Single(idea => idea.Id == "idea-1").Details.Any(detail => detail.Id == "detail-added"), "idea detail deleted");
 
@@ -504,6 +537,10 @@ var incomingDocument = new CompositionDocumentSnapshot(
         ConceptDefinitions:
         [
             new CompositionDefinitionSnapshot("incoming-concept", "Incoming Concept", "Concept")
+        ],
+        LinkRoleDefinitions:
+        [
+            new CompositionDefinitionSnapshot("incoming-role", "Incoming Role", "LinkRole")
         ]),
     Ideas:
     [
@@ -511,7 +548,7 @@ var incomingDocument = new CompositionDocumentSnapshot(
     ],
     Relationships:
     [
-        new CompositionRelationshipSnapshot("customer-capability", "Imported Link", "customer", "customer", "relationship.default")
+        new CompositionRelationshipSnapshot("customer-capability", "Imported Link", "customer", "customer", "relationship.default", LinkRoleId: "incoming-role")
     ],
     Views:
     [
@@ -524,10 +561,12 @@ var incomingDocument = new CompositionDocumentSnapshot(
 var mergedDocument = CompositionDocumentMerger.Merge(modernFromView, incomingDocument);
 AssertEqual(modernFromView.Ideas.Count + 1, mergedDocument.Ideas.Count, "merge idea count");
 AssertTrue(mergedDocument.Domain.ConceptDefinitions.Any(definition => definition.Id == "incoming-concept"), "merge domain definition");
+AssertTrue(mergedDocument.Domain.LinkRoleDefinitions.Any(definition => definition.Id == "incoming-role"), "merge link role definition");
 var mergedIncomingIdea = mergedDocument.Ideas.Single(idea => idea.Name == "Imported Customer");
 AssertTrue(mergedIncomingIdea.Id != "customer", "merge remaps duplicate idea id");
 var mergedIncomingRelationship = mergedDocument.Relationships.Single(relationship => relationship.Name == "Imported Link");
 AssertEqual(mergedIncomingIdea.Id, mergedIncomingRelationship.SourceIdeaId, "merge remaps relationship source");
+AssertEqual("incoming-role", mergedIncomingRelationship.LinkRoleId, "merge preserves link role");
 AssertEqual(mergedIncomingIdea.Id, mergedDocument.Views[0].Nodes.Single(node => node.Text == "Imported Customer").Id, "merge remaps view node");
 AssertEqual(58.0, mergedDocument.Views[0].Nodes.Single(node => node.Text == "Imported Customer").Position.X, "merge offsets imported x");
 

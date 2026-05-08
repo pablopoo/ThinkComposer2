@@ -75,6 +75,7 @@ public static class CompositionCommandCatalog
 
         AddDefinitions(entries, CompositionDefinitionGroup.Concept, "Concept definition", document.Domain.ConceptDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.Relationship, "Relationship definition", document.Domain.RelationshipDefinitions);
+        AddDefinitions(entries, CompositionDefinitionGroup.LinkRole, "Link-role definition", document.Domain.LinkRoleDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.Marker, "Marker definition", document.Domain.MarkerDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.Table, "Table definition", document.Domain.TableDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.ExternalLanguage, "External language", document.Domain.ExternalLanguages);

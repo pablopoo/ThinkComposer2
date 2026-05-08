@@ -133,6 +133,7 @@ public static class LegacyCompositionDocumentLoader
             Summary: domain.Summary,
             ConceptDefinitions: domain.ConceptDefinitions.Select(definition => MapIdeaDefinition(definition, "Concept")).ToArray(),
             RelationshipDefinitions: domain.RelationshipDefinitions.Select(definition => MapIdeaDefinition(definition, "Relationship")).ToArray(),
+            LinkRoleDefinitions: domain.LinkRoleVariants.Select(MapLinkRoleVariant).ToArray(),
             MarkerDefinitions: domain.MarkerDefinitions.Select(MapMarkerDefinition).ToArray(),
             TableDefinitions: domain.TableDefinitions.Select(MapTableDefinition).ToArray(),
             ExternalLanguages: domain.ExternalLanguages.Select(MapExternalLanguage).ToArray(),
@@ -207,6 +208,19 @@ public static class LegacyCompositionDocumentLoader
             ]);
     }
 
+    private static CompositionDefinitionSnapshot MapLinkRoleVariant(SimplePresentationElement variant)
+    {
+        return new CompositionDefinitionSnapshot(
+            Id: LinkRoleVariantId(variant),
+            Name: variant.Name,
+            Kind: "LinkRole",
+            Summary: variant.Summary,
+            Extensions:
+            [
+                new CompositionExtensionSnapshot("legacy.techName", variant.TechName)
+            ]);
+    }
+
     private static CompositionDetailSnapshot MapDetailDesignator(DetailDesignator designator)
     {
         return new CompositionDetailSnapshot(
@@ -270,6 +284,9 @@ public static class LegacyCompositionDocumentLoader
             SourceIdeaId: connector.SourceId,
             TargetIdeaId: connector.TargetId,
             DefinitionId: relationship.RelationshipDefinitor?.Value?.GlobalId.ToString() ?? string.Empty,
+            LinkRoleId: relationship.Links?
+                .Select(link => LinkRoleVariantId(link.RoleVariant))
+                .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id)) ?? string.Empty,
             Details: relationship.Details.Select(MapContainedDetail).ToArray(),
             Markers: relationship.Markings.Select(marker => MarkerId(marker.Definitor)).ToArray(),
             Extensions:
@@ -313,6 +330,18 @@ public static class LegacyCompositionDocumentLoader
         return string.IsNullOrWhiteSpace(definition.TechName)
             ? definition.Name
             : definition.TechName;
+    }
+
+    private static string LinkRoleVariantId(SimplePresentationElement? variant)
+    {
+        if (variant is null)
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(variant.TechName)
+            ? variant.Name
+            : variant.TechName;
     }
 
     private static IEnumerable<CompositionExtensionSnapshot> MapTemplates(Domain domain)

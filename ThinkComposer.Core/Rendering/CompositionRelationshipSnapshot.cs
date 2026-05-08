@@ -9,7 +9,8 @@ public sealed record CompositionRelationshipSnapshot(
     IReadOnlyList<CompositionDetailSnapshot>? Details = null,
     IReadOnlyList<string>? Markers = null,
     CompositionStyleSnapshot? Style = null,
-    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null)
+    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null,
+    string LinkRoleId = "")
 {
     public IReadOnlyList<CompositionDetailSnapshot> Details { get; init; } =
         Details ?? Array.Empty<CompositionDetailSnapshot>();
@@ -20,4 +21,6 @@ public sealed record CompositionRelationshipSnapshot(
 
     public IReadOnlyList<CompositionExtensionSnapshot> Extensions { get; init; } =
         Extensions ?? Array.Empty<CompositionExtensionSnapshot>();
+
+    public string LinkRoleId { get; init; } = LinkRoleId;
 }

@@ -36,6 +36,7 @@ public static class CompositionDocumentPreviewTextBuilder
         builder.AppendLine("Domain");
         AppendDefinitionCount(builder, "Concept definitions", domain.ConceptDefinitions);
         AppendDefinitionCount(builder, "Relationship definitions", domain.RelationshipDefinitions);
+        AppendDefinitionCount(builder, "Link-role variants", domain.LinkRoleDefinitions);
         AppendDefinitionCount(builder, "Markers", domain.MarkerDefinitions);
         AppendDefinitionCount(builder, "Tables", domain.TableDefinitions);
         AppendDefinitionCount(builder, "External languages", domain.ExternalLanguages);
@@ -83,6 +84,10 @@ public static class CompositionDocumentPreviewTextBuilder
         {
             builder.AppendLine($"- Relationship: {relationship.Name}");
             builder.AppendLine($"  Definition: {FindDefinitionName(definitions, relationship.DefinitionId)}");
+            if (!string.IsNullOrWhiteSpace(relationship.LinkRoleId))
+            {
+                builder.AppendLine($"  Link role: {FindDefinitionName(definitions, relationship.LinkRoleId)}");
+            }
             builder.AppendLine($"  Source: {FindIdeaName(ideas, relationship.SourceIdeaId)}");
             builder.AppendLine($"  Target: {FindIdeaName(ideas, relationship.TargetIdeaId)}");
             AppendMarkers(builder, relationship.Markers, definitions);
@@ -127,6 +132,7 @@ public static class CompositionDocumentPreviewTextBuilder
     {
         return domain.ConceptDefinitions
             .Concat(domain.RelationshipDefinitions)
+            .Concat(domain.LinkRoleDefinitions)
             .Concat(domain.MarkerDefinitions)
             .Concat(domain.TableDefinitions)
             .Concat(domain.ExternalLanguages)

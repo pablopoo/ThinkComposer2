@@ -64,6 +64,7 @@ public static class CompositionDocumentReportHtmlExporter
 
         AppendDefinitionList(builder, "Concept definitions", domain.ConceptDefinitions);
         AppendDefinitionList(builder, "Relationship definitions", domain.RelationshipDefinitions);
+        AppendDefinitionList(builder, "Link-role variants", domain.LinkRoleDefinitions);
         AppendDefinitionList(builder, "Marker definitions", domain.MarkerDefinitions);
         AppendDefinitionList(builder, "Table definitions", domain.TableDefinitions);
         AppendDefinitionList(builder, "External languages", domain.ExternalLanguages);
@@ -122,6 +123,10 @@ public static class CompositionDocumentReportHtmlExporter
             builder.AppendLine("    <div class=\"card\">");
             builder.AppendLine($"      <h3>{Encode(relationship.Name)}</h3>");
             builder.AppendLine($"      <div class=\"meta\">Definition: {Encode(FindDefinitionName(definitions, relationship.DefinitionId))}</div>");
+            if (!string.IsNullOrWhiteSpace(relationship.LinkRoleId))
+            {
+                builder.AppendLine($"      <div class=\"meta\">Link role: {Encode(FindDefinitionName(definitions, relationship.LinkRoleId))}</div>");
+            }
             builder.AppendLine($"      <div class=\"meta\">Source: {Encode(FindIdeaName(ideas, relationship.SourceIdeaId))}</div>");
             builder.AppendLine($"      <div class=\"meta\">Target: {Encode(FindIdeaName(ideas, relationship.TargetIdeaId))}</div>");
             AppendMarkers(builder, relationship.Markers, definitions);
@@ -195,6 +200,7 @@ public static class CompositionDocumentReportHtmlExporter
     {
         return domain.ConceptDefinitions
             .Concat(domain.RelationshipDefinitions)
+            .Concat(domain.LinkRoleDefinitions)
             .Concat(domain.MarkerDefinitions)
             .Concat(domain.TableDefinitions)
             .Concat(domain.ExternalLanguages)

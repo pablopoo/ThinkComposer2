@@ -29,6 +29,7 @@ public static class CompositionDocumentPersistenceAdvisor
             !string.Equals(domain.Summary, ProjectedDomainSummary, StringComparison.Ordinal) ||
             HasNonProjectedDefinitions(domain.ConceptDefinitions, ProjectedConceptDefinitionId, "Concept", "Concept") ||
             HasNonProjectedDefinitions(domain.RelationshipDefinitions, ProjectedRelationshipDefinitionId, "Relationship", "Relationship") ||
+            domain.LinkRoleDefinitions.Count > 0 ||
             domain.MarkerDefinitions.Count > 0 ||
             domain.TableDefinitions.Count > 0 ||
             domain.ExternalLanguages.Count > 0 ||

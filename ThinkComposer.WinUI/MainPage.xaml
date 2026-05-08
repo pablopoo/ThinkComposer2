@@ -465,6 +465,20 @@
                                 </StackPanel>
                             </Expander>
 
+                            <Expander x:Name="LinkRoleExpander" Header="Link role" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <ComboBox
+                                        x:Name="InspectorLinkRoleBox"
+                                        HorizontalAlignment="Stretch"
+                                        PlaceholderText="Link-role variant" />
+                                    <Button
+                                        x:Name="ApplyLinkRoleButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="ApplyLinkRoleButton_Click"
+                                        Content="Apply link role" />
+                                </StackPanel>
+                            </Expander>
+
                             <Expander x:Name="MarkersExpander" Header="Markers" IsExpanded="False">
                                 <StackPanel Padding="0,10,0,0" Spacing="8">
                                     <TextBox
