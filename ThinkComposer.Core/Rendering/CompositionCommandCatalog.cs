@@ -73,6 +73,14 @@ public static class CompositionCommandCatalog
                 relationship.Id,
                 "Relationship")));
 
+        entries.AddRange(document.Views.Select(view =>
+            new CompositionCommandEntry(
+                $"view.{view.Id}",
+                string.IsNullOrWhiteSpace(view.Name) ? view.Id : view.Name,
+                CompositionCommandEntryKind.View,
+                view.Id,
+                string.IsNullOrWhiteSpace(view.ContainerIdeaId) ? "View" : $"View of {view.ContainerIdeaId}")));
+
         AddDefinitions(entries, CompositionDefinitionGroup.Concept, "Concept definition", document.Domain.ConceptDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.Relationship, "Relationship definition", document.Domain.RelationshipDefinitions);
         AddDefinitions(entries, CompositionDefinitionGroup.LinkRole, "Link-role definition", document.Domain.LinkRoleDefinitions);

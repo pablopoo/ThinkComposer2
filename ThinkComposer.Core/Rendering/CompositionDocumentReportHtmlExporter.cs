@@ -102,6 +102,14 @@ public static class CompositionDocumentReportHtmlExporter
             builder.AppendLine("    <div class=\"card\">");
             builder.AppendLine($"      <h3>{Encode(idea.Name)}</h3>");
             builder.AppendLine($"      <div class=\"meta\">Definition: {Encode(FindDefinitionName(definitions, idea.DefinitionId))}</div>");
+            if (idea.IsComposite || !string.IsNullOrWhiteSpace(idea.ActiveViewId))
+            {
+                builder.AppendLine($"      <div class=\"meta\">Composite view: {Encode(idea.ActiveViewId)}</div>");
+            }
+            if (!string.IsNullOrWhiteSpace(idea.ShortcutTargetId))
+            {
+                builder.AppendLine($"      <div class=\"meta\">Shortcut target: {Encode(idea.ShortcutTargetId)}</div>");
+            }
             AppendSummary(builder, idea.Summary);
             AppendMarkers(builder, idea.Markers, definitions);
             AppendDetails(builder, idea.Details);

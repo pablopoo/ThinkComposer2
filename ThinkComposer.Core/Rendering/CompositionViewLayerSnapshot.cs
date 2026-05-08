@@ -7,7 +7,8 @@ public sealed record CompositionViewLayerSnapshot(
     IReadOnlyList<CompositionConnectorView>? Connectors = null,
     IReadOnlyList<CompositionExtensionSnapshot>? Complements = null,
     CompositionStyleSnapshot? Style = null,
-    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null)
+    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null,
+    string ContainerIdeaId = "")
 {
     public IReadOnlyList<CompositionNodeView> Nodes { get; init; } = Nodes ?? Array.Empty<CompositionNodeView>();
 
@@ -21,4 +22,6 @@ public sealed record CompositionViewLayerSnapshot(
 
     public IReadOnlyList<CompositionExtensionSnapshot> Extensions { get; init; } =
         Extensions ?? Array.Empty<CompositionExtensionSnapshot>();
+
+    public string ContainerIdeaId { get; init; } = ContainerIdeaId;
 }

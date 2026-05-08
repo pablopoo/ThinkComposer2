@@ -85,6 +85,7 @@ public sealed partial class MainPage : Page
     private CompositionViewSnapshot? _currentSnapshot;
     private CompositionEditingSession? _editingSession;
     private CompositionSnapshotIndex? _snapshotIndex;
+    private string? _currentViewId;
     private string? _selectedNodeId;
     private string? _selectedConnectorId;
     private string? _selectedDefinitionId;
@@ -1179,13 +1180,14 @@ public sealed partial class MainPage : Page
 
         return _currentDocument is null
             ? CompositionDocumentSnapshotAdapter.FromViewSnapshot(_currentSnapshot)
-            : CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, _currentSnapshot);
+            : CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, _currentSnapshot, _currentViewId);
     }
 
     private void ApplyDocument(CompositionDocumentSnapshot document, string? documentPath)
     {
         _currentDocument = document;
-        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document);
+        _currentViewId = document.Views.FirstOrDefault()?.Id;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, _currentViewId);
         _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = documentPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
@@ -1202,9 +1204,37 @@ public sealed partial class MainPage : Page
         RefreshBottomPanelContent();
     }
 
+    private void OpenDocumentView(string viewId)
+    {
+        if (_currentDocument is null || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        var wasDirty = _isDirty;
+        var document = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, _currentSnapshot, _currentViewId);
+        var view = document.Views.FirstOrDefault(candidate => string.Equals(candidate.Id, viewId, StringComparison.Ordinal));
+        if (view is null)
+        {
+            StatusContextText.Text = "View not found";
+            return;
+        }
+
+        _currentDocument = document;
+        _currentViewId = view.Id;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, view.Id);
+        _editingSession = new CompositionEditingSession(snapshot);
+        ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
+        _isDirty = wasDirty;
+        UpdateDocumentTitleIndicator();
+        StatusContextText.Text = $"Opened view {view.Name}";
+        RefreshBottomPanelContent();
+    }
+
     private void ApplySnapshot(CompositionViewSnapshot snapshot, string? snapshotPath)
     {
         _currentDocument = null;
+        _currentViewId = null;
         _editingSession = new CompositionEditingSession(snapshot);
         _snapshotPath = snapshotPath;
         ApplySessionSnapshot(snapshot, selectedNodeId: null, selectedConnectorId: null, markDirty: false, fitToViewport: true);
@@ -1231,7 +1261,7 @@ public sealed partial class MainPage : Page
         _isDirty = markDirty;
         if (markDirty && _currentDocument is not null)
         {
-            _currentDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, snapshot);
+            _currentDocument = CompositionDocumentSnapshotEditor.ApplyViewSnapshot(_currentDocument, snapshot, _currentViewId);
         }
 
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
@@ -1269,6 +1299,25 @@ public sealed partial class MainPage : Page
             IsExpanded = true
         };
 
+        var document = _currentDocument ?? CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot);
+        if (document.Views.Count > 1)
+        {
+            var views = new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry($"Views ({document.Views.Count})", CompositionCommandEntryKind.Command),
+                IsExpanded = true
+            };
+            foreach (var view in document.Views)
+            {
+                views.Children.Add(new TreeViewNode
+                {
+                    Content = new ExplorerTreeEntry(view.Name, CompositionCommandEntryKind.View, view.Id)
+                });
+            }
+
+            ExplorerTree.RootNodes.Add(views);
+        }
+
         foreach (var node in snapshot.Nodes)
         {
             root.Children.Add(new TreeViewNode
@@ -1294,8 +1343,7 @@ public sealed partial class MainPage : Page
 
         ExplorerTree.RootNodes.Add(relations);
 
-        var complements = (_currentDocument ?? CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot))
-            .Views.FirstOrDefault()?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
+        var complements = GetCurrentView(document)?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
         if (complements.Count > 0)
         {
             var complementGroup = new TreeViewNode
@@ -2616,7 +2664,7 @@ public sealed partial class MainPage : Page
 
     private CompositionExtensionSnapshot? FindComplement(string complementKey)
     {
-        return _currentDocument?.Views.FirstOrDefault()?.Complements
+        return GetCurrentView(_currentDocument)?.Complements
             .FirstOrDefault(complement => string.Equals(complement.Key, complementKey, StringComparison.Ordinal));
     }
 
@@ -2815,7 +2863,7 @@ public sealed partial class MainPage : Page
     private void SetComplementInspector(string? selectedKey = null)
     {
         var hasDocument = _currentDocument is not null || _currentSnapshot is not null;
-        var entries = FormatExtensionEntries(_currentDocument?.Views.FirstOrDefault()?.Complements);
+        var entries = FormatExtensionEntries(GetCurrentView(_currentDocument)?.Complements);
         InspectorComplementsList.ItemsSource = entries;
 
         var selectedEntry = string.IsNullOrWhiteSpace(selectedKey)
@@ -2843,9 +2891,21 @@ public sealed partial class MainPage : Page
             .ToArray();
     }
 
-    private static string GetCurrentViewId(CompositionDocumentSnapshot document)
+    private string GetCurrentViewId(CompositionDocumentSnapshot document)
     {
-        return document.Views.FirstOrDefault()?.Id ?? string.Empty;
+        return GetCurrentView(document)?.Id ?? string.Empty;
+    }
+
+    private CompositionViewLayerSnapshot? GetCurrentView(CompositionDocumentSnapshot? document)
+    {
+        if (document is null)
+        {
+            return null;
+        }
+
+        return !string.IsNullOrWhiteSpace(_currentViewId)
+            ? document.Views.FirstOrDefault(view => string.Equals(view.Id, _currentViewId, StringComparison.Ordinal)) ?? document.Views.FirstOrDefault()
+            : document.Views.FirstOrDefault();
     }
 
     private static string TemplateScopeLabel(string key)
@@ -3018,6 +3078,9 @@ public sealed partial class MainPage : Page
             case CompositionCommandEntryKind.Connector when !string.IsNullOrWhiteSpace(entry.TargetId):
                 CanvasView.SelectConnector(entry.TargetId);
                 StatusContextText.Text = $"Selected {entry.Title}";
+                return;
+            case CompositionCommandEntryKind.View when !string.IsNullOrWhiteSpace(entry.TargetId):
+                OpenDocumentView(entry.TargetId);
                 return;
             case CompositionCommandEntryKind.Definition when
                 !string.IsNullOrWhiteSpace(entry.TargetId) &&

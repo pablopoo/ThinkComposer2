@@ -8,7 +8,11 @@ public sealed record CompositionIdeaSnapshot(
     IReadOnlyList<CompositionDetailSnapshot>? Details = null,
     IReadOnlyList<string>? Markers = null,
     CompositionStyleSnapshot? Style = null,
-    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null)
+    IReadOnlyList<CompositionExtensionSnapshot>? Extensions = null,
+    string ParentIdeaId = "",
+    string ActiveViewId = "",
+    bool IsComposite = false,
+    string ShortcutTargetId = "")
 {
     public IReadOnlyList<CompositionDetailSnapshot> Details { get; init; } =
         Details ?? Array.Empty<CompositionDetailSnapshot>();
@@ -19,4 +23,12 @@ public sealed record CompositionIdeaSnapshot(
 
     public IReadOnlyList<CompositionExtensionSnapshot> Extensions { get; init; } =
         Extensions ?? Array.Empty<CompositionExtensionSnapshot>();
+
+    public string ParentIdeaId { get; init; } = ParentIdeaId;
+
+    public string ActiveViewId { get; init; } = ActiveViewId;
+
+    public bool IsComposite { get; init; } = IsComposite;
+
+    public string ShortcutTargetId { get; init; } = ShortcutTargetId;
 }

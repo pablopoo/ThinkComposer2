@@ -4,9 +4,9 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, details, table-detail row editing, markers, complements, styles, templates, reports, generation, validation, clipboard/multi-select, and migration checks.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, details, table-detail row editing, markers, complements, styles, templates, reports, generation, validation, clipboard/multi-select, and migration checks.
 
-It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, composite/shortcut navigation, presentation/multi-sheet print, PDF/XPS output, release packaging, and automated UI smoke coverage.
+It is still not a complete legacy replacement. Remaining gaps are mostly deep legacy features: base-table record workflows, deeper composite/shortcut authoring, presentation/multi-sheet print, PDF/XPS output, release packaging, and automated UI smoke coverage.
 
 ## Current WinUI Coverage
 
@@ -14,7 +14,8 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 - Data contract: versioned `CompositionDocumentSnapshot`, XML roundtrip, schema validation, migration-safe `.tcview` warning.
 - Legacy bridge: exports legacy packages to `.tcdoc` or `.tcview`; WinUI consumes `.tcdoc` through the external bridge tool without referencing WPF.
 - Canvas: render concepts/relationships, pan, zoom, select, multi-select, move, precise keyboard move, create concept, create relationship, delete, undo/redo.
-- Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, view complements, and generation templates.
+- Navigation: browse/switch modern document views from Explorer and command search; preserve composite/shortcut metadata in `.tcdoc`.
+- Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, current-view complements, and generation templates.
 - Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
 - Details: custom fields, links, attachments, CSV table details with a structured row editor.
 - Output: SVG/HTML export, full document HTML report, template-based file generation, printable HTML preview.
@@ -36,7 +37,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ### P1 - Composite Navigation And Shortcuts
 
-- Shortcut objects and parent/composite navigation are not implemented as first-class WinUI workflows.
+- Modern documents preserve composite/shortcut metadata and support view switching, but creating composite views and shortcut objects is not yet a dedicated WinUI workflow.
 - Complements can be edited as view extensions, but specialized visual rendering for group regions, legends, quotes, and info cards is still basic.
 
 ### P1 - Output Parity
@@ -53,7 +54,7 @@ It is still not a complete legacy replacement. Remaining gaps are mostly deep le
 
 ## Recommended Backlog
 
-1. Add shortcut/composite navigation to the modern contract and WinUI.
+1. Add composite-view creation and shortcut-object authoring to WinUI.
 2. Build a spreadsheet-like grid editor and base-table record workflows.
 3. Render complements visually on the canvas.
 4. Add PDF/XPS or an explicit supported replacement path.

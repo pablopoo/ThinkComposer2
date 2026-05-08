@@ -66,6 +66,14 @@ public static class CompositionDocumentPreviewTextBuilder
         {
             builder.AppendLine($"- Concept: {idea.Name}");
             builder.AppendLine($"  Definition: {FindDefinitionName(definitions, idea.DefinitionId)}");
+            if (idea.IsComposite || !string.IsNullOrWhiteSpace(idea.ActiveViewId))
+            {
+                builder.AppendLine($"  Composite view: {FindViewName(idea.ActiveViewId)}");
+            }
+            if (!string.IsNullOrWhiteSpace(idea.ShortcutTargetId))
+            {
+                builder.AppendLine($"  Shortcut target: {idea.ShortcutTargetId}");
+            }
             AppendMarkers(builder, idea.Markers, definitions);
             AppendDetails(builder, idea.Details);
         }
@@ -152,5 +160,10 @@ public static class CompositionDocumentPreviewTextBuilder
     private static string FindIdeaName(IReadOnlyDictionary<string, CompositionIdeaSnapshot> ideas, string ideaId)
     {
         return ideas.TryGetValue(ideaId, out var idea) ? idea.Name : ideaId;
+    }
+
+    private static string FindViewName(string viewId)
+    {
+        return string.IsNullOrWhiteSpace(viewId) ? "(none)" : viewId;
     }
 }

@@ -87,6 +87,10 @@ var modernDocument = new CompositionDocumentSnapshot(
             Id: "idea-1",
             Name: "Customer Need",
             DefinitionId: "concept-def",
+            ParentIdeaId: "root-composition",
+            ActiveViewId: "view-child",
+            IsComposite: true,
+            ShortcutTargetId: "legacy-target-idea",
             Summary: "A need",
             Details:
             [
@@ -126,6 +130,7 @@ var modernDocument = new CompositionDocumentSnapshot(
         new CompositionViewLayerSnapshot(
             Id: "view-1",
             Name: "Main",
+            ContainerIdeaId: "root-composition",
             Nodes:
             [
                 new CompositionNodeView("idea-1", "Customer Need", new TcPoint(10, 20), new TcSize(160, 80))
@@ -142,7 +147,11 @@ var modernDocument = new CompositionDocumentSnapshot(
             Extensions:
             [
                 new CompositionExtensionSnapshot("legacy.view.raw", "<view />")
-            ])
+            ]),
+        new CompositionViewLayerSnapshot(
+            Id: "view-child",
+            Name: "Customer Need Detail",
+            ContainerIdeaId: "idea-1")
     ],
     Extensions:
     [
@@ -152,6 +161,9 @@ AssertEqual(CompositionDocumentSnapshot.CurrentSchemaVersion, modernDocument.Sch
 AssertEqual("All Purpose", modernDocument.Domain.Name, "modern domain");
 AssertEqual("Concept", modernDocument.Domain.ConceptDefinitions[0].Name, "modern concept definition");
 AssertEqual("Source Role", modernDocument.Domain.LinkRoleDefinitions[0].Name, "modern link role definition");
+AssertEqual(true, modernDocument.Ideas[0].IsComposite, "modern composite idea");
+AssertEqual("view-child", modernDocument.Ideas[0].ActiveViewId, "modern composite active view");
+AssertEqual("legacy-target-idea", modernDocument.Ideas[0].ShortcutTargetId, "modern shortcut target");
 AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail");
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
@@ -290,6 +302,7 @@ AssertTrue(documentPreviewText.Contains("Addresses.rel.txt", StringComparison.Or
 var documentCommands = CompositionCommandCatalog.ForDocument(generationDocument);
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "marker-def"), "document command marker definition");
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "source-role"), "document command link role definition");
+AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.View && entry.TargetId == "view-child"), "document command child view");
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Template && entry.TargetId == "legacy.template.concept.default"), "document command template");
 var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
     modernDocument,
@@ -323,12 +336,17 @@ try
     AssertEqual("SQL", reloadedModernDocument.Domain.ExternalLanguages[0].Name, "modern roundtrip external language");
     AssertEqual("select * from ideas", reloadedModernDocument.Domain.Templates[0].Value, "modern roundtrip template");
     AssertEqual("Customer Need", reloadedModernDocument.Ideas[0].Name, "modern roundtrip idea");
+    AssertEqual("root-composition", reloadedModernDocument.Ideas[0].ParentIdeaId, "modern roundtrip parent idea");
+    AssertEqual("view-child", reloadedModernDocument.Ideas[0].ActiveViewId, "modern roundtrip active view");
+    AssertEqual(true, reloadedModernDocument.Ideas[0].IsComposite, "modern roundtrip composite idea");
+    AssertEqual("legacy-target-idea", reloadedModernDocument.Ideas[0].ShortcutTargetId, "modern roundtrip shortcut target");
     AssertEqual("Spec", reloadedModernDocument.Ideas[0].Details[0].Name, "modern roundtrip idea detail");
     AssertEqual("marker-def", reloadedModernDocument.Ideas[0].Markers[0], "modern roundtrip idea marker");
     AssertEqual("#f8f8f8", reloadedModernDocument.Ideas[0].Style.Fill, "modern roundtrip idea style");
     AssertEqual("source-role", reloadedModernDocument.Relationships[0].LinkRoleId, "modern roundtrip relationship link role");
     AssertEqual("High", reloadedModernDocument.Relationships[0].Details[0].Value, "modern roundtrip relationship detail");
     AssertEqual("Legend", reloadedModernDocument.Views[0].Complements[0].Value, "modern roundtrip complement");
+    AssertEqual("idea-1", reloadedModernDocument.Views[1].ContainerIdeaId, "modern roundtrip view container");
     AssertEqual("legacy.package.raw", reloadedModernDocument.Extensions[0].Key, "modern roundtrip extension");
 }
 finally

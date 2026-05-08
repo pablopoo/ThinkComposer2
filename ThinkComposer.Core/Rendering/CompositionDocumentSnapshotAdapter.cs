@@ -72,7 +72,9 @@ public static class CompositionDocumentSnapshotAdapter
         var view = SelectView(document, viewId);
         if (view is not null)
         {
-            return new CompositionViewSnapshot(document.Id, document.Title, view.Nodes, view.Connectors);
+            return string.IsNullOrWhiteSpace(viewId)
+                ? new CompositionViewSnapshot(document.Id, document.Title, view.Nodes, view.Connectors)
+                : new CompositionViewSnapshot(view.Id, view.Name, view.Nodes, view.Connectors);
         }
 
         var nodes = document.Ideas

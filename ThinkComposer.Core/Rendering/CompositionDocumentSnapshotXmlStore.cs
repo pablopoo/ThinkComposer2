@@ -97,6 +97,10 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("name", idea.Name),
             new XAttribute("definitionId", idea.DefinitionId),
             new XAttribute("summary", idea.Summary),
+            new XAttribute("parentIdeaId", idea.ParentIdeaId),
+            new XAttribute("activeViewId", idea.ActiveViewId),
+            new XAttribute("isComposite", idea.IsComposite),
+            new XAttribute("shortcutTargetId", idea.ShortcutTargetId),
             new XElement("Markers", idea.Markers.Select(marker => new XElement("Marker", new XAttribute("id", marker)))),
             WriteStyle(idea.Style),
             WriteDetails(idea.Details),
@@ -125,6 +129,7 @@ public static class CompositionDocumentSnapshotXmlStore
             "View",
             new XAttribute("id", view.Id),
             new XAttribute("name", view.Name),
+            new XAttribute("containerIdeaId", view.ContainerIdeaId),
             new XElement("Nodes", view.Nodes.Select(WriteNode)),
             new XElement("Connectors", view.Connectors.Select(WriteConnector)),
             WriteExtensions("Complements", view.Complements),
@@ -236,7 +241,11 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadDetails(element.Element("Details")),
                 ReadMarkers(element.Element("Markers")),
                 ReadStyle(element.Element("Style")),
-                ReadExtensions(element.Element("Extensions")))).ToArray()
+                ReadExtensions(element.Element("Extensions")),
+                ReadString(element, "parentIdeaId"),
+                ReadString(element, "activeViewId"),
+                ReadBool(element, "isComposite"),
+                ReadString(element, "shortcutTargetId"))).ToArray()
             ?? Array.Empty<CompositionIdeaSnapshot>();
     }
 
@@ -267,7 +276,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadConnectors(element.Element("Connectors")),
                 ReadExtensions(element.Element("Complements")),
                 ReadStyle(element.Element("Style")),
-                ReadExtensions(element.Element("Extensions")))).ToArray()
+                ReadExtensions(element.Element("Extensions")),
+                ReadString(element, "containerIdeaId"))).ToArray()
             ?? Array.Empty<CompositionViewLayerSnapshot>();
     }
 
@@ -362,6 +372,11 @@ public static class CompositionDocumentSnapshotXmlStore
         return double.TryParse(element.Attribute(attributeName)?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
             ? value
             : 0;
+    }
+
+    private static bool ReadBool(XElement element, string attributeName)
+    {
+        return bool.TryParse(element.Attribute(attributeName)?.Value, out var value) && value;
     }
 
     private static string Format(double value)

@@ -7,6 +7,7 @@ using Instrumind.Common;
 using Instrumind.Common.EntityBase;
 using Instrumind.Common.Visualization;
 using Instrumind.ThinkComposer.Composer;
+using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 using Instrumind.ThinkComposer.MetaModel;
 using Instrumind.ThinkComposer.MetaModel.Configurations;
@@ -74,10 +75,10 @@ public static class LegacyCompositionDocumentLoader
         }
 
         var visualObjects = ReadViewObjects(composition.ActiveView ?? composition.RootView).ToArray();
-        var symbolIdeas = visualObjects
+        var symbolsById = visualObjects
             .OfType<VisualSymbol>()
             .GroupBy(symbol => symbol.GlobalId.ToString())
-            .ToDictionary(group => group.Key, group => group.First().OwnerRepresentation.RepresentedIdea, StringComparer.Ordinal);
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
         var connectorRelationships = visualObjects
             .OfType<VisualConnector>()
@@ -85,7 +86,7 @@ public static class LegacyCompositionDocumentLoader
             .ToDictionary(group => group.Key, group => group.First().OwnerRelationshipRepresentation.RepresentedRelationship, StringComparer.Ordinal);
 
         var ideas = viewSnapshot.Nodes
-            .Select(node => MapIdea(node, symbolIdeas.TryGetValue(node.Id, out var idea) ? idea : null))
+            .Select(node => MapIdea(node, symbolsById.TryGetValue(node.Id, out var symbol) ? symbol : null))
             .ToArray();
 
         var relationships = viewSnapshot.Connectors
@@ -100,14 +101,7 @@ public static class LegacyCompositionDocumentLoader
             Domain: MapDomain(composition.CompositionDefinitor),
             Ideas: ideas,
             Relationships: relationships,
-            Views:
-            [
-                new CompositionViewLayerSnapshot(
-                    Id: composition.ActiveView?.GlobalId.ToString() ?? "view.default",
-                    Name: composition.ActiveView?.Name ?? viewSnapshot.Title,
-                    Nodes: viewSnapshot.Nodes,
-                    Connectors: viewSnapshot.Connectors)
-            ],
+            Views: MapViews(composition, viewSnapshot).ToArray(),
             Extensions: BuildPackageExtensions(filePath, packageBytes));
     }
 
@@ -250,8 +244,9 @@ public static class LegacyCompositionDocumentLoader
             ]);
     }
 
-    private static CompositionIdeaSnapshot MapIdea(CompositionNodeView node, Idea? idea)
+    private static CompositionIdeaSnapshot MapIdea(CompositionNodeView node, VisualSymbol? symbol)
     {
+        var idea = symbol?.OwnerRepresentation.RepresentedIdea;
         if (idea is null)
         {
             return new CompositionIdeaSnapshot(node.Id, node.Text);
@@ -261,6 +256,12 @@ public static class LegacyCompositionDocumentLoader
             Id: node.Id,
             Name: node.Text,
             DefinitionId: idea.IdeaDefinitor?.GlobalId.ToString() ?? string.Empty,
+            ParentIdeaId: idea.OwnerContainer?.GlobalId.ToString() ?? string.Empty,
+            ActiveViewId: idea.CompositeActiveView?.GlobalId.ToString() ?? string.Empty,
+            IsComposite: idea.IsComposite,
+            ShortcutTargetId: symbol?.OwnerRepresentation.IsShortcut == true
+                ? idea.GlobalId.ToString()
+                : string.Empty,
             Summary: idea.Summary,
             Details: idea.Details.Select(MapContainedDetail).ToArray(),
             Markers: idea.Markings.Select(marker => MarkerId(marker.Definitor)).ToArray(),
@@ -269,6 +270,79 @@ public static class LegacyCompositionDocumentLoader
                 new CompositionExtensionSnapshot("legacy.techName", idea.TechName),
                 new CompositionExtensionSnapshot("legacy.type", idea.GetType().Name)
             ]);
+    }
+
+    private static IEnumerable<CompositionViewLayerSnapshot> MapViews(
+        Composition composition,
+        CompositionViewSnapshot rootSnapshot)
+    {
+        var rootView = composition.ActiveView ?? composition.RootView;
+        yield return new CompositionViewLayerSnapshot(
+            Id: rootView?.GlobalId.ToString() ?? "view.default",
+            Name: rootView?.Name ?? rootSnapshot.Title,
+            Nodes: rootSnapshot.Nodes,
+            Connectors: rootSnapshot.Connectors);
+
+        foreach (var idea in composition.GetNestedCompositeIdeas(true)
+                     .Where(idea => idea.CompositeViews.Count > 0))
+        {
+            foreach (var view in idea.CompositeViews)
+            {
+                if (rootView is not null && ReferenceEquals(view, rootView))
+                {
+                    continue;
+                }
+
+                yield return MapView(view, idea.GlobalId.ToString());
+            }
+        }
+    }
+
+    private static CompositionViewLayerSnapshot MapView(View view, string containerIdeaId)
+    {
+        var viewObjects = ReadViewObjects(view).ToArray();
+        var symbols = viewObjects.OfType<VisualSymbol>().ToArray();
+        var symbolIds = symbols.ToDictionary(symbol => symbol, symbol => symbol.GlobalId.ToString());
+        var nodes = symbols.Select(MapNodeView).ToArray();
+        var connectors = viewObjects
+            .OfType<VisualConnector>()
+            .Select(connector => MapConnectorView(connector, symbolIds))
+            .Where(connector => connector is not null)
+            .Cast<CompositionConnectorView>()
+            .ToArray();
+
+        return new CompositionViewLayerSnapshot(
+            Id: view.GlobalId.ToString(),
+            Name: view.Name,
+            Nodes: nodes,
+            Connectors: connectors,
+            ContainerIdeaId: containerIdeaId);
+    }
+
+    private static CompositionNodeView MapNodeView(VisualSymbol symbol)
+    {
+        return new CompositionNodeView(
+            symbol.GlobalId.ToString(),
+            symbol.OwnerRepresentation.RepresentedIdea?.Name ?? symbol.GlobalId.ToString(),
+            new TcPoint(symbol.BaseArea.X, symbol.BaseArea.Y),
+            new TcSize(symbol.BaseArea.Width, symbol.BaseArea.Height));
+    }
+
+    private static CompositionConnectorView? MapConnectorView(
+        VisualConnector connector,
+        IReadOnlyDictionary<VisualSymbol, string> symbolIds)
+    {
+        if (!symbolIds.TryGetValue(connector.OriginSymbol, out var sourceId) ||
+            !symbolIds.TryGetValue(connector.TargetSymbol, out var targetId))
+        {
+            return null;
+        }
+
+        return new CompositionConnectorView(
+            connector.GlobalId.ToString(),
+            sourceId,
+            targetId,
+            connector.OwnerRelationshipRepresentation?.RepresentedRelationship?.Name ?? string.Empty);
     }
 
     private static CompositionRelationshipSnapshot MapRelationship(CompositionConnectorView connector, Relationship? relationship)

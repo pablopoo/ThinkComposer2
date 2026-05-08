@@ -397,39 +397,98 @@ public static class CompositionDocumentSnapshotEditor
         var defaultConceptDefinitionId = document.Domain.ConceptDefinitions.FirstOrDefault()?.Id ?? string.Empty;
         var defaultRelationshipDefinitionId = document.Domain.RelationshipDefinitions.FirstOrDefault()?.Id ?? string.Empty;
 
-        var ideas = viewSnapshot.Nodes
-            .Select(node => ideasById.TryGetValue(node.Id, out var existing)
-                ? existing with { Name = node.Text, Style = node.Style }
-                : new CompositionIdeaSnapshot(node.Id, node.Text, defaultConceptDefinitionId, Style: node.Style))
-            .ToArray();
+        var ideas = ApplyIdeaViewChanges(document, viewSnapshot, ideasById, defaultConceptDefinitionId, viewId);
+        var relationships = ApplyRelationshipViewChanges(document, viewSnapshot, relationshipsById, defaultRelationshipDefinitionId, viewId);
 
-        var relationships = viewSnapshot.Connectors
-            .Select(connector => relationshipsById.TryGetValue(connector.Id, out var existing)
-                ? existing with
+        var views = ApplyView(document, viewSnapshot, viewId);
+
+        return document with
+        {
+            Title = string.IsNullOrWhiteSpace(viewId) ? viewSnapshot.Title : document.Title,
+            Ideas = ideas,
+            Relationships = relationships,
+            Views = views
+        };
+    }
+
+    private static IReadOnlyList<CompositionIdeaSnapshot> ApplyIdeaViewChanges(
+        CompositionDocumentSnapshot document,
+        CompositionViewSnapshot viewSnapshot,
+        IReadOnlyDictionary<string, CompositionIdeaSnapshot> ideasById,
+        string defaultConceptDefinitionId,
+        string? viewId)
+    {
+        if (document.Views.Count <= 1 && string.IsNullOrWhiteSpace(viewId))
+        {
+            return viewSnapshot.Nodes
+                .Select(node => ideasById.TryGetValue(node.Id, out var existing)
+                    ? existing with { Name = node.Text, Style = node.Style }
+                    : new CompositionIdeaSnapshot(node.Id, node.Text, defaultConceptDefinitionId, Style: node.Style))
+                .ToArray();
+        }
+
+        var nodesById = viewSnapshot.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        var updated = document.Ideas.Select(idea => nodesById.TryGetValue(idea.Id, out var node)
+                ? idea with { Name = node.Text, Style = node.Style }
+                : idea)
+            .ToList();
+        var existingIds = updated.Select(idea => idea.Id).ToHashSet(StringComparer.Ordinal);
+        updated.AddRange(viewSnapshot.Nodes
+            .Where(node => !existingIds.Contains(node.Id))
+            .Select(node => new CompositionIdeaSnapshot(node.Id, node.Text, defaultConceptDefinitionId, Style: node.Style)));
+        return updated.ToArray();
+    }
+
+    private static IReadOnlyList<CompositionRelationshipSnapshot> ApplyRelationshipViewChanges(
+        CompositionDocumentSnapshot document,
+        CompositionViewSnapshot viewSnapshot,
+        IReadOnlyDictionary<string, CompositionRelationshipSnapshot> relationshipsById,
+        string defaultRelationshipDefinitionId,
+        string? viewId)
+    {
+        if (document.Views.Count <= 1 && string.IsNullOrWhiteSpace(viewId))
+        {
+            return viewSnapshot.Connectors
+                .Select(connector => relationshipsById.TryGetValue(connector.Id, out var existing)
+                    ? existing with
+                    {
+                        Name = connector.Text,
+                        SourceIdeaId = connector.SourceId,
+                        TargetIdeaId = connector.TargetId,
+                        Style = connector.Style
+                    }
+                    : new CompositionRelationshipSnapshot(
+                        connector.Id,
+                        connector.Text,
+                        connector.SourceId,
+                        connector.TargetId,
+                        defaultRelationshipDefinitionId,
+                        Style: connector.Style))
+                .ToArray();
+        }
+
+        var connectorsById = viewSnapshot.Connectors.ToDictionary(connector => connector.Id, StringComparer.Ordinal);
+        var updated = document.Relationships.Select(relationship => connectorsById.TryGetValue(relationship.Id, out var connector)
+                ? relationship with
                 {
                     Name = connector.Text,
                     SourceIdeaId = connector.SourceId,
                     TargetIdeaId = connector.TargetId,
                     Style = connector.Style
                 }
-                : new CompositionRelationshipSnapshot(
-                    connector.Id,
-                    connector.Text,
-                    connector.SourceId,
-                    connector.TargetId,
-                    defaultRelationshipDefinitionId,
-                    Style: connector.Style))
-            .ToArray();
-
-        var views = ApplyView(document, viewSnapshot, viewId);
-
-        return document with
-        {
-            Title = viewSnapshot.Title,
-            Ideas = ideas,
-            Relationships = relationships,
-            Views = views
-        };
+                : relationship)
+            .ToList();
+        var existingIds = updated.Select(relationship => relationship.Id).ToHashSet(StringComparer.Ordinal);
+        updated.AddRange(viewSnapshot.Connectors
+            .Where(connector => !existingIds.Contains(connector.Id))
+            .Select(connector => new CompositionRelationshipSnapshot(
+                connector.Id,
+                connector.Text,
+                connector.SourceId,
+                connector.TargetId,
+                defaultRelationshipDefinitionId,
+                Style: connector.Style)));
+        return updated.ToArray();
     }
 
     private static IReadOnlyList<CompositionViewLayerSnapshot> ApplyView(

@@ -62,6 +62,10 @@ public static class CompositionDocumentPersistenceAdvisor
     {
         return ideas.Any(idea =>
             !string.IsNullOrWhiteSpace(idea.Summary) ||
+            !string.IsNullOrWhiteSpace(idea.ParentIdeaId) ||
+            !string.IsNullOrWhiteSpace(idea.ActiveViewId) ||
+            idea.IsComposite ||
+            !string.IsNullOrWhiteSpace(idea.ShortcutTargetId) ||
             idea.Details.Count > 0 ||
             idea.Markers.Count > 0 ||
             HasRichExtensions(idea.Extensions, allowSourceContract: false));
