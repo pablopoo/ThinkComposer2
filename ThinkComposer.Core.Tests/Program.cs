@@ -27,6 +27,12 @@ AssertTrue(exportedHtml.Contains("<!doctype html>", StringComparison.OrdinalIgno
 AssertTrue(exportedHtml.Contains("Composition 1", StringComparison.Ordinal), "html title");
 AssertTrue(exportedHtml.Contains("<svg", StringComparison.Ordinal), "html svg");
 
+var previewText = CompositionSnapshotPreviewTextBuilder.Build(snapshot);
+AssertTrue(previewText.Contains("Composition 1", StringComparison.Ordinal), "preview title");
+AssertTrue(previewText.Contains("Concepts (3)", StringComparison.Ordinal), "preview concepts");
+AssertTrue(previewText.Contains("Customer Need", StringComparison.Ordinal), "preview node");
+AssertTrue(previewText.Contains("Relationships (2)", StringComparison.Ordinal), "preview relationships");
+
 var settingsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-settings-{Guid.NewGuid():N}.xml");
 try
 {

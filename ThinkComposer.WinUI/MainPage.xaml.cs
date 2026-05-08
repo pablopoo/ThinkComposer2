@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -12,6 +13,14 @@ namespace Instrumind.ThinkComposer.WinUI;
 
 public sealed partial class MainPage : Page
 {
+    private enum BottomPanelTab
+    {
+        Messages,
+        Search,
+        Preview,
+        Diagnostics
+    }
+
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
@@ -34,6 +43,7 @@ public sealed partial class MainPage : Page
     private string? _selectedConnectorId;
     private string? _pendingRelationshipSourceId;
     private bool _isApplyingInspector;
+    private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
     private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
 
     public MainPage()
@@ -45,6 +55,7 @@ public sealed partial class MainPage : Page
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
         LoadWorkspaceSettings();
         LoadStartupSnapshot();
+        RefreshBottomPanelContent();
     }
 
     public event EventHandler<ElementTheme>? AppThemeChanged;
@@ -70,6 +81,33 @@ public sealed partial class MainPage : Page
         _isBottomVisible = !_isBottomVisible;
         ApplyPanelState();
         SaveWorkspaceSettings();
+    }
+
+    private void SearchRailButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowBottomTab(BottomPanelTab.Search);
+        BottomSearchBox.Focus(FocusState.Programmatic);
+    }
+
+    private void MessagesTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowBottomTab(BottomPanelTab.Messages);
+    }
+
+    private void SearchTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowBottomTab(BottomPanelTab.Search);
+        BottomSearchBox.Focus(FocusState.Programmatic);
+    }
+
+    private void PreviewTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowBottomTab(BottomPanelTab.Preview);
+    }
+
+    private void DiagnosticsTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowBottomTab(BottomPanelTab.Diagnostics);
     }
 
     private void FocusButton_Click(object sender, RoutedEventArgs e)
@@ -337,6 +375,82 @@ public sealed partial class MainPage : Page
         ExplorerPanel.Visibility = _isExplorerVisible ? Visibility.Visible : Visibility.Collapsed;
         InspectorPanel.Visibility = _isInspectorVisible ? Visibility.Visible : Visibility.Collapsed;
         BottomPanel.Visibility = _isBottomVisible ? Visibility.Visible : Visibility.Collapsed;
+        ApplyBottomTabState();
+    }
+
+    private void ShowBottomTab(BottomPanelTab tab, bool persist = true)
+    {
+        _bottomPanelTab = tab;
+        _isBottomVisible = true;
+        ApplyPanelState();
+        RefreshBottomPanelContent();
+        if (persist)
+        {
+            SaveWorkspaceSettings();
+        }
+    }
+
+    private void ApplyBottomTabState()
+    {
+        MessagesPanelContent.Visibility = _bottomPanelTab == BottomPanelTab.Messages ? Visibility.Visible : Visibility.Collapsed;
+        SearchPanelContent.Visibility = _bottomPanelTab == BottomPanelTab.Search ? Visibility.Visible : Visibility.Collapsed;
+        PreviewPanelContent.Visibility = _bottomPanelTab == BottomPanelTab.Preview ? Visibility.Visible : Visibility.Collapsed;
+        DiagnosticsPanelContent.Visibility = _bottomPanelTab == BottomPanelTab.Diagnostics ? Visibility.Visible : Visibility.Collapsed;
+
+        ApplyBottomTabButtonState(MessagesTabButton, _bottomPanelTab == BottomPanelTab.Messages);
+        ApplyBottomTabButtonState(SearchTabButton, _bottomPanelTab == BottomPanelTab.Search);
+        ApplyBottomTabButtonState(PreviewTabButton, _bottomPanelTab == BottomPanelTab.Preview);
+        ApplyBottomTabButtonState(DiagnosticsTabButton, _bottomPanelTab == BottomPanelTab.Diagnostics);
+    }
+
+    private static void ApplyBottomTabButtonState(Button button, bool isSelected)
+    {
+        button.FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal;
+        button.Opacity = isSelected ? 1 : 0.72;
+    }
+
+    private void RefreshBottomPanelContent()
+    {
+        RefreshSearchResults();
+        RefreshPreview();
+        RefreshDiagnostics();
+    }
+
+    private void RefreshSearchResults()
+    {
+        if (SearchResultsList is null)
+        {
+            return;
+        }
+
+        SearchResultsList.ItemsSource = CompositionCommandCatalog.Search(_commandEntries, BottomSearchBox.Text, limit: 50);
+    }
+
+    private void RefreshPreview()
+    {
+        PreviewText.Text = _currentSnapshot is null
+            ? "No document loaded."
+            : CompositionSnapshotPreviewTextBuilder.Build(_currentSnapshot);
+    }
+
+    private void RefreshDiagnostics()
+    {
+        var selection = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? $"Node: {_selectedNodeId}"
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? $"Relationship: {_selectedConnectorId}"
+                : "None";
+
+        DiagnosticsText.Text =
+            $"Document: {_currentSnapshot?.Title ?? "(none)"}{Environment.NewLine}" +
+            $"Path: {_snapshotPath ?? "(unsaved)"}{Environment.NewLine}" +
+            $"Dirty: {_isDirty}{Environment.NewLine}" +
+            $"Nodes: {_currentSnapshot?.Nodes.Count ?? 0}{Environment.NewLine}" +
+            $"Relationships: {_currentSnapshot?.Connectors.Count ?? 0}{Environment.NewLine}" +
+            $"Selection: {selection}{Environment.NewLine}" +
+            $"Explorer: {_isExplorerVisible}{Environment.NewLine}" +
+            $"Inspector: {_isInspectorVisible}{Environment.NewLine}" +
+            $"Bottom panel: {_isBottomVisible}";
     }
 
     private void LoadWorkspaceSettings()
@@ -512,6 +626,7 @@ public sealed partial class MainPage : Page
             $"Document: {snapshot.Title}{Environment.NewLine}" +
             $"Nodes: {snapshot.Nodes.Count}, connectors: {snapshot.Connectors.Count}";
         RefreshCommandCatalog();
+        RefreshBottomPanelContent();
     }
 
     private void ApplySessionSnapshot(
@@ -536,6 +651,7 @@ public sealed partial class MainPage : Page
             ApplySelectedNode(CanvasView.SelectedNode ?? _snapshotIndex.FirstNode);
         }
         RefreshCommandCatalog();
+        RefreshBottomPanelContent();
     }
 
     private void UpdateExplorer(CompositionViewSnapshot snapshot)
@@ -672,6 +788,7 @@ public sealed partial class MainPage : Page
         finally
         {
             _isApplyingInspector = false;
+            RefreshDiagnostics();
         }
     }
 
@@ -707,6 +824,7 @@ public sealed partial class MainPage : Page
         finally
         {
             _isApplyingInspector = false;
+            RefreshDiagnostics();
         }
     }
 
@@ -741,6 +859,22 @@ public sealed partial class MainPage : Page
         ExecuteCommandEntry(entry);
         sender.Text = string.Empty;
         sender.ItemsSource = null;
+    }
+
+    private void BottomSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        RefreshSearchResults();
+    }
+
+    private void SearchResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SearchResultsList.SelectedItem is not CompositionCommandEntry entry)
+        {
+            return;
+        }
+
+        SearchResultsList.SelectedItem = null;
+        ExecuteCommandEntry(entry);
     }
 
     private void ApplyInspectorName()
@@ -882,6 +1016,8 @@ public sealed partial class MainPage : Page
         {
             StatusContextText.Text = $"Modified {Path.GetFileName(_snapshotPath)}";
         }
+
+        RefreshDiagnostics();
     }
 
     private void ExecuteCommandEntry(CompositionCommandEntry entry)

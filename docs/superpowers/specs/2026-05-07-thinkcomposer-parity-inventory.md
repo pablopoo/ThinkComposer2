@@ -27,9 +27,9 @@ Date: 2026-05-07
 
 - Explorer navigation
 - Inspector properties
-- Messages
-- Search
-- Preview
+- Messages: WinUI bottom tab implemented.
+- Search: WinUI bottom tab searches commands, concepts, and relationships.
+- Preview: WinUI bottom tab shows a composition summary.
 
 ## Output
 

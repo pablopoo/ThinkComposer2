@@ -395,9 +395,11 @@ Port composition/domain navigation.
 
 Port selected object properties and actions.
 
-- [ ] **Step 3: Messages/search/preview**
+- [x] **Step 3: Messages/search/preview**
 
 Port bottom panel workflows.
+
+Implementation note: the WinUI bottom panel now has functional Messages, Search, Preview, and Diagnostics tabs. Search reuses the command/object catalog; Preview renders a text snapshot summary.
 
 - [x] **Step 4: Command search**
 

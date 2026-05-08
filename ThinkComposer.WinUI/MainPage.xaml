@@ -34,6 +34,16 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
+        <Style x:Key="BottomTabButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{ThemeResource ChromeForegroundBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
     </Page.Resources>
 
     <Grid x:Name="RootLayout" Background="{ThemeResource AppBackgroundBrush}">
@@ -125,7 +135,7 @@
                 <Button Click="BottomButton_Click" Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Messages">
                     <SymbolIcon Symbol="Message" />
                 </Button>
-                <Button Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Search">
+                <Button Click="SearchRailButton_Click" Style="{StaticResource RailButtonStyle}" ToolTipService.ToolTip="Search">
                     <SymbolIcon Symbol="Find" />
                 </Button>
             </StackPanel>
@@ -408,10 +418,30 @@
                     </Grid.RowDefinitions>
                     <Grid Padding="12,0,6,0">
                         <StackPanel Orientation="Horizontal" Spacing="16">
-                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Messages" />
-                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Search" />
-                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Preview" />
-                            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource MutedForegroundBrush}" Text="Diagnostics" />
+                            <Button
+                                x:Name="MessagesTabButton"
+                                Click="MessagesTabButton_Click"
+                                Content="Messages"
+                                FontWeight="SemiBold"
+                                Style="{StaticResource BottomTabButtonStyle}" />
+                            <Button
+                                x:Name="SearchTabButton"
+                                Click="SearchTabButton_Click"
+                                Content="Search"
+                                Opacity="0.72"
+                                Style="{StaticResource BottomTabButtonStyle}" />
+                            <Button
+                                x:Name="PreviewTabButton"
+                                Click="PreviewTabButton_Click"
+                                Content="Preview"
+                                Opacity="0.72"
+                                Style="{StaticResource BottomTabButtonStyle}" />
+                            <Button
+                                x:Name="DiagnosticsTabButton"
+                                Click="DiagnosticsTabButton_Click"
+                                Content="Diagnostics"
+                                Opacity="0.72"
+                                Style="{StaticResource BottomTabButtonStyle}" />
                         </StackPanel>
                         <Button
                             Width="28"
@@ -423,13 +453,60 @@
                             Content="v"
                             ToolTipService.ToolTip="Collapse bottom panel" />
                     </Grid>
-                    <TextBlock
-                        x:Name="MessagesText"
-                        Grid.Row="1"
-                        Padding="12,8"
-                        FontFamily="Consolas"
-                        FontSize="12"
-                        Text="ThinkComposer WinUI shell loaded&#x0a;Canvas renderer: Core snapshot DTOs&#x0a;Document compatibility: read-only migration path" />
+                    <Grid Grid.Row="1">
+                        <ScrollViewer x:Name="MessagesPanelContent" VerticalScrollBarVisibility="Auto">
+                            <TextBlock
+                                x:Name="MessagesText"
+                                Padding="12,8"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Text="ThinkComposer WinUI shell loaded&#x0a;Canvas renderer: Core snapshot DTOs&#x0a;Document compatibility: read-only migration path" />
+                        </ScrollViewer>
+
+                        <Grid
+                            x:Name="SearchPanelContent"
+                            Padding="12,8"
+                            RowSpacing="8"
+                            Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBox
+                                x:Name="BottomSearchBox"
+                                TextChanged="BottomSearchBox_TextChanged"
+                                PlaceholderText="Search commands, concepts, relationships..." />
+                            <ListView
+                                x:Name="SearchResultsList"
+                                Grid.Row="1"
+                                DisplayMemberPath="Title"
+                                SelectionChanged="SearchResultsList_SelectionChanged" />
+                        </Grid>
+
+                        <ScrollViewer
+                            x:Name="PreviewPanelContent"
+                            VerticalScrollBarVisibility="Auto"
+                            Visibility="Collapsed">
+                            <TextBlock
+                                x:Name="PreviewText"
+                                Padding="12,8"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+
+                        <ScrollViewer
+                            x:Name="DiagnosticsPanelContent"
+                            VerticalScrollBarVisibility="Auto"
+                            Visibility="Collapsed">
+                            <TextBlock
+                                x:Name="DiagnosticsText"
+                                Padding="12,8"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
