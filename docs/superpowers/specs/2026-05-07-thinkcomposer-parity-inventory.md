@@ -1,51 +1,62 @@
 # ThinkComposer Parity Inventory
 
-Date: 2026-05-07
+Date: 2026-05-08
 
 Detailed audit: `docs/superpowers/specs/2026-05-08-winui-parity-audit.md`.
 
-Status: basic WinUI editor parity is implemented. Full legacy product parity is not complete; the major blocker is the simplified `.tcview` model, which does not yet preserve rich domain/composition data.
+Status: WinUI is the primary app and covers the main editor, document, domain, output, and inspection workflows. Remaining work is concentrated in deep legacy semantics, specialized editors, PDF/XPS/multi-sheet output, and release hardening.
 
 ## Document
 
-- Open: `.tcview` native open plus `.tdom`/`.tcom` legacy import to modern snapshot.
-- New: WinUI creates empty compositions.
-- Save: WinUI saves native `.tcview`; imported legacy packages route through Save As.
-- Save As: WinUI writes modern `.tcview`.
-- Recent files: persisted in WinUI settings and available from toolbar/search.
+- Open: `.tcdoc`, `.tcview`, and legacy `.tdom/.tcom` through bridge import.
+- New: WinUI creates empty modern documents.
+- Merge: WinUI merges `.tcdoc/.tcview/.tdom/.tcom` into the active document.
+- Save: WinUI saves full `.tcdoc`.
+- Save As: WinUI writes `.tcdoc`; `.tcview` export is allowed with a data-loss warning for rich documents.
+- Recent files: persisted and searchable.
+- Dirty state: shown in app title.
 
 ## Composition Canvas
 
-- Create concept
-- Select concept
-- Move concept
-- Edit concept text
-- Create relationship
-- Select relationship
-- Delete selected object
-- Undo/redo
-- Zoom
-- Pan
+- Create/select/move concepts.
+- Multi-select, copy/cut/paste, select all.
+- Precise keyboard movement.
+- Edit concept text/layout/style.
+- Create/select/edit relationships.
+- Delete selected objects.
+- Undo/redo.
+- Zoom/pan.
+
+## Domain And Inspector
+
+- Domain explorer for concept, relationship, marker, table, and external-language definitions.
+- Definition create/update/delete.
+- Definition-driven concept/relationship creation.
+- Details: custom fields, links, attachments, CSV table details.
+- Markers: assign marker ids to concepts/relationships.
+- Complements: edit view complement extensions.
+- Templates: edit generation templates.
+- Styles: edit fill/stroke/text/line thickness for concepts/relationships.
 
 ## Panels
 
-- Explorer navigation: WinUI tree selects canvas concepts and relationships.
-- Inspector properties: WinUI inspector edits concept text/layout, relationship text, source/target display, and contextual actions.
-- Messages: WinUI bottom tab implemented.
-- Search: WinUI bottom tab searches commands, concepts, and relationships.
-- Preview: WinUI bottom tab shows a composition summary.
+- Explorer navigation.
+- Inspector properties/actions.
+- Messages.
+- Search for commands, objects, definitions, templates, complements, and recent files.
+- Preview.
+- Diagnostics with validation errors.
 
 ## Output
 
-- Export: WinUI HTML/SVG export implemented.
-- Print: WinUI printable HTML preview implemented as replacement path.
-
-## Settings
-
-- Theme: persisted in WinUI.
-- Workspace preferences: panel visibility persisted in WinUI.
+- HTML/SVG export.
+- Full HTML report.
+- Template-based file generation.
+- Printable HTML preview.
 
 ## Cutover
 
-- Primary app: `ThinkComposer.WinUI` is the solution app; legacy WPF shell is no longer a top-level solution project.
-- WPF dependency: WinUI/Core contain no WPF references. WPF remains only behind `ThinkComposer.LegacyBridge` for legacy import compatibility.
+- `ThinkComposer.WinUI` is the solution app.
+- WinUI/Core contain no WPF references.
+- WPF remains only behind `ThinkComposer.LegacyBridge` for legacy import compatibility.
+- `scripts/check-winui-migration.ps1` validates the WinUI/Core boundary and builds the solution.
