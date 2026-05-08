@@ -1600,7 +1600,9 @@ public sealed partial class MainPage : Page
     private void AddTableDetailButton_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Table" : DetailNameBox.Text.Trim();
-        var value = string.IsNullOrWhiteSpace(DetailValueBox.Text) ? "Rows: 0" : DetailValueBox.Text;
+        var value = string.IsNullOrWhiteSpace(DetailValueBox.Text)
+            ? CompositionDetailTableCsv.Format(new CompositionDetailTableSnapshot(["Column 1"], Array.Empty<IReadOnlyList<string>>()))
+            : DetailValueBox.Text;
         SaveDetail(CompositionDetailFactory.CreateTable(name, value), "Table detail saved");
     }
 

@@ -409,6 +409,21 @@ AssertEqual(CompositionDetailKinds.Attachment, attachmentDetail.Kind, "attachmen
 AssertEqual("spec.pdf", attachmentDetail.Name, "attachment detail name");
 var tableDetail = CompositionDetailFactory.CreateTable("Checklist");
 AssertEqual(CompositionDetailKinds.Table, tableDetail.Kind, "table detail kind");
+IReadOnlyList<string> tableColumns = ["Task", "Owner"];
+IReadOnlyList<IReadOnlyList<string>> tableRows =
+[
+    ["Review, spec", "Pablo"],
+    ["Quote \"edge\"", "Team"]
+];
+var structuredTableDetail = CompositionDetailFactory.CreateTable(
+    "Checklist",
+    tableColumns,
+    tableRows);
+var parsedTable = CompositionDetailTableCsv.Parse(structuredTableDetail.Value);
+AssertEqual("Task", parsedTable.Columns[0], "table csv column");
+AssertEqual("Review, spec", parsedTable.Rows[0][0], "table csv comma value");
+AssertEqual("Quote \"edge\"", parsedTable.Rows[1][0], "table csv quote value");
+AssertEqual(structuredTableDetail.Value, CompositionDetailTableCsv.Format(parsedTable), "table csv roundtrip");
 var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     detailedDocument,
     "idea-1",
