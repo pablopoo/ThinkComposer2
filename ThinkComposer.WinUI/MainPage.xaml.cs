@@ -21,6 +21,17 @@ public sealed partial class MainPage : Page
         Diagnostics
     }
 
+    private sealed record ExplorerTreeEntry(
+        string Title,
+        CompositionCommandEntryKind Kind,
+        string? TargetId = null)
+    {
+        public override string ToString()
+        {
+            return Title;
+        }
+    }
+
     private static readonly GridLength ExplorerWidth = new(248);
     private static readonly GridLength InspectorWidth = new(320);
     private static readonly GridLength BottomHeight = new(148);
@@ -660,25 +671,55 @@ public sealed partial class MainPage : Page
 
         var root = new TreeViewNode
         {
-            Content = $"{snapshot.Title} ({snapshot.Nodes.Count})",
+            Content = new ExplorerTreeEntry($"{snapshot.Title} ({snapshot.Nodes.Count})", CompositionCommandEntryKind.Command),
             IsExpanded = true
         };
 
         foreach (var node in snapshot.Nodes)
         {
-            root.Children.Add(new TreeViewNode { Content = GetNodeTitle(node) });
+            root.Children.Add(new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry(GetNodeTitle(node), CompositionCommandEntryKind.Node, node.Id)
+            });
         }
 
         ExplorerTree.RootNodes.Add(root);
 
         var relations = new TreeViewNode
         {
-            Content = $"Relationships ({snapshot.Connectors.Count})",
+            Content = new ExplorerTreeEntry($"Relationships ({snapshot.Connectors.Count})", CompositionCommandEntryKind.Command),
             IsExpanded = true
         };
-        relations.Children.Add(new TreeViewNode { Content = "Pointing to..." });
-        relations.Children.Add(new TreeViewNode { Content = "Pointed by..." });
+        foreach (var connector in snapshot.Connectors)
+        {
+            relations.Children.Add(new TreeViewNode
+            {
+                Content = new ExplorerTreeEntry(GetConnectorTitle(connector), CompositionCommandEntryKind.Connector, connector.Id)
+            });
+        }
+
         ExplorerTree.RootNodes.Add(relations);
+    }
+
+    private void ExplorerTree_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
+    {
+        if (sender.SelectedNode?.Content is not ExplorerTreeEntry entry ||
+            string.IsNullOrWhiteSpace(entry.TargetId))
+        {
+            return;
+        }
+
+        switch (entry.Kind)
+        {
+            case CompositionCommandEntryKind.Node:
+                CanvasView.SelectNode(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                break;
+            case CompositionCommandEntryKind.Connector:
+                CanvasView.SelectConnector(entry.TargetId);
+                StatusContextText.Text = $"Selected {entry.Title}";
+                break;
+        }
     }
 
     private void CanvasView_SelectedNodeChanged(object? sender, CompositionNodeView? node)
@@ -1092,6 +1133,11 @@ public sealed partial class MainPage : Page
     private static string GetNodeTitle(CompositionNodeView node)
     {
         return string.IsNullOrWhiteSpace(node.Text) ? node.Id : node.Text;
+    }
+
+    private static string GetConnectorTitle(CompositionConnectorView connector)
+    {
+        return string.IsNullOrWhiteSpace(connector.Text) ? connector.Id : connector.Text;
     }
 
     private static string? FindStartupSnapshotPath()

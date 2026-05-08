@@ -387,9 +387,11 @@ Implementation note: a neutral `CompositionEditingSession` now provides undo/red
 **Files:**
 - Modify or create WinUI explorer, inspector, messages, search, preview, command palette, and settings views.
 
-- [ ] **Step 1: Explorer**
+- [x] **Step 1: Explorer**
 
 Port composition/domain navigation.
+
+Implementation note: Explorer now lists composition concepts and relationships as selectable tree entries; choosing one selects the matching canvas object.
 
 - [ ] **Step 2: Inspector**
 

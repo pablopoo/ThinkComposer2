@@ -184,7 +184,11 @@
                             Foreground="{ThemeResource MutedForegroundBrush}"
                             Text="Domain" />
                     </Grid>
-                    <TreeView x:Name="ExplorerTree" Grid.Row="2" Margin="8,10,8,8">
+                    <TreeView
+                        x:Name="ExplorerTree"
+                        Grid.Row="2"
+                        Margin="8,10,8,8"
+                        SelectionChanged="ExplorerTree_SelectionChanged">
                         <TreeView.RootNodes>
                             <TreeViewNode Content="Composition 1" IsExpanded="True">
                                 <TreeViewNode.Children>

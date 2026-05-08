@@ -25,7 +25,7 @@ Date: 2026-05-07
 
 ## Panels
 
-- Explorer navigation
+- Explorer navigation: WinUI tree selects canvas concepts and relationships.
 - Inspector properties
 - Messages: WinUI bottom tab implemented.
 - Search: WinUI bottom tab searches commands, concepts, and relationships.
