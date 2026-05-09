@@ -52,6 +52,7 @@ public sealed partial class CompositionCanvas : UserControl
     public event EventHandler<CompositionConnectorView?>? SelectedConnectorChanged;
     public event EventHandler<CompositionNodeView>? NodeMoved;
     public event EventHandler<CompositionNodeView>? NodeMoveCompleted;
+    public event EventHandler<CompositionCanvasContextRequestedEventArgs>? CanvasContextRequested;
 
     public CompositionNodeView? SelectedNode => _selectedNode?.Source;
     public IReadOnlyList<CompositionNodeView> SelectedNodes => _nodes
@@ -364,9 +365,49 @@ public sealed partial class CompositionCanvas : UserControl
 
     private void DrawingSurface_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        var screenPoint = e.GetCurrentPoint(DrawingSurface).Position;
+        var pointerPoint = e.GetCurrentPoint(DrawingSurface);
+        var screenPoint = pointerPoint.Position;
         var worldPoint = ToWorld(screenPoint);
         var hitNode = HitTest(worldPoint);
+        if (pointerPoint.Properties.IsRightButtonPressed)
+        {
+            CompositionConnectorView? hitConnector = null;
+            if (hitNode is not null)
+            {
+                SetSelectedConnector(null);
+                if (!_selectedNodeIds.Contains(hitNode.Id))
+                {
+                    SetSelectedNode(hitNode);
+                }
+            }
+            else
+            {
+                hitConnector = HitTestConnector(worldPoint);
+                if (hitConnector is not null)
+                {
+                    SetSelectedNode(null);
+                    SetSelectedConnector(hitConnector);
+                }
+                else
+                {
+                    SetSelectedNode(null);
+                    SetSelectedConnector(null);
+                }
+            }
+
+            CanvasContextRequested?.Invoke(
+                this,
+                new CompositionCanvasContextRequestedEventArgs(
+                    screenPoint,
+                    worldPoint,
+                    hitNode?.Id,
+                    hitConnector?.Id,
+                    _selectedNodeIds.Count > 0 || _selectedConnector is not null));
+            DrawingSurface.Invalidate();
+            e.Handled = true;
+            return;
+        }
+
         var extendsSelection = e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Control) ||
             e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift);
         if (hitNode is not null)

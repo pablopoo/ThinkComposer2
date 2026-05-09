@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
+using Instrumind.ThinkComposer.WinUI.Canvas;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -97,6 +99,7 @@ public sealed partial class MainPage : Page
     private string? _pendingRelationshipSourceId;
     private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
+    private TcPoint? _lastCanvasContextPoint;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
     private List<string> _recentFiles = [];
@@ -112,6 +115,7 @@ public sealed partial class MainPage : Page
         CanvasView.SelectedConnectorChanged += CanvasView_SelectedConnectorChanged;
         CanvasView.NodeMoved += CanvasView_NodeMoved;
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
+        CanvasView.CanvasContextRequested += CanvasView_CanvasContextRequested;
         LoadWorkspaceSettings();
         LoadStartupSnapshot();
         RefreshBottomPanelContent();
@@ -1745,6 +1749,127 @@ public sealed partial class MainPage : Page
         RefreshCommandCatalog();
     }
 
+    private void CanvasView_CanvasContextRequested(object? sender, CompositionCanvasContextRequestedEventArgs e)
+    {
+        _lastCanvasContextPoint = new TcPoint(e.WorldPoint.X, e.WorldPoint.Y);
+        RefreshCommandCatalog();
+
+        var commands = SelectCanvasContextCommands(e)
+            .Select(FindCommandEntry)
+            .Where(command => command is not null)
+            .Cast<CompositionCommandEntry>()
+            .ToArray();
+        if (commands.Length == 0)
+        {
+            return;
+        }
+
+        var flyout = new MenuFlyout();
+        foreach (var command in commands)
+        {
+            var item = new MenuFlyoutItem
+            {
+                Text = string.IsNullOrWhiteSpace(command.Accelerator)
+                    ? command.Title
+                    : $"{command.Title}\t{command.Accelerator}",
+                Tag = command,
+                IsEnabled = command.IsEnabled
+            };
+            item.Click += CanvasCommandMenuItem_Click;
+            flyout.Items.Add(item);
+        }
+
+        flyout.ShowAt(CanvasView, new FlyoutShowOptions { Position = e.ScreenPoint });
+    }
+
+    private IReadOnlyList<string> SelectCanvasContextCommands(CompositionCanvasContextRequestedEventArgs e)
+    {
+        var selectedNodeCount = GetSelectedNodeIds().Count;
+        if (!string.IsNullOrWhiteSpace(e.ConnectorId))
+        {
+            return
+            [
+                CompositionCommandIds.EditName,
+                CompositionCommandIds.ChangeRelationshipDefinition,
+                CompositionCommandIds.ChangeLinkRole,
+                CompositionCommandIds.Delete,
+                CompositionCommandIds.GetFormat,
+                CompositionCommandIds.ApplyFormat
+            ];
+        }
+
+        if (selectedNodeCount > 1)
+        {
+            return
+            [
+                CompositionCommandIds.Cut,
+                CompositionCommandIds.Copy,
+                CompositionCommandIds.Delete,
+                CompositionCommandIds.AlignTop,
+                CompositionCommandIds.AlignLeft,
+                CompositionCommandIds.AlignRight,
+                CompositionCommandIds.AlignBottom,
+                CompositionCommandIds.AlignCenter,
+                CompositionCommandIds.AlignMiddle,
+                CompositionCommandIds.SameWidth,
+                CompositionCommandIds.SameHeight,
+                CompositionCommandIds.SameSize,
+                CompositionCommandIds.DistributeHorizontally,
+                CompositionCommandIds.DistributeVertically,
+                CompositionCommandIds.BringToFront,
+                CompositionCommandIds.SendToBack,
+                CompositionCommandIds.BringForward,
+                CompositionCommandIds.SendBackward,
+                CompositionCommandIds.ApplyFormat
+            ];
+        }
+
+        if (!string.IsNullOrWhiteSpace(e.NodeId))
+        {
+            return
+            [
+                CompositionCommandIds.EditName,
+                CompositionCommandIds.ConvertType,
+                CompositionCommandIds.NewRelationship,
+                CompositionCommandIds.OpenCompositeView,
+                CompositionCommandIds.PasteShortcut,
+                CompositionCommandIds.Cut,
+                CompositionCommandIds.Copy,
+                CompositionCommandIds.Delete,
+                CompositionCommandIds.GetFormat,
+                CompositionCommandIds.ApplyFormat,
+                CompositionCommandIds.BringToFront,
+                CompositionCommandIds.SendToBack
+            ];
+        }
+
+        return
+        [
+            CompositionCommandIds.NewConcept,
+            CompositionCommandIds.Paste,
+            CompositionCommandIds.SelectAll,
+            CompositionCommandIds.FitToView,
+            CompositionCommandIds.ToggleGrid,
+            CompositionCommandIds.ToggleSnapToGrid,
+            CompositionCommandIds.ToggleGridPoints
+        ];
+    }
+
+    private CompositionCommandEntry? FindCommandEntry(string commandId)
+    {
+        return _commandEntries.FirstOrDefault(entry =>
+            entry.Kind == CompositionCommandEntryKind.Command &&
+            string.Equals(entry.Id, commandId, StringComparison.Ordinal));
+    }
+
+    private void CanvasCommandMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: CompositionCommandEntry entry })
+        {
+            ExecuteCommandEntry(entry);
+        }
+    }
+
     private void CanvasView_NodeMoved(object? sender, CompositionNodeView node)
     {
         if (_currentSnapshot is null)
@@ -2830,6 +2955,59 @@ public sealed partial class MainPage : Page
         StatusContextText.Text = $"Pasted {pastedNodeIds.Length} concept(s)";
     }
 
+    private void PasteShortcutFromClipboard()
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a composition view first.";
+            return;
+        }
+
+        if (_clipboardSelection is null || _clipboardSelection.Nodes.Count == 0)
+        {
+            StatusContextText.Text = "Clipboard is empty.";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        var viewId = _currentViewId ?? document.Views.FirstOrDefault()?.Id;
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            StatusContextText.Text = "No active view.";
+            return;
+        }
+
+        _currentViewId = viewId;
+        var targetNode = _clipboardSelection.Nodes[0];
+        if (!document.Ideas.Any(idea => string.Equals(idea.Id, targetNode.Id, StringComparison.Ordinal)))
+        {
+            StatusContextText.Text = "Copied concept is not in this document.";
+            return;
+        }
+
+        var existingIds = document.Views
+            .First(view => string.Equals(view.Id, viewId, StringComparison.Ordinal))
+            .Nodes
+            .Select(node => node.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var position = _lastCanvasContextPoint ?? new TcPoint(targetNode.Position.X + 24, targetNode.Position.Y + 24);
+        _currentDocument = CompositionDocumentSnapshotEditor.CreateShortcut(
+            document,
+            viewId,
+            targetNode.Id,
+            string.Empty,
+            position,
+            targetNode.Size);
+        var shortcutId = _currentDocument.Views
+            .First(view => string.Equals(view.Id, viewId, StringComparison.Ordinal))
+            .Nodes
+            .Last(node => !existingIds.Contains(node.Id))
+            .Id;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(_currentDocument, viewId);
+        ApplyEditedSnapshot(snapshot, shortcutId, fitToViewport: false);
+        StatusContextText.Text = "Shortcut pasted";
+    }
+
     private void SelectAllConcepts()
     {
         if (_currentSnapshot is null)
@@ -3543,7 +3721,7 @@ public sealed partial class MainPage : Page
                 SelectAllConcepts();
                 break;
             case CompositionCommandIds.PasteShortcut:
-                CreateShortcutButton_Click(this, new RoutedEventArgs());
+                PasteShortcutFromClipboard();
                 break;
             case CompositionCommandIds.GoParent:
                 StatusContextText.Text = "Parent navigation will be available from the view context.";
