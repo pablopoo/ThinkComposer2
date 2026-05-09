@@ -4,7 +4,7 @@ Date: 2026-05-08
 
 Detailed audit: `docs/superpowers/specs/2026-05-08-winui-parity-audit.md`.
 
-Status: WinUI is the primary app and covers the main editor, document, domain, output, and inspection workflows. Remaining work is concentrated in deep legacy semantics, specialized editors, PDF/XPS/multi-sheet output, and release hardening.
+Status: WinUI is the primary app and covers the main editor, document, domain, output, and inspection workflows. Remaining non-P2 work is concentrated in optional spreadsheet conveniences and any legacy fields not yet seen in bridge fixtures.
 
 ## Document
 
@@ -19,6 +19,7 @@ Status: WinUI is the primary app and covers the main editor, document, domain, o
 ## Composition Canvas
 
 - Create/select/move concepts.
+- Tab/Enter mind-map creation for child and sibling concepts.
 - Multi-select, copy/cut/paste, select all.
 - Precise keyboard movement.
 - Edit concept text/layout/style.
@@ -32,7 +33,7 @@ Status: WinUI is the primary app and covers the main editor, document, domain, o
 - Domain explorer for concept, relationship, marker, table, and external-language definitions.
 - Definition create/update/delete.
 - Definition-driven concept/relationship creation.
-- Details: custom fields, links, attachments, CSV table details.
+- Details: custom fields, links, attachments, CSV table details with per-cell row editing.
 - Markers: assign marker ids to concepts/relationships.
 - Complements: edit view complement extensions.
 - Templates: edit generation templates.
@@ -51,7 +52,9 @@ Status: WinUI is the primary app and covers the main editor, document, domain, o
 
 - HTML/SVG export.
 - Full HTML report.
+- HTML presentation deck.
 - Template-based file generation.
+- Generated output directory writing with path-escape checks.
 - Printable HTML preview.
 
 ## Cutover

@@ -287,7 +287,7 @@ var generationDocument = modernDocument with
         [
             new CompositionExtensionSnapshot(
                 "legacy.template.concept.default",
-                "%%:FILENAME={{Name}}.md\n# {{Name}}\nDefinition={{Definition.Name}}\nSpec={{Details.Spec}}"),
+                "%%:FILENAME={{Name}}.md\n%%:NOTE=internal template metadata\n# {{Name}}\nDefinition={{Definition.Name}}\nSpec={{Details.Spec}}"),
             new CompositionExtensionSnapshot(
                 "legacy.template.relationship.default",
                 "%%:FILENAME={{Name}}.rel.txt\n{{Source.Name}} -> {{Target.Name}}: {{Name}}\nLinkRole={{LinkRole.Name}}")
@@ -300,9 +300,57 @@ var generatedConceptFile = generatedFiles.Files.Single(file => file.RelativePath
 AssertTrue(generatedConceptFile.Content.Contains("# Customer Need", StringComparison.Ordinal), "modern generation concept name");
 AssertTrue(generatedConceptFile.Content.Contains("Definition=Concept", StringComparison.Ordinal), "modern generation definition");
 AssertTrue(generatedConceptFile.Content.Contains("Spec=spec.pdf", StringComparison.Ordinal), "modern generation detail");
+AssertTrue(!generatedConceptFile.Content.Contains("%%:", StringComparison.Ordinal), "modern generation strips metadata directives");
 var generatedRelationshipFile = generatedFiles.Files.Single(file => file.RelativePath == "Addresses.rel.txt");
 AssertTrue(generatedRelationshipFile.Content.Contains("Customer Need -> Customer Need: Addresses", StringComparison.Ordinal), "modern generation relationship");
 AssertTrue(generatedRelationshipFile.Content.Contains("LinkRole=Source Role", StringComparison.Ordinal), "modern generation link role");
+var workflowOutputPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-workflow-{Guid.NewGuid():N}");
+try
+{
+    Directory.CreateDirectory(workflowOutputPath);
+    var reportOutputPath = Path.Combine(workflowOutputPath, "report.html");
+    File.WriteAllText(reportOutputPath, CompositionDocumentReportHtmlExporter.Export(generationDocument));
+    AssertTrue(File.Exists(reportOutputPath), "workflow report output file");
+    AssertTrue(File.ReadAllText(reportOutputPath).Contains("Modern Document", StringComparison.Ordinal), "workflow report output content");
+    var presentationOutputPath = Path.Combine(workflowOutputPath, "presentation.html");
+    File.WriteAllText(presentationOutputPath, CompositionDocumentPresentationHtmlExporter.Export(generationDocument));
+    AssertTrue(File.Exists(presentationOutputPath), "workflow presentation output file");
+    AssertTrue(File.ReadAllText(presentationOutputPath).Contains("Customer Need Detail", StringComparison.Ordinal), "workflow presentation output content");
+    generatedFiles.WriteToDirectory(workflowOutputPath);
+    AssertTrue(File.Exists(Path.Combine(workflowOutputPath, "Customer Need.md")), "workflow generated concept output file");
+    AssertTrue(File.Exists(Path.Combine(workflowOutputPath, "Addresses.rel.txt")), "workflow generated relationship output file");
+}
+finally
+{
+    if (Directory.Exists(workflowOutputPath))
+    {
+        Directory.Delete(workflowOutputPath, recursive: true);
+    }
+}
+var generationRootPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-generation-root-{Guid.NewGuid():N}");
+var generationSiblingPath = $"{generationRootPath}2";
+try
+{
+    var escapingGeneratedFiles = new CompositionFileGenerationResult(
+    [
+        new CompositionGeneratedFile(Path.Combine("..", Path.GetFileName(generationSiblingPath), "escape.txt"), "escape")
+    ]);
+    AssertThrows<InvalidOperationException>(
+        () => escapingGeneratedFiles.WriteToDirectory(generationRootPath),
+        "generated files reject sibling prefix escape");
+}
+finally
+{
+    if (Directory.Exists(generationRootPath))
+    {
+        Directory.Delete(generationRootPath, recursive: true);
+    }
+
+    if (Directory.Exists(generationSiblingPath))
+    {
+        Directory.Delete(generationSiblingPath, recursive: true);
+    }
+}
 var documentPreviewText = CompositionDocumentPreviewTextBuilder.Build(generationDocument);
 AssertTrue(documentPreviewText.Contains("Modern Document", StringComparison.Ordinal), "document preview title");
 AssertTrue(documentPreviewText.Contains("Domain: All Purpose", StringComparison.Ordinal), "document preview domain");
@@ -917,6 +965,36 @@ AssertEqual(
 
 var deletedRelationshipSnapshot = CompositionSnapshotEditor.DeleteConnector(relationshipSnapshot, "created-relationship");
 AssertEqual(2, deletedRelationshipSnapshot.Connectors.Count, "delete relationship count");
+
+var mindMapSibling = CompositionMindMapEditor.CreateSibling(
+    indexedSnapshot,
+    "left",
+    "sibling-node");
+AssertEqual(3, mindMapSibling.Snapshot.Nodes.Count, "mind map sibling node count");
+AssertEqual("sibling-node", mindMapSibling.NodeId, "mind map sibling selected id");
+AssertEqual(indexedSnapshot.Connectors.Count, mindMapSibling.Snapshot.Connectors.Count, "mind map sibling preserves connectors");
+var siblingNode = mindMapSibling.Snapshot.Nodes.Single(node => node.Id == "sibling-node");
+AssertEqual(100.0, siblingNode.Position.X, "mind map sibling x");
+AssertEqual(320.0, siblingNode.Position.Y, "mind map sibling y");
+AssertEqual(100.0, siblingNode.Size.Width, "mind map sibling width");
+
+var mindMapChild = CompositionMindMapEditor.CreateChild(
+    indexedSnapshot,
+    "left",
+    "child-node",
+    "child-relationship");
+AssertEqual(3, mindMapChild.Snapshot.Nodes.Count, "mind map child node count");
+AssertEqual("child-node", mindMapChild.NodeId, "mind map child selected id");
+AssertEqual("child-relationship", mindMapChild.ConnectorId, "mind map child connector id");
+var childNode = mindMapChild.Snapshot.Nodes.Single(node => node.Id == "child-node");
+AssertEqual(320.0, childNode.Position.X, "mind map child x");
+AssertEqual(200.0, childNode.Position.Y, "mind map child y");
+var childConnector = mindMapChild.Snapshot.Connectors.Single(connector => connector.Id == "child-relationship");
+AssertEqual("left", childConnector.SourceId, "mind map child connector source");
+AssertEqual("child-node", childConnector.TargetId, "mind map child connector target");
+AssertThrows<InvalidOperationException>(
+    () => CompositionMindMapEditor.CreateSibling(indexedSnapshot, "missing", "missing-sibling"),
+    "mind map missing selected node");
 
 var copiedSelection = CompositionSnapshotSelectionEditor.Copy(indexedSnapshot, ["left", "right"]);
 AssertEqual(2, copiedSelection.Nodes.Count, "copy selection node count");

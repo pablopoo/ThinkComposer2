@@ -13,11 +13,11 @@ public sealed record CompositionFileGenerationResult(IReadOnlyList<CompositionGe
         }
 
         Directory.CreateDirectory(targetDirectory);
+        var fullRootPath = EnsureTrailingSeparator(Path.GetFullPath(targetDirectory));
         foreach (var file in Files)
         {
             var targetPath = Path.Combine(targetDirectory, file.RelativePath);
             var fullTargetPath = Path.GetFullPath(targetPath);
-            var fullRootPath = Path.GetFullPath(targetDirectory);
             if (!fullTargetPath.StartsWith(fullRootPath, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException($"Generated path escapes target directory: {file.RelativePath}");
@@ -31,5 +31,13 @@ public sealed record CompositionFileGenerationResult(IReadOnlyList<CompositionGe
 
             File.WriteAllText(fullTargetPath, file.Content);
         }
+    }
+
+    private static string EnsureTrailingSeparator(string path)
+    {
+        return path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+            path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                ? path
+                : path + Path.DirectorySeparatorChar;
     }
 }

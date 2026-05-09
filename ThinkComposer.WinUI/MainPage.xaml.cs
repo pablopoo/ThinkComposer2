@@ -106,6 +106,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        AddHandler(KeyDownEvent, new KeyEventHandler(RootPage_KeyDown), handledEventsToo: true);
         CanvasView.SelectedNodeChanged += CanvasView_SelectedNodeChanged;
         CanvasView.SelectedNodesChanged += CanvasView_SelectedNodesChanged;
         CanvasView.SelectedConnectorChanged += CanvasView_SelectedConnectorChanged;
@@ -839,6 +840,79 @@ public sealed partial class MainPage : Page
 
         MoveSelectedNodesBy(delta);
         args.Handled = true;
+    }
+
+    private void RootPage_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is not (VirtualKey.Enter or VirtualKey.Tab))
+        {
+            return;
+        }
+
+        if (TryCreateMindMapConcept(e.Key))
+        {
+            e.Handled = true;
+        }
+    }
+
+    private bool TryCreateMindMapConcept(VirtualKey key)
+    {
+        if (IsTextInputFocused() ||
+            _currentSnapshot is null ||
+            string.IsNullOrWhiteSpace(_selectedNodeId))
+        {
+            return false;
+        }
+
+        var document = EnsureCurrentDocument();
+        var selectedIdea = document.Ideas.FirstOrDefault(idea => string.Equals(idea.Id, _selectedNodeId, StringComparison.Ordinal));
+        var conceptDefinitionId = !string.IsNullOrWhiteSpace(selectedIdea?.DefinitionId)
+            ? selectedIdea.DefinitionId
+            : document.Domain.ConceptDefinitions.FirstOrDefault()?.Id;
+        var conceptDefinition = string.IsNullOrWhiteSpace(conceptDefinitionId)
+            ? null
+            : FindDefinition(CompositionDefinitionGroup.Concept, conceptDefinitionId);
+        var relationshipDefinition = document.Domain.RelationshipDefinitions.FirstOrDefault();
+        var conceptName = conceptDefinition?.Name ?? "New Concept";
+
+        var result = key == VirtualKey.Tab
+            ? CompositionMindMapEditor.CreateChild(
+                _currentSnapshot,
+                _selectedNodeId,
+                Guid.NewGuid().ToString(),
+                Guid.NewGuid().ToString(),
+                conceptName,
+                relationshipDefinition?.Name ?? "Relationship")
+            : CompositionMindMapEditor.CreateSibling(
+                _currentSnapshot,
+                _selectedNodeId,
+                Guid.NewGuid().ToString(),
+                conceptName);
+
+        ApplyEditedSnapshot(result.Snapshot, result.NodeId, fitToViewport: false);
+        if (!string.IsNullOrWhiteSpace(conceptDefinitionId))
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetIdeaDefinition(
+                EnsureCurrentDocument(),
+                result.NodeId,
+                conceptDefinitionId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ConnectorId) && relationshipDefinition is not null)
+        {
+            _currentDocument = CompositionDocumentSnapshotEditor.SetRelationshipDefinition(
+                EnsureCurrentDocument(),
+                result.ConnectorId,
+                relationshipDefinition.Id);
+        }
+
+        RefreshCurrentSelectionInspector();
+        RefreshCommandCatalog();
+        RefreshBottomPanelContent();
+        StatusContextText.Text = key == VirtualKey.Tab
+            ? "Created linked concept"
+            : "Created sibling concept";
+        return true;
     }
 
     private void UndoButton_Click(object sender, RoutedEventArgs e)
