@@ -24,7 +24,7 @@ The WinUI app covers the main editor workflow:
 - Pan, zoom, select, multi-select, move, delete, undo, and redo.
 - Edit document structure through Explorer and Inspector panels.
 - Edit concept details, markers, styles, tables, links, attachments, and generation templates.
-- Export HTML/SVG, generate reports, presentations, and printable HTML previews.
+- Export HTML/SVG/PDF, generate PDF/HTML reports, presentations, and printable HTML previews.
 - Build portable release artifacts with manifests and SHA-256 verification.
 
 Remaining product decisions are tracked in:

@@ -426,6 +426,11 @@ public sealed partial class MainPage : Page
 
     private async void ExportButton_Click(object sender, RoutedEventArgs e)
     {
+        await ExportCurrentViewAsync();
+    }
+
+    private async Task ExportCurrentViewAsync(string? forcedExtension = null)
+    {
         if (_currentSnapshot is null)
         {
             return;
@@ -433,8 +438,17 @@ public sealed partial class MainPage : Page
 
         var picker = new FileSavePicker();
         InitializePicker(picker);
-        picker.FileTypeChoices.Add("Printable HTML", [".html"]);
-        picker.FileTypeChoices.Add("SVG image", [".svg"]);
+        if (string.Equals(forcedExtension, ".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            picker.FileTypeChoices.Add("PDF document", [".pdf"]);
+        }
+        else
+        {
+            picker.FileTypeChoices.Add("Printable HTML", [".html"]);
+            picker.FileTypeChoices.Add("SVG image", [".svg"]);
+            picker.FileTypeChoices.Add("PDF document", [".pdf"]);
+        }
+
         picker.SuggestedFileName = string.IsNullOrWhiteSpace(_currentSnapshot.Title) ? "Untitled" : _currentSnapshot.Title;
         picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 
@@ -447,11 +461,18 @@ public sealed partial class MainPage : Page
         try
         {
             var extension = Path.GetExtension(file.Path);
-            var content = string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase)
-                ? CompositionSnapshotSvgExporter.Export(_currentSnapshot)
-                : CompositionSnapshotHtmlExporter.Export(_currentSnapshot);
+            if (string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                await FileIO.WriteBytesAsync(file, CompositionSnapshotPdfExporter.Export(_currentSnapshot));
+            }
+            else
+            {
+                var content = string.Equals(extension, ".svg", StringComparison.OrdinalIgnoreCase)
+                    ? CompositionSnapshotSvgExporter.Export(_currentSnapshot)
+                    : CompositionSnapshotHtmlExporter.Export(_currentSnapshot);
+                await FileIO.WriteTextAsync(file, content);
+            }
 
-            await FileIO.WriteTextAsync(file, content);
             StatusContextText.Text = $"Exported {Path.GetFileName(file.Path)}";
             MessagesText.Text =
                 $"Document exported{Environment.NewLine}" +
@@ -467,6 +488,11 @@ public sealed partial class MainPage : Page
 
     private async void ReportButton_Click(object sender, RoutedEventArgs e)
     {
+        await ExportDocumentReportAsync();
+    }
+
+    private async Task ExportDocumentReportAsync(string? forcedExtension = null)
+    {
         if (_currentSnapshot is null)
         {
             return;
@@ -480,7 +506,16 @@ public sealed partial class MainPage : Page
 
         var picker = new FileSavePicker();
         InitializePicker(picker);
-        picker.FileTypeChoices.Add("Document report HTML", [".html"]);
+        if (string.Equals(forcedExtension, ".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            picker.FileTypeChoices.Add("Document report PDF", [".pdf"]);
+        }
+        else
+        {
+            picker.FileTypeChoices.Add("Document report HTML", [".html"]);
+            picker.FileTypeChoices.Add("Document report PDF", [".pdf"]);
+        }
+
         picker.SuggestedFileName = $"{(_currentSnapshot.Title.Length == 0 ? "Untitled" : _currentSnapshot.Title)}-report";
         picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 
@@ -492,7 +527,15 @@ public sealed partial class MainPage : Page
 
         try
         {
-            await FileIO.WriteTextAsync(file, CompositionDocumentReportHtmlExporter.Export(document));
+            if (string.Equals(Path.GetExtension(file.Path), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                await FileIO.WriteBytesAsync(file, CompositionDocumentReportPdfExporter.Export(document));
+            }
+            else
+            {
+                await FileIO.WriteTextAsync(file, CompositionDocumentReportHtmlExporter.Export(document));
+            }
+
             StatusContextText.Text = $"Report exported {Path.GetFileName(file.Path)}";
             MessagesText.Text =
                 $"Document report exported{Environment.NewLine}" +
@@ -4137,8 +4180,14 @@ public sealed partial class MainPage : Page
             case CompositionCommandIds.ExportHtml:
                 ExportButton_Click(this, new RoutedEventArgs());
                 break;
+            case CompositionCommandIds.ExportPdf:
+                _ = ExportCurrentViewAsync(".pdf");
+                break;
             case CompositionCommandIds.ReportHtml:
                 ReportButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.ReportPdf:
+                _ = ExportDocumentReportAsync(".pdf");
                 break;
             case CompositionCommandIds.PresentationHtml:
                 PresentationButton_Click(this, new RoutedEventArgs());

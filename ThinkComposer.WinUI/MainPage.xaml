@@ -97,8 +97,8 @@
                 <AppBarButton Click="MergeButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Import" Label="Merge" ToolTipService.ToolTip="Merge another document into this one" />
                 <AppBarButton Click="SaveButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Save" Label="Save" ToolTipService.ToolTip="Save" />
                 <AppBarButton Click="SaveAsButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Save As" ToolTipService.ToolTip="Save as .tcdoc or .tcview" />
-                <AppBarButton Click="ExportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Export" ToolTipService.ToolTip="Export HTML or SVG" />
-                <AppBarButton Click="ReportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Document" Label="Report" ToolTipService.ToolTip="Export document report" />
+                <AppBarButton Click="ExportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SaveLocal" Label="Export" ToolTipService.ToolTip="Export HTML, SVG, or PDF" />
+                <AppBarButton Click="ReportButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Document" Label="Report" ToolTipService.ToolTip="Export document report as HTML or PDF" />
                 <AppBarButton Click="PresentationButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="SlideShow" Label="Present" ToolTipService.ToolTip="Export HTML presentation" />
                 <AppBarButton Click="GenerateFilesButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Setting" Label="Generate" ToolTipService.ToolTip="Generate files from templates" />
                 <AppBarButton Click="PrintPreviewButton_Click" Foreground="{ThemeResource ChromeForegroundBrush}" Icon="Print" Label="Print" ToolTipService.ToolTip="Open printable preview" />

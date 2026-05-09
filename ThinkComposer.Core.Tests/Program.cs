@@ -28,6 +28,11 @@ AssertTrue(exportedHtml.Contains("<!doctype html>", StringComparison.OrdinalIgno
 AssertTrue(exportedHtml.Contains("Composition 1", StringComparison.Ordinal), "html title");
 AssertTrue(exportedHtml.Contains("<svg", StringComparison.Ordinal), "html svg");
 
+var exportedViewPdf = CompositionSnapshotPdfExporter.Export(snapshot);
+AssertTrue(exportedViewPdf.Length > 1024, "view pdf non-trivial size");
+AssertTrue(StartsWithPdfHeader(exportedViewPdf), "view pdf header");
+AssertTrue(ContainsAscii(exportedViewPdf, "/Type /Page"), "view pdf page marker");
+
 var previewText = CompositionSnapshotPreviewTextBuilder.Build(snapshot);
 AssertTrue(previewText.Contains("Composition 1", StringComparison.Ordinal), "preview title");
 AssertTrue(previewText.Contains("Concepts (3)", StringComparison.Ordinal), "preview concepts");
@@ -274,6 +279,10 @@ AssertTrue(modernReportHtml.Contains("Source: Customer Need", StringComparison.O
 AssertTrue(modernReportHtml.Contains("Link role: Source Role", StringComparison.Ordinal), "modern report link role");
 AssertTrue(modernReportHtml.Contains("<svg", StringComparison.Ordinal), "modern report view svg");
 AssertTrue(modernReportHtml.Contains("Checklist", StringComparison.Ordinal), "modern report table definition");
+var modernReportPdf = CompositionDocumentReportPdfExporter.Export(modernDocument);
+AssertTrue(modernReportPdf.Length > 2048, "modern report pdf non-trivial size");
+AssertTrue(StartsWithPdfHeader(modernReportPdf), "modern report pdf header");
+AssertTrue(ContainsAscii(modernReportPdf, "/Type /Page"), "modern report pdf page marker");
 var presentationHtml = CompositionDocumentPresentationHtmlExporter.Export(modernDocument);
 AssertTrue(presentationHtml.Contains("<section class=\"slide\"", StringComparison.Ordinal), "presentation slide section");
 AssertTrue(presentationHtml.Contains("Customer Need Detail", StringComparison.Ordinal), "presentation view slide");
@@ -312,6 +321,10 @@ try
     File.WriteAllText(reportOutputPath, CompositionDocumentReportHtmlExporter.Export(generationDocument));
     AssertTrue(File.Exists(reportOutputPath), "workflow report output file");
     AssertTrue(File.ReadAllText(reportOutputPath).Contains("Modern Document", StringComparison.Ordinal), "workflow report output content");
+    var reportPdfOutputPath = Path.Combine(workflowOutputPath, "report.pdf");
+    File.WriteAllBytes(reportPdfOutputPath, CompositionDocumentReportPdfExporter.Export(generationDocument));
+    AssertTrue(File.Exists(reportPdfOutputPath), "workflow pdf report output file");
+    AssertTrue(new FileInfo(reportPdfOutputPath).Length > 2048, "workflow pdf report output content");
     var presentationOutputPath = Path.Combine(workflowOutputPath, "presentation.html");
     File.WriteAllText(presentationOutputPath, CompositionDocumentPresentationHtmlExporter.Export(generationDocument));
     AssertTrue(File.Exists(presentationOutputPath), "workflow presentation output file");
@@ -1187,6 +1200,21 @@ static void AssertThrows<TException>(Action action, string name)
     }
 
     throw new InvalidOperationException($"{name}: expected {typeof(TException).Name}");
+}
+
+static bool StartsWithPdfHeader(byte[] content)
+{
+    return content.Length >= 5 &&
+        content[0] == (byte)'%' &&
+        content[1] == (byte)'P' &&
+        content[2] == (byte)'D' &&
+        content[3] == (byte)'F' &&
+        content[4] == (byte)'-';
+}
+
+static bool ContainsAscii(byte[] content, string text)
+{
+    return System.Text.Encoding.ASCII.GetString(content).Contains(text, StringComparison.Ordinal);
 }
 
 public sealed class LegacyComposition(Guid globalId, string name, LegacyView activeView)
