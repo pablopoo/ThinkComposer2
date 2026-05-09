@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
@@ -380,7 +381,8 @@ public static class LegacyCompositionDocumentLoader
             Id: rootView?.GlobalId.ToString() ?? "view.default",
             Name: rootView?.Name ?? rootSnapshot.Title,
             Nodes: rootSnapshot.Nodes,
-            Connectors: rootSnapshot.Connectors);
+            Connectors: rootSnapshot.Connectors,
+            Complements: rootView is null ? [] : MapComplements(rootView).ToArray());
 
         foreach (var idea in composition.GetNestedCompositeIdeas(true)
                      .Where(idea => idea.CompositeViews.Count > 0))
@@ -415,7 +417,82 @@ public static class LegacyCompositionDocumentLoader
             Name: view.Name,
             Nodes: nodes,
             Connectors: connectors,
+            Complements: MapComplements(view).ToArray(),
             ContainerIdeaId: containerIdeaId);
+    }
+
+    private static IEnumerable<CompositionExtensionSnapshot> MapComplements(View view)
+    {
+        return ReadViewObjects(view)
+            .OfType<VisualComplement>()
+            .Select(MapComplement);
+    }
+
+    private static CompositionExtensionSnapshot MapComplement(VisualComplement complement)
+    {
+        var kind = complement.Kind?.TechName ?? complement.GetType().Name;
+        var properties = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["kind"] = kind,
+            ["title"] = complement.Kind?.Name ?? kind,
+            ["x"] = Format(complement.BaseLeft),
+            ["y"] = Format(complement.BaseTop),
+            ["width"] = Format(complement.BaseWidth),
+            ["height"] = Format(complement.BaseHeight),
+            ["centerX"] = Format(complement.BaseCenter.X),
+            ["centerY"] = Format(complement.BaseCenter.Y),
+            ["zOrder"] = complement.ZOrder.ToString(CultureInfo.InvariantCulture)
+        };
+
+        AddPropertyField(properties, "text", TryGetField<string>(complement, VisualComplement.PROP_FIELD_TEXT));
+        AddPropertyField(properties, "foreground", TryGetField<object>(complement, VisualComplement.PROP_FIELD_FOREGROUND)?.ToString());
+        AddPropertyField(properties, "background", TryGetField<object>(complement, VisualComplement.PROP_FIELD_BACKGROUND)?.ToString());
+        AddPropertyField(properties, "orientation", TryGetField<object>(complement, VisualComplement.PROP_FIELD_ORIENTATION)?.ToString());
+        AddPropertyField(properties, "quadrant", TryGetField<object>(complement, VisualComplement.PROP_FIELD_QUADRANT)?.ToString());
+        AddPropertyField(properties, "offsetX", FormatNullable(TryGetDoubleField(complement, VisualComplement.PROP_FIELD_OFFSETX)));
+        AddPropertyField(properties, "offsetY", FormatNullable(TryGetDoubleField(complement, VisualComplement.PROP_FIELD_OFFSETY)));
+        AddPropertyField(properties, "lineThickness", FormatNullable(TryGetDoubleField(complement, VisualComplement.PROP_FIELD_LINETHICK)));
+        AddPropertyField(properties, "lineDash", TryGetField<object>(complement, VisualComplement.PROP_FIELD_LINEDASH)?.ToString());
+
+        return new CompositionExtensionSnapshot(
+            $"legacy.complement.{kind}.{complement.GlobalId}",
+            complement.ContentAsText ?? string.Empty,
+            properties);
+    }
+
+    private static void AddPropertyField(
+        IDictionary<string, string> properties,
+        string key,
+        string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            properties[key] = value!;
+        }
+    }
+
+    private static double? TryGetDoubleField(VisualComplement complement, string fieldName)
+    {
+        try
+        {
+            return complement.GetPropertyField<double>(fieldName, ReturnDefault: false);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static T? TryGetField<T>(VisualComplement complement, string fieldName)
+    {
+        try
+        {
+            return complement.GetPropertyField<T>(fieldName, ReturnDefault: false);
+        }
+        catch
+        {
+            return default;
+        }
     }
 
     private static CompositionNodeView MapNodeView(VisualSymbol symbol)
@@ -496,6 +573,16 @@ public static class LegacyCompositionDocumentLoader
             Stroke: format.LineBrush?.ToString() ?? string.Empty,
             StrokeThickness: format.LineThickness,
             StrokeDash: format.LineDash?.ToString() ?? string.Empty);
+    }
+
+    private static string Format(double value)
+    {
+        return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatNullable(double? value)
+    {
+        return value.HasValue ? Format(value.Value) : string.Empty;
     }
 
     private static string MarkerId(MarkerDefinition definition)

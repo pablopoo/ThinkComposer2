@@ -609,6 +609,29 @@ var complementLayout = CompositionViewComplementLayout.Build(
     complementAddedDocument.Views[0].Nodes);
 AssertTrue(complementLayout.Any(item => item.Kind == "Legend" && item.Title == "Legend"), "complement layout legend");
 AssertTrue(complementLayout.Any(item => item.Kind == "Group" && item.Size.Width > complementAddedDocument.Views[0].Nodes[0].Size.Width), "complement layout group");
+var positionedComplementLayout = CompositionViewComplementLayout.Build(
+    [
+        new CompositionExtensionSnapshot(
+            "legacy.complement.GroupRegion.region-a",
+            "Region A",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["kind"] = "GroupRegion",
+                ["title"] = "Region A",
+                ["x"] = "12",
+                ["y"] = "24",
+                ["width"] = "320",
+                ["height"] = "180"
+            })
+    ],
+    complementAddedDocument.Views[0].Nodes);
+var positionedComplement = positionedComplementLayout.Single();
+AssertEqual("Group", positionedComplement.Kind, "complement explicit kind");
+AssertEqual("Region A", positionedComplement.Title, "complement explicit title");
+AssertEqual(12, positionedComplement.Position.X, "complement explicit x");
+AssertEqual(24, positionedComplement.Position.Y, "complement explicit y");
+AssertEqual(320, positionedComplement.Size.Width, "complement explicit width");
+AssertEqual(180, positionedComplement.Size.Height, "complement explicit height");
 
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",

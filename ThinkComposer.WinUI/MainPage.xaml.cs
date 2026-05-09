@@ -57,11 +57,11 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private sealed record TableRowEntry(int Index, string Values)
+    private sealed record TableRowEntry(int Index, IReadOnlyList<string> Values)
     {
         public override string ToString()
         {
-            return $"{Index + 1}: {Values}";
+            return $"{Index + 1}: {FormatCsvRecord(Values)}";
         }
     }
 
@@ -100,7 +100,7 @@ public sealed partial class MainPage : Page
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
     private List<string> _recentFiles = [];
-    private List<string> _tableEditorRows = [];
+    private List<IReadOnlyList<string>> _tableEditorRows = [];
     private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
 
     public MainPage()
@@ -1859,8 +1859,21 @@ public sealed partial class MainPage : Page
     {
         if (InspectorTableRowsList.SelectedItem is TableRowEntry row)
         {
-            TableRowValuesBox.Text = row.Values;
+            RefreshTableCells(row.Values);
         }
+    }
+
+    private void TableColumnsBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_selectedTableDetailId is null && _selectedTableDefinitionId is null)
+        {
+            return;
+        }
+
+        var selectedValues = InspectorTableRowsList.SelectedItem is TableRowEntry row
+            ? row.Values
+            : Array.Empty<string>();
+        RefreshTableCells(selectedValues);
     }
 
     private void UpsertTableRowButton_Click(object sender, RoutedEventArgs e)
@@ -1871,7 +1884,7 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        var values = TableRowValuesBox.Text.Trim();
+        var values = ReadTableCellValues();
         if (InspectorTableRowsList.SelectedItem is TableRowEntry selectedRow)
         {
             _tableEditorRows[selectedRow.Index] = values;
@@ -1881,8 +1894,9 @@ public sealed partial class MainPage : Page
             _tableEditorRows.Add(values);
         }
 
-        TableRowValuesBox.Text = string.Empty;
         RefreshTableRowsList();
+        InspectorTableRowsList.SelectedIndex = -1;
+        RefreshTableCells();
     }
 
     private void DeleteTableRowButton_Click(object sender, RoutedEventArgs e)
@@ -1893,8 +1907,9 @@ public sealed partial class MainPage : Page
         }
 
         _tableEditorRows.RemoveAt(selectedRow.Index);
-        TableRowValuesBox.Text = string.Empty;
         RefreshTableRowsList();
+        InspectorTableRowsList.SelectedIndex = -1;
+        RefreshTableCells();
     }
 
     private void SaveTableDetailButton_Click(object sender, RoutedEventArgs e)
@@ -1913,7 +1928,9 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        var rows = _tableEditorRows.Select(row => (IReadOnlyList<string>)ParseCsvRecord(row)).ToArray();
+        var rows = _tableEditorRows
+            .Select(row => (IReadOnlyList<string>)NormalizeTableRow(row, columns.Count))
+            .ToArray();
         if (!string.IsNullOrWhiteSpace(_selectedTableDefinitionId))
         {
             var document = EnsureCurrentDocument();
@@ -2863,7 +2880,7 @@ public sealed partial class MainPage : Page
         {
             var table = CompositionDetailTableCsv.Parse(detail!.Value);
             TableColumnsBox.Text = FormatCsvRecord(table.Columns);
-            _tableEditorRows = table.Rows.Select(FormatCsvRecord).ToList();
+            _tableEditorRows = table.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToList();
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
             TableEditorExpander.IsExpanded = true;
@@ -2871,7 +2888,6 @@ public sealed partial class MainPage : Page
         else
         {
             TableColumnsBox.Text = string.Empty;
-            TableRowValuesBox.Text = string.Empty;
             _tableEditorRows = [];
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
@@ -2881,7 +2897,8 @@ public sealed partial class MainPage : Page
         var canEdit = isEnabled && isTable;
         TableColumnsBox.IsEnabled = canEdit;
         InspectorTableRowsList.IsEnabled = canEdit;
-        TableRowValuesBox.IsEnabled = canEdit;
+        TableCellsPanel.IsHitTestVisible = canEdit;
+        TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
         UpsertTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
@@ -2896,7 +2913,7 @@ public sealed partial class MainPage : Page
         if (isTableDefinition)
         {
             TableColumnsBox.Text = FormatCsvRecord(definition!.TableRecords.Columns);
-            _tableEditorRows = definition.TableRecords.Rows.Select(FormatCsvRecord).ToList();
+            _tableEditorRows = definition.TableRecords.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToList();
             TableEditorExpander.Header = "Base table records";
             SaveTableDetailButton.Content = "Save table records";
             TableEditorExpander.IsExpanded = true;
@@ -2904,7 +2921,6 @@ public sealed partial class MainPage : Page
         else
         {
             TableColumnsBox.Text = string.Empty;
-            TableRowValuesBox.Text = string.Empty;
             _tableEditorRows = [];
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
@@ -2914,7 +2930,8 @@ public sealed partial class MainPage : Page
         var canEdit = isEnabled && isTableDefinition;
         TableColumnsBox.IsEnabled = canEdit;
         InspectorTableRowsList.IsEnabled = canEdit;
-        TableRowValuesBox.IsEnabled = canEdit;
+        TableCellsPanel.IsHitTestVisible = canEdit;
+        TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
         UpsertTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
@@ -2925,6 +2942,46 @@ public sealed partial class MainPage : Page
         InspectorTableRowsList.ItemsSource = _tableEditorRows
             .Select((row, index) => new TableRowEntry(index, row))
             .ToArray();
+    }
+
+    private void RefreshTableCells(IReadOnlyList<string>? values = null)
+    {
+        TableCellsPanel.Children.Clear();
+        var columns = ParseCsvRecord(TableColumnsBox.Text);
+        if (columns.Count == 0)
+        {
+            columns = ["Column 1"];
+        }
+
+        for (var index = 0; index < columns.Count; index++)
+        {
+            var textBox = new TextBox
+            {
+                Header = string.IsNullOrWhiteSpace(columns[index]) ? $"Column {index + 1}" : columns[index],
+                Text = values is not null && index < values.Count ? values[index] : string.Empty,
+                PlaceholderText = $"Cell {index + 1}"
+            };
+            TableCellsPanel.Children.Add(textBox);
+        }
+    }
+
+    private IReadOnlyList<string> ReadTableCellValues()
+    {
+        return TableCellsPanel.Children
+            .OfType<TextBox>()
+            .Select(textBox => textBox.Text)
+            .ToArray();
+    }
+
+    private static string[] NormalizeTableRow(IReadOnlyList<string> row, int columnCount)
+    {
+        var normalized = new string[columnCount];
+        for (var index = 0; index < columnCount; index++)
+        {
+            normalized[index] = index < row.Count ? row[index] : string.Empty;
+        }
+
+        return normalized;
     }
 
     private static IReadOnlyList<string> ParseCsvRecord(string text)

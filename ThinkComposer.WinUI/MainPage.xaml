@@ -474,15 +474,22 @@
                                 <StackPanel Padding="0,10,0,0" Spacing="8">
                                     <TextBox
                                         x:Name="TableColumnsBox"
+                                        TextChanged="TableColumnsBox_TextChanged"
                                         PlaceholderText="Column 1, Column 2" />
                                     <ListView
                                         x:Name="InspectorTableRowsList"
                                         MaxHeight="112"
                                         SelectionChanged="InspectorTableRowsList_SelectionChanged"
                                         SelectionMode="Single" />
-                                    <TextBox
-                                        x:Name="TableRowValuesBox"
-                                        PlaceholderText="Cell 1, Cell 2" />
+                                    <Border
+                                        Padding="8"
+                                        BorderBrush="{ThemeResource PanelBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                        <StackPanel
+                                            x:Name="TableCellsPanel"
+                                            Spacing="6" />
+                                    </Border>
                                     <Grid ColumnSpacing="8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
