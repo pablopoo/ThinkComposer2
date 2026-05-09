@@ -2343,6 +2343,93 @@ public sealed partial class MainPage : Page
         RefreshTableCells();
     }
 
+    private async void PasteTableRowsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!HasActiveTableEditor())
+        {
+            return;
+        }
+
+        try
+        {
+            var package = Clipboard.GetContent();
+            if (!package.Contains(StandardDataFormats.Text))
+            {
+                StatusContextText.Text = "Clipboard has no table text";
+                return;
+            }
+
+            var table = ReadCurrentTableEditorSnapshot();
+            var rowCount = table.Rows.Count;
+            var pastedTable = CompositionDetailTableEditor.AppendPastedRows(table, await package.GetTextAsync());
+            if (pastedTable.Rows.Count == rowCount)
+            {
+                StatusContextText.Text = "No table rows pasted";
+                return;
+            }
+
+            ApplyTableEditorSnapshot(
+                pastedTable,
+                rowCount,
+                $"Pasted {pastedTable.Rows.Count - rowCount} row(s)");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            StatusContextText.Text = "Could not paste table rows";
+        }
+    }
+
+    private void SortTableAscendingButton_Click(object sender, RoutedEventArgs e)
+    {
+        SortTableRows(CompositionDetailTableSortDirection.Ascending);
+    }
+
+    private void SortTableDescendingButton_Click(object sender, RoutedEventArgs e)
+    {
+        SortTableRows(CompositionDetailTableSortDirection.Descending);
+    }
+
+    private void DuplicateTableRowButton_Click(object sender, RoutedEventArgs e)
+    {
+        var rowIndex = GetSelectedTableRowIndex();
+        if (rowIndex < 0)
+        {
+            StatusContextText.Text = "Select a table row first";
+            return;
+        }
+
+        ApplyTableEditorSnapshot(
+            CompositionDetailTableEditor.DuplicateRow(ReadCurrentTableEditorSnapshot(), rowIndex),
+            rowIndex + 1,
+            "Table row duplicated");
+    }
+
+    private void MoveTableRowUpButton_Click(object sender, RoutedEventArgs e)
+    {
+        MoveTableRow(-1);
+    }
+
+    private void MoveTableRowDownButton_Click(object sender, RoutedEventArgs e)
+    {
+        MoveTableRow(1);
+    }
+
+    private void ClearTableRowButton_Click(object sender, RoutedEventArgs e)
+    {
+        var rowIndex = GetSelectedTableRowIndex();
+        if (rowIndex < 0)
+        {
+            StatusContextText.Text = "Select a table row first";
+            return;
+        }
+
+        ApplyTableEditorSnapshot(
+            CompositionDetailTableEditor.ClearRow(ReadCurrentTableEditorSnapshot(), rowIndex),
+            rowIndex,
+            "Table row cleared");
+    }
+
     private void SaveTableDetailButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null ||
@@ -3828,6 +3915,13 @@ public sealed partial class MainPage : Page
         TableCellsPanel.IsHitTestVisible = canEdit;
         TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
         UpsertTableRowButton.IsEnabled = canEdit;
+        PasteTableRowsButton.IsEnabled = canEdit;
+        SortTableAscendingButton.IsEnabled = canEdit;
+        SortTableDescendingButton.IsEnabled = canEdit;
+        DuplicateTableRowButton.IsEnabled = canEdit;
+        MoveTableRowUpButton.IsEnabled = canEdit;
+        MoveTableRowDownButton.IsEnabled = canEdit;
+        ClearTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
     }
@@ -3861,6 +3955,13 @@ public sealed partial class MainPage : Page
         TableCellsPanel.IsHitTestVisible = canEdit;
         TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
         UpsertTableRowButton.IsEnabled = canEdit;
+        PasteTableRowsButton.IsEnabled = canEdit;
+        SortTableAscendingButton.IsEnabled = canEdit;
+        SortTableDescendingButton.IsEnabled = canEdit;
+        DuplicateTableRowButton.IsEnabled = canEdit;
+        MoveTableRowUpButton.IsEnabled = canEdit;
+        MoveTableRowDownButton.IsEnabled = canEdit;
+        ClearTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
     }
@@ -3899,6 +4000,109 @@ public sealed partial class MainPage : Page
             .OfType<TextBox>()
             .Select(textBox => textBox.Text)
             .ToArray();
+    }
+
+    private bool HasActiveTableEditor()
+    {
+        return !string.IsNullOrWhiteSpace(_selectedTableDetailId) ||
+            !string.IsNullOrWhiteSpace(_selectedTableDefinitionId);
+    }
+
+    private CompositionDetailTableSnapshot ReadCurrentTableEditorSnapshot()
+    {
+        var columns = ParseCsvRecord(TableColumnsBox.Text);
+        if (columns.Count == 0)
+        {
+            columns = ["Column 1"];
+        }
+
+        return new CompositionDetailTableSnapshot(
+            columns,
+            _tableEditorRows
+                .Select(row => (IReadOnlyList<string>)NormalizeTableRow(row, columns.Count))
+                .ToArray());
+    }
+
+    private void ApplyTableEditorSnapshot(
+        CompositionDetailTableSnapshot table,
+        int? selectedRowIndex,
+        string status)
+    {
+        TableColumnsBox.Text = FormatCsvRecord(table.Columns);
+        _tableEditorRows = table.Rows
+            .Select(row => (IReadOnlyList<string>)row.ToArray())
+            .ToList();
+        RefreshTableRowsList();
+
+        var rowIndex = selectedRowIndex ?? -1;
+        if (rowIndex >= 0 && rowIndex < _tableEditorRows.Count)
+        {
+            InspectorTableRowsList.SelectedIndex = rowIndex;
+            RefreshTableCells(_tableEditorRows[rowIndex]);
+        }
+        else
+        {
+            InspectorTableRowsList.SelectedIndex = -1;
+            RefreshTableCells();
+        }
+
+        StatusContextText.Text = status;
+    }
+
+    private void SortTableRows(CompositionDetailTableSortDirection direction)
+    {
+        if (!HasActiveTableEditor())
+        {
+            return;
+        }
+
+        var selectedRowIndex = GetSelectedTableRowIndex();
+        ApplyTableEditorSnapshot(
+            CompositionDetailTableEditor.SortRows(
+                ReadCurrentTableEditorSnapshot(),
+                GetSelectedTableColumnIndex(),
+                direction),
+            selectedRowIndex >= 0 ? selectedRowIndex : null,
+            direction == CompositionDetailTableSortDirection.Ascending
+                ? "Table rows sorted A-Z"
+                : "Table rows sorted Z-A");
+    }
+
+    private void MoveTableRow(int offset)
+    {
+        var rowIndex = GetSelectedTableRowIndex();
+        var targetIndex = rowIndex + offset;
+        if (rowIndex < 0 || targetIndex < 0 || targetIndex >= _tableEditorRows.Count)
+        {
+            StatusContextText.Text = "Select a movable table row first";
+            return;
+        }
+
+        ApplyTableEditorSnapshot(
+            CompositionDetailTableEditor.MoveRow(ReadCurrentTableEditorSnapshot(), rowIndex, offset),
+            targetIndex,
+            offset < 0 ? "Table row moved up" : "Table row moved down");
+    }
+
+    private int GetSelectedTableRowIndex()
+    {
+        return InspectorTableRowsList.SelectedItem is TableRowEntry selectedRow
+            ? selectedRow.Index
+            : -1;
+    }
+
+    private int GetSelectedTableColumnIndex()
+    {
+        var focusedElement = FocusManager.GetFocusedElement();
+        for (var index = 0; index < TableCellsPanel.Children.Count; index++)
+        {
+            if (ReferenceEquals(TableCellsPanel.Children[index], focusedElement))
+            {
+                return index;
+            }
+        }
+
+        return 0;
     }
 
     private static string[] NormalizeTableRow(IReadOnlyList<string> row, int columnCount)

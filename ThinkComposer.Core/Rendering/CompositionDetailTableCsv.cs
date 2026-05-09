@@ -6,7 +6,7 @@ public static class CompositionDetailTableCsv
 {
     public static CompositionDetailTableSnapshot Parse(string csv)
     {
-        var records = ReadRecords(csv ?? string.Empty);
+        var records = ParseRecords(csv);
         if (records.Count == 0)
         {
             return new CompositionDetailTableSnapshot();
@@ -27,6 +27,11 @@ public static class CompositionDetailTableCsv
         var records = new List<IReadOnlyList<string>> { table.Columns };
         records.AddRange(table.Rows);
         return string.Join(Environment.NewLine, records.Select(FormatRecord));
+    }
+
+    public static IReadOnlyList<IReadOnlyList<string>> ParseRecords(string? csv)
+    {
+        return ReadRecords(csv ?? string.Empty);
     }
 
     private static IReadOnlyList<IReadOnlyList<string>> ReadRecords(string csv)

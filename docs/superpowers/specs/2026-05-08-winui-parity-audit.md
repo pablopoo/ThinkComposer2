@@ -36,7 +36,8 @@ It is still not a complete legacy replacement only where the remaining work depe
 ### P1 - Tables And Structured Editors
 
 - Table details and base-table records persist as CSV-style rows and can be edited through per-cell controls.
-- Remaining gap versus a spreadsheet is convenience behavior such as column resizing, sorting, and bulk paste.
+- The editor supports bulk paste, A-Z/Z-A sorting, duplicate, move, clear, and remove row actions.
+- Remaining gap versus a spreadsheet is column resizing, drag/drop, formulas, and large-table virtualization.
 
 ### P1 - Composite Navigation And Complements
 
@@ -63,7 +64,7 @@ It is still not a complete legacy replacement only where the remaining work depe
 
 ## Recommended Backlog
 
-1. Add spreadsheet convenience behavior only if per-cell row editing is not sufficient.
+1. Add spreadsheet-only behavior later if real usage needs column resizing, drag/drop, formulas, or large-table virtualization.
 2. Extend PDF visual fidelity only if exported documents need stricter parity with the legacy WPF renderer.
 3. Extend UI automation around native open/save dialogs once stable automation for file pickers is needed.
 4. Choose installer format, provision signing certificate, and configure update-channel hosting.

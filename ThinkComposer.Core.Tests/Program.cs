@@ -651,6 +651,33 @@ AssertEqual("Task", parsedTable.Columns[0], "table csv column");
 AssertEqual("Review, spec", parsedTable.Rows[0][0], "table csv comma value");
 AssertEqual("Quote \"edge\"", parsedTable.Rows[1][0], "table csv quote value");
 AssertEqual(structuredTableDetail.Value, CompositionDetailTableCsv.Format(parsedTable), "table csv roundtrip");
+var tableBase = new CompositionDetailTableSnapshot(
+    ["Name", "Score"],
+    [
+        ["Beta", "2"],
+        ["Alpha", "10"]
+    ]);
+var pastedTsv = CompositionDetailTableEditor.AppendPastedRows(tableBase, "Gamma\t3\r\nDelta\t4");
+AssertEqual(4, pastedTsv.Rows.Count, "table tsv paste row count");
+AssertEqual("Gamma", pastedTsv.Rows[2][0], "table tsv paste first value");
+var pastedCsv = CompositionDetailTableEditor.AppendPastedRows(tableBase, "\"ACME, Inc\",7");
+AssertEqual("ACME, Inc", pastedCsv.Rows[2][0], "table csv paste quoted comma");
+var extendedPaste = CompositionDetailTableEditor.AppendPastedRows(tableBase, "A\tB\tC");
+AssertEqual(3, extendedPaste.Columns.Count, "table paste extends columns");
+AssertEqual("Column 3", extendedPaste.Columns[2], "table paste generated column name");
+var sortedAscending = CompositionDetailTableEditor.SortRows(tableBase, 0, CompositionDetailTableSortDirection.Ascending);
+AssertEqual("Alpha", sortedAscending.Rows[0][0], "table sort ascending");
+var sortedDescending = CompositionDetailTableEditor.SortRows(tableBase, 0, CompositionDetailTableSortDirection.Descending);
+AssertEqual("Beta", sortedDescending.Rows[0][0], "table sort descending");
+var duplicatedRow = CompositionDetailTableEditor.DuplicateRow(tableBase, 0);
+AssertEqual(3, duplicatedRow.Rows.Count, "table duplicate row count");
+AssertEqual("Beta", duplicatedRow.Rows[1][0], "table duplicate row value");
+var movedDown = CompositionDetailTableEditor.MoveRow(tableBase, 0, 1);
+AssertEqual("Beta", movedDown.Rows[1][0], "table move down");
+var clearedRow = CompositionDetailTableEditor.ClearRow(tableBase, 0);
+AssertEqual("", clearedRow.Rows[0][0], "table clear row value");
+var invalidMove = CompositionDetailTableEditor.MoveRow(tableBase, 99, -1);
+AssertEqual("Beta", invalidMove.Rows[0][0], "table invalid move noop");
 var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     detailedDocument,
     "idea-1",

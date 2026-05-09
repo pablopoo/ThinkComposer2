@@ -539,6 +539,57 @@
                                         MaxHeight="112"
                                         SelectionChanged="InspectorTableRowsList_SelectionChanged"
                                         SelectionMode="Single" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="PasteTableRowsButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="PasteTableRowsButton_Click"
+                                            Content="Paste rows" />
+                                        <Button
+                                            x:Name="DuplicateTableRowButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="DuplicateTableRowButton_Click"
+                                            Content="Duplicate" />
+                                    </Grid>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="SortTableAscendingButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="SortTableAscendingButton_Click"
+                                            Content="Sort A-Z" />
+                                        <Button
+                                            x:Name="SortTableDescendingButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="SortTableDescendingButton_Click"
+                                            Content="Sort Z-A" />
+                                    </Grid>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button
+                                            x:Name="MoveTableRowUpButton"
+                                            HorizontalAlignment="Stretch"
+                                            Click="MoveTableRowUpButton_Click"
+                                            Content="Move up" />
+                                        <Button
+                                            x:Name="MoveTableRowDownButton"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Click="MoveTableRowDownButton_Click"
+                                            Content="Move down" />
+                                    </Grid>
                                     <Border
                                         Padding="8"
                                         BorderBrush="{ThemeResource ShellBorderBrush}"
@@ -565,6 +616,11 @@
                                             Click="DeleteTableRowButton_Click"
                                             Content="Remove row" />
                                     </Grid>
+                                    <Button
+                                        x:Name="ClearTableRowButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="ClearTableRowButton_Click"
+                                        Content="Clear row" />
                                     <Button
                                         x:Name="SaveTableDetailButton"
                                         HorizontalAlignment="Stretch"
