@@ -5,6 +5,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:canvas="using:Instrumind.ThinkComposer.WinUI.Canvas"
+    xmlns:domain="using:Instrumind.ThinkComposer.WinUI.Domain"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     RequestedTheme="Light"
@@ -277,6 +278,9 @@
 
                 <Grid Grid.Row="1" Background="{ThemeResource CanvasBackgroundBrush}">
                     <canvas:CompositionCanvas x:Name="CanvasView" />
+                    <domain:DomainStudioView
+                        x:Name="DomainStudio"
+                        Visibility="Collapsed" />
                 </Grid>
             </Grid>
 
@@ -391,6 +395,11 @@
                                         HorizontalAlignment="Stretch"
                                         Click="ApplyDocumentPropertiesButton_Click"
                                         Content="Apply document properties" />
+                                    <Button
+                                        x:Name="OpenDomainStudioButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="OpenDomainStudioButton_Click"
+                                        Content="Open Domain Studio" />
                                 </StackPanel>
                             </Expander>
 

@@ -117,6 +117,8 @@ public sealed partial class MainPage : Page
         CanvasView.NodeMoved += CanvasView_NodeMoved;
         CanvasView.NodeMoveCompleted += CanvasView_NodeMoveCompleted;
         CanvasView.CanvasContextRequested += CanvasView_CanvasContextRequested;
+        DomainStudio.DocumentChanged += DomainStudio_DocumentChanged;
+        DomainStudio.CloseRequested += DomainStudio_CloseRequested;
         LoadWorkspaceSettings();
         LoadStartupSnapshot();
         RefreshBottomPanelContent();
@@ -2476,6 +2478,47 @@ public sealed partial class MainPage : Page
         StatusContextText.Text = "Document properties updated";
     }
 
+    private void OpenDomainStudioButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenDomainStudio();
+    }
+
+    private void OpenDomainStudio()
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a document first.";
+            return;
+        }
+
+        _currentDocument = BuildCurrentDocument();
+        DomainStudio.LoadDocument(_currentDocument);
+        CanvasView.Visibility = Visibility.Collapsed;
+        DomainStudio.Visibility = Visibility.Visible;
+        StatusContextText.Text = "Domain Studio";
+    }
+
+    private void CloseDomainStudio()
+    {
+        DomainStudio.Visibility = Visibility.Collapsed;
+        CanvasView.Visibility = Visibility.Visible;
+        StatusContextText.Text = "Canvas";
+    }
+
+    private void DomainStudio_DocumentChanged(object? sender, CompositionDocumentSnapshot document)
+    {
+        _currentDocument = document;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, _currentViewId);
+        ApplySessionSnapshot(snapshot, selectedNodeId: _selectedNodeId, selectedConnectorId: _selectedConnectorId, markDirty: true, fitToViewport: false);
+        DomainStudio.LoadDocument(_currentDocument);
+        StatusContextText.Text = "Domain updated";
+    }
+
+    private void DomainStudio_CloseRequested(object? sender, EventArgs e)
+    {
+        CloseDomainStudio();
+    }
+
     private void RefreshGenerationPreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null)
@@ -3701,6 +3744,7 @@ public sealed partial class MainPage : Page
         DomainNameBox.IsEnabled = hasSnapshot;
         DomainSummaryBox.IsEnabled = hasSnapshot;
         ApplyDocumentPropertiesButton.IsEnabled = hasSnapshot;
+        OpenDomainStudioButton.IsEnabled = hasSnapshot;
         RefreshGenerationPreviewButton.IsEnabled = hasSnapshot;
     }
 
@@ -4281,8 +4325,7 @@ public sealed partial class MainPage : Page
                 StatusContextText.Text = "Generation preview will be available in the inspector.";
                 break;
             case CompositionCommandIds.DomainStudio:
-                ShowExplorerDomain();
-                StatusContextText.Text = "Domain Studio will open here when the dedicated surface is added.";
+                OpenDomainStudio();
                 break;
             case CompositionCommandIds.EditDocumentProperties:
                 InspectorNameBox.Focus(FocusState.Programmatic);

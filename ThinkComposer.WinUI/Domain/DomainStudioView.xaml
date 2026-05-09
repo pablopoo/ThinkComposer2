@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Instrumind.ThinkComposer.WinUI.Domain.DomainStudioView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{ThemeResource PanelBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Padding="14,0" BorderBrush="{ThemeResource ShellBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="Domain Studio" />
+            <Button
+                Grid.Column="1"
+                MinWidth="0"
+                Padding="10,4"
+                Click="CloseButton_Click"
+                Content="Close" />
+        </Grid>
+
+        <Grid Grid.Row="1" Padding="14" ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Spacing="10">
+                <ComboBox
+                    x:Name="GroupBox"
+                    HorizontalAlignment="Stretch"
+                    SelectionChanged="GroupBox_SelectionChanged" />
+                <ListView
+                    x:Name="DefinitionsList"
+                    MinHeight="420"
+                    SelectionChanged="DefinitionsList_SelectionChanged" />
+                <Button
+                    HorizontalAlignment="Stretch"
+                    Click="NewButton_Click"
+                    Content="New definition" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="10">
+                    <TextBox x:Name="IdBox" Header="Id" PlaceholderText="definition.id" />
+                    <TextBox x:Name="NameBox" Header="Name" PlaceholderText="Definition name" />
+                    <TextBox x:Name="KindBox" Header="Kind" PlaceholderText="Concept, Relationship, Marker..." />
+                    <TextBox
+                        x:Name="SummaryBox"
+                        Header="Summary"
+                        AcceptsReturn="True"
+                        MinHeight="80"
+                        TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="FillBox" Header="Fill" PlaceholderText="#ffffff" />
+                        <TextBox x:Name="StrokeBox" Grid.Column="1" Header="Stroke" PlaceholderText="#8a9ba8" />
+                        <TextBox x:Name="TextColorBox" Grid.Column="2" Header="Text" PlaceholderText="#1f1f1f" />
+                    </Grid>
+                    <NumberBox x:Name="StrokeThicknessBox" Header="Line thickness" Minimum="0" SmallChange="0.5" SpinButtonPlacementMode="Compact" />
+                    <TextBox
+                        x:Name="ValueBox"
+                        Header="Template value / table notes"
+                        AcceptsReturn="True"
+                        MinHeight="120"
+                        TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            HorizontalAlignment="Stretch"
+                            Click="SaveButton_Click"
+                            Content="Save" />
+                        <Button
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Click="DeleteButton_Click"
+                            Content="Delete" />
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
