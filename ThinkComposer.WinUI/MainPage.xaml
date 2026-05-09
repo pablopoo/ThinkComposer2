@@ -258,7 +258,13 @@
                         BorderBrush="{ThemeResource ShellBorderBrush}"
                         BorderThickness="1,1,1,0"
                         CornerRadius="6,6,0,0">
-                        <TextBlock x:Name="CompositionTitleText" Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="Composition 1" />
+                        <TextBlock
+                            x:Name="CompositionTitleText"
+                            AutomationProperties.AutomationId="CompositionTitleText"
+                            Margin="12,0"
+                            VerticalAlignment="Center"
+                            FontWeight="SemiBold"
+                            Text="Composition 1" />
                     </Border>
                 </Grid>
 

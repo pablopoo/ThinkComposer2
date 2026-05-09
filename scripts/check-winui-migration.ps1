@@ -76,6 +76,8 @@ Assert-NotContains "ThinkComposer.Core\ThinkComposer.Core.csproj" "<UseWPF>true<
 Assert-Contains "scripts\smoke-winui-launch.ps1" "DocumentPath" "WinUI smoke must support startup document coverage."
 Assert-Contains "scripts\smoke-winui-launch.ps1" "RequireWindow" "WinUI smoke must verify the main window when requested."
 Assert-Contains "scripts\smoke-winui-ui.ps1" "UIAutomationClient" "WinUI UI smoke must use UI Automation."
+Assert-Contains "scripts\smoke-winui-ui.ps1" "ExpectedTitle" "WinUI UI smoke must verify startup document identity."
+Assert-Contains "ThinkComposer.WinUI\MainPage.xaml.cs" "CompositionDocumentFileKind.LegacyPackage" "WinUI startup document detection must accept legacy packages."
 Assert-Contains "ThinkComposer.WinUI\MainPage.xaml" "ThemeToggleButton" "Theme toggle must be automation-addressable."
 Assert-Contains "ThinkComposer.WinUI\MainPage.xaml" "TableCellsPanel" "WinUI table editor must expose per-cell editing controls."
 Assert-Contains "ThinkComposer.WinUI\MainPage.xaml.cs" "RootPage_KeyDown" "WinUI must expose mind-map Tab/Enter keyboard creation."

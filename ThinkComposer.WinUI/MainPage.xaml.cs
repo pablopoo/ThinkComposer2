@@ -3535,7 +3535,9 @@ public sealed partial class MainPage : Page
     private static bool IsExistingDocumentPath(string path)
     {
         var kind = CompositionDocumentFileKindDetector.FromPath(path);
-        return (kind == CompositionDocumentFileKind.Snapshot || kind == CompositionDocumentFileKind.ModernDocument)
+        return (kind == CompositionDocumentFileKind.Snapshot ||
+                kind == CompositionDocumentFileKind.ModernDocument ||
+                kind == CompositionDocumentFileKind.LegacyPackage)
             && File.Exists(path);
     }
 

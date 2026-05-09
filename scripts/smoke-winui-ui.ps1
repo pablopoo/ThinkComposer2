@@ -1,6 +1,7 @@
 param(
     [string]$ExecutablePath = "",
     [string]$DocumentPath = "",
+    [string]$ExpectedTitle = "",
     [int]$StartupSeconds = 6
 )
 
@@ -90,6 +91,18 @@ try {
     foreach ($name in @("New concept", "Save", "Export", "Report", "Present", "Print")) {
         if ((Find-ElementByName -Root $root -Name $name) -eq $null) {
             throw "Required toolbar command not found: $name"
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedTitle)) {
+        $titleElement = Find-ElementByAutomationId -Root $root -AutomationId "CompositionTitleText"
+        if ($titleElement -eq $null) {
+            throw "Composition title element not found."
+        }
+
+        $actualTitle = $titleElement.Current.Name
+        if ($actualTitle -notlike "*$ExpectedTitle*") {
+            throw "Loaded document title '$actualTitle' does not contain '$ExpectedTitle'."
         }
     }
 
