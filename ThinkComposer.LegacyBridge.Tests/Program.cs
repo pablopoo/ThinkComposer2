@@ -54,6 +54,12 @@ try
     AssertTrue(reloadedDocument.Domain.RelationshipDefinitions.Count > 0, "document relationship definitions");
     AssertTrue(reloadedDocument.Domain.MarkerDefinitions.Count > 0, "document marker definitions");
     AssertTrue(reloadedDocument.Domain.TableDefinitions.Count > 0, "document table definitions");
+    AssertTrue(reloadedDocument.Domain.Extensions.Any(extension => extension.Key == "legacy.complementDefinition.Legend"), "document complement definitions");
+    AssertTrue(reloadedDocument.Domain.Extensions.Any(extension => extension.Key == "legacy.markerCluster.Flag"), "document marker clusters");
+    AssertTrue(reloadedDocument.Domain.ConceptDefinitions.Any(definition =>
+        definition.Extensions.Any(extension => extension.Key == "legacy.isComposable")), "document concept definition composability");
+    AssertTrue(reloadedDocument.Domain.RelationshipDefinitions.Any(definition =>
+        definition.Extensions.Any(extension => extension.Key == "legacy.isDirectional")), "document relationship directionality");
     AssertEqual(snapshot.Nodes.Count, reloadedDocument.Ideas.Count, "document idea count");
     AssertEqual(snapshot.Connectors.Count, reloadedDocument.Relationships.Count, "document relationship count");
     AssertEqual(1, reloadedDocument.Views.Count, "document view count");

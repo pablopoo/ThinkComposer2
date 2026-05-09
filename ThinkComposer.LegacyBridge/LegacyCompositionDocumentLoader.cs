@@ -132,11 +132,7 @@ public static class LegacyCompositionDocumentLoader
             TableDefinitions: domain.TableDefinitions.Select(MapTableDefinition).ToArray(),
             ExternalLanguages: domain.ExternalLanguages.Select(MapExternalLanguage).ToArray(),
             Templates: MapTemplates(domain).ToArray(),
-            Extensions:
-            [
-                new CompositionExtensionSnapshot("legacy.domain.techName", domain.TechName),
-                new CompositionExtensionSnapshot("legacy.domain.modelRevision", domain.ModelRevision.ToString())
-            ]);
+            Extensions: BuildDomainExtensions(domain).ToArray());
     }
 
     private static CompositionDefinitionSnapshot MapIdeaDefinition(IdeaDefinition definition, string kind)
@@ -148,12 +144,7 @@ public static class LegacyCompositionDocumentLoader
             Summary: definition.Summary,
             Style: MapSymbolStyle(definition.DefaultSymbolFormat),
             Details: definition.DetailDesignators.Select(MapDetailDesignator).ToArray(),
-            Extensions:
-            [
-                new CompositionExtensionSnapshot("legacy.techName", definition.TechName),
-                new CompositionExtensionSnapshot("legacy.metaId", definition.MetaId.ToString()),
-                new CompositionExtensionSnapshot("legacy.representativeShape", definition.RepresentativeShape)
-            ]);
+            Extensions: BuildIdeaDefinitionExtensions(definition, kind).ToArray());
     }
 
     private static CompositionDefinitionSnapshot MapMarkerDefinition(MarkerDefinition definition)
@@ -213,6 +204,114 @@ public static class LegacyCompositionDocumentLoader
             [
                 new CompositionExtensionSnapshot("legacy.techName", variant.TechName)
             ]);
+    }
+
+    private static IEnumerable<CompositionExtensionSnapshot> BuildDomainExtensions(Domain domain)
+    {
+        yield return new CompositionExtensionSnapshot("legacy.domain.techName", domain.TechName);
+        yield return new CompositionExtensionSnapshot("legacy.domain.modelRevision", domain.ModelRevision.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.domain.viewGridSize", domain.ViewGridSize.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.domain.currentExternalLanguage", domain.CurrentExternalLanguage?.TechName ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.domain.defaultTableDefinition", domain.DefaultTableDef?.GlobalId.ToString() ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.domain.defaultTableCategory", domain.DefaultTableDefCategory?.TechName ?? string.Empty);
+
+        foreach (var cluster in domain.ConceptDefClusters)
+        {
+            yield return MapPresentationElement("legacy.conceptDefCluster", cluster);
+        }
+
+        foreach (var cluster in domain.RelationshipDefClusters)
+        {
+            yield return MapPresentationElement("legacy.relationshipDefCluster", cluster);
+        }
+
+        foreach (var cluster in domain.MarkerClusters)
+        {
+            yield return MapPresentationElement("legacy.markerCluster", cluster);
+        }
+
+        foreach (var complement in Domain.StandardComplementDefinitions)
+        {
+            yield return MapPresentationElement("legacy.complementDefinition", complement);
+        }
+    }
+
+    private static CompositionExtensionSnapshot MapPresentationElement(string keyPrefix, FormalElement element)
+    {
+        return MapPresentationElement(keyPrefix, element.Name, element.TechName, element.Summary, element.GlobalId.ToString());
+    }
+
+    private static CompositionExtensionSnapshot MapPresentationElement(string keyPrefix, SimpleElement element)
+    {
+        return MapPresentationElement(keyPrefix, element.Name, element.TechName, element.Summary, string.Empty);
+    }
+
+    private static CompositionExtensionSnapshot MapPresentationElement(
+        string keyPrefix,
+        string name,
+        string techName,
+        string summary,
+        string globalId)
+    {
+        var key = string.IsNullOrWhiteSpace(techName) ? name : techName;
+        var properties = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["name"] = name,
+            ["techName"] = techName,
+            ["summary"] = summary,
+            ["globalId"] = globalId
+        };
+
+        return new CompositionExtensionSnapshot($"{keyPrefix}.{key}", name, properties);
+    }
+
+    private static IEnumerable<CompositionExtensionSnapshot> BuildIdeaDefinitionExtensions(
+        IdeaDefinition definition,
+        string kind)
+    {
+        yield return new CompositionExtensionSnapshot("legacy.techName", definition.TechName);
+        yield return new CompositionExtensionSnapshot("legacy.metaId", definition.MetaId.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.representativeShape", definition.RepresentativeShape);
+        yield return new CompositionExtensionSnapshot("legacy.ownerDefinitor", definition.OwnerDefinitor?.GlobalId.ToString() ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.ancestorDefinitor", definition.AncestorIdeaDef?.GlobalId.ToString() ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.clusterTechName", definition.Cluster?.TechName ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.clusterName", definition.Cluster?.Name ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.isComposable", definition.IsComposable.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.isVersionable", definition.IsVersionable.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.canAutomaticallyCreateRelatedConcepts", definition.CanAutomaticallyCreateRelatedConcepts.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.canGroupIntersectingObjects", definition.CanGroupIntersectingObjects.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.canAutomaticallyCreateGroupedConcepts", definition.CanAutomaticallyCreateGroupedConcepts.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.automaticGroupedConceptDef", definition.AutomaticGroupedConceptDef?.GlobalId.ToString() ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.hasGroupRegion", definition.HasGroupRegion.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.hasGroupLine", definition.HasGroupLine.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.preciseConnectByDefault", definition.PreciseConnectByDefault.ToString());
+        yield return new CompositionExtensionSnapshot("legacy.defaultSymbolInitialWidth", definition.DefaultSymbolFormat?.InitialWidth.ToString() ?? string.Empty);
+        yield return new CompositionExtensionSnapshot("legacy.defaultSymbolInitialHeight", definition.DefaultSymbolFormat?.InitialHeight.ToString() ?? string.Empty);
+
+        if (definition is ConceptDefinition conceptDefinition)
+        {
+            yield return new CompositionExtensionSnapshot("legacy.ancestorConceptDefinition", conceptDefinition.AncestorConceptDef?.GlobalId.ToString() ?? string.Empty);
+            yield return new CompositionExtensionSnapshot("legacy.automaticCreationConceptDef", conceptDefinition.AutomaticCreationConceptDef?.GlobalId.ToString() ?? string.Empty);
+            yield return new CompositionExtensionSnapshot("legacy.automaticCreationRelationshipDef", conceptDefinition.AutomaticCreationRelationshipDef?.GlobalId.ToString() ?? string.Empty);
+            yield return new CompositionExtensionSnapshot("legacy.automaticCreationPositioningMode", conceptDefinition.AutomaticCreationPositioningMode.ToString());
+            yield return new CompositionExtensionSnapshot("legacy.automaticCreationPositioningIsRadialized", conceptDefinition.AutomaticCreationPositioningIsRadialized.ToString());
+        }
+
+        if (definition is RelationshipDefinition relationshipDefinition)
+        {
+            yield return new CompositionExtensionSnapshot("legacy.isDirectional", relationshipDefinition.IsDirectional.ToString());
+            yield return new CompositionExtensionSnapshot("legacy.isSimple", relationshipDefinition.IsSimple.ToString());
+            yield return new CompositionExtensionSnapshot("legacy.hideCentralSymbolWhenSimple", relationshipDefinition.HideCentralSymbolWhenSimple.ToString());
+            yield return new CompositionExtensionSnapshot("legacy.showNameIfHidingCentralSymbol", relationshipDefinition.ShowNameIfHidingCentralSymbol.ToString());
+            yield return new CompositionExtensionSnapshot("legacy.ancestorRelationshipDefinition", relationshipDefinition.AncestorRelationshipDef?.GlobalId.ToString() ?? string.Empty);
+            yield return new CompositionExtensionSnapshot("legacy.originOrParticipantLinkRoleDefinition", relationshipDefinition.OriginOrParticipantLinkRoleDef?.GlobalId.ToString() ?? string.Empty);
+            yield return new CompositionExtensionSnapshot("legacy.targetLinkRoleDefinition", relationshipDefinition.TargetLinkRoleDef?.GlobalId.ToString() ?? string.Empty);
+        }
+
+        foreach (var template in definition.OutputTemplates)
+        {
+            yield return MapTemplate($"{kind.ToLowerInvariant()}.definition", template);
+        }
     }
 
     private static CompositionDetailSnapshot MapDetailDesignator(DetailDesignator designator)
