@@ -81,7 +81,10 @@ Assert-Contains "ThinkComposer.WinUI\MainPage.xaml.cs" "Full document printable 
 Assert-Contains "scripts\release-winui.ps1" "release-index.json" "WinUI release script must emit a release index."
 Assert-Contains "scripts\release-winui.ps1" "CertificatePath" "WinUI release script must support optional code signing."
 Assert-Contains "scripts\release-winui.ps1" "UpdateChannel" "WinUI release script must include update channel metadata."
+Assert-Contains "scripts\release-winui.ps1" "primaryArtifactType" "WinUI release index must distinguish zip and directory artifacts."
+Assert-Contains "scripts\release-winui.ps1" "artifact-hashes.json" "WinUI NoZip release must emit directory hash manifests."
 Assert-Contains "scripts\verify-winui-release.ps1" "SHA256" "WinUI release verification must validate artifact hashes."
+Assert-Contains "scripts\verify-winui-release.ps1" "hashManifest" "WinUI release verification must validate directory hash manifests."
 
 $forbiddenPatterns = @(
     "\bSystem\.Windows\b",

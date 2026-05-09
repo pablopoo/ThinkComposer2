@@ -46,6 +46,23 @@ function Get-RelativePath {
     return $target
 }
 
+function Get-ChildRelativePath {
+    param(
+        [string]$Root,
+        [string]$Path
+    )
+
+    $rootPath = [System.IO.Path]::GetFullPath($Root).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    $target = [System.IO.Path]::GetFullPath($Path)
+    if ($target.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $target.Substring($rootPath.Length)
+    }
+
+    return $target
+}
+
 function Get-GitCommit {
     Push-Location $repoRoot
     try {
@@ -158,6 +175,32 @@ function Get-DownloadUrl {
     return "$($UpdateBaseUrl.TrimEnd('/'))/$([System.IO.Path]::GetFileName($ArtifactPath))"
 }
 
+function Write-DirectoryHashManifest {
+    param([string]$DirectoryPath)
+
+    $manifestPath = Join-Path $DirectoryPath "artifact-hashes.json"
+    $manifestFullPath = [System.IO.Path]::GetFullPath($manifestPath)
+    $files = @(
+        Get-ChildItem -LiteralPath $DirectoryPath -Recurse -File |
+            Where-Object { [System.IO.Path]::GetFullPath($_.FullName) -ne $manifestFullPath } |
+            Sort-Object FullName |
+            ForEach-Object {
+                [ordered]@{
+                    path = Get-ChildRelativePath $DirectoryPath $_.FullName
+                    sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash
+                }
+            }
+    )
+
+    [ordered]@{
+        algorithm = "SHA256"
+        createdUtc = [DateTime]::UtcNow.ToString("o")
+        files = $files
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+
+    return $manifestPath
+}
+
 $signedArtifacts = New-Object System.Collections.Generic.List[string]
 $releaseVersion = ""
 
@@ -195,6 +238,7 @@ foreach ($runtimeIdentifier in $RuntimeIdentifiers) {
         $signedArtifacts.Add((Get-RelativePath $exePath)) | Out-Null
     }
 
+    $hashManifestPath = Write-DirectoryHashManifest $artifactPath
     $zipPath = Join-Path $outputRootPath "ThinkComposer.WinUI-$Configuration-$runtimeIdentifier.zip"
     if (-not $NoZip) {
         if (Test-Path -LiteralPath $zipPath) {
@@ -205,18 +249,22 @@ foreach ($runtimeIdentifier in $RuntimeIdentifiers) {
         Write-Host "Created $zipPath"
     }
 
-    $primaryArtifactPath = if (-not $NoZip) { $zipPath } else { $exePath }
-    $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $primaryArtifactPath
+    $primaryArtifactPath = if (-not $NoZip) { $zipPath } else { $artifactPath }
+    $primaryArtifactType = if (-not $NoZip) { "zip" } else { "directory" }
+    $hash = if (-not $NoZip) { (Get-FileHash -Algorithm SHA256 -LiteralPath $primaryArtifactPath).Hash } else { "" }
+    $downloadUrl = if (-not $NoZip) { Get-DownloadUrl $primaryArtifactPath } else { "" }
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
     $artifacts.Add([ordered]@{
         runtimeIdentifier = $runtimeIdentifier
         platform = $manifest.platform
         manifest = Get-RelativePath $manifestPath
+        hashManifest = Get-RelativePath $hashManifestPath
         directory = Get-RelativePath $artifactPath
+        primaryArtifactType = $primaryArtifactType
         primaryArtifact = Get-RelativePath $primaryArtifactPath
-        downloadUrl = Get-DownloadUrl $primaryArtifactPath
-        sha256 = $hash.Hash
+        downloadUrl = $downloadUrl
+        sha256 = $hash
     }) | Out-Null
 }
 

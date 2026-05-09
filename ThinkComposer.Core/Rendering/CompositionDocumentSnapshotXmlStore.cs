@@ -147,7 +147,8 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("x", Format(node.Position.X)),
             new XAttribute("y", Format(node.Position.Y)),
             new XAttribute("width", Format(node.Size.Width)),
-            new XAttribute("height", Format(node.Size.Height)));
+            new XAttribute("height", Format(node.Size.Height)),
+            WriteStyle(node.Style));
     }
 
     private static XElement WriteConnector(CompositionConnectorView connector)
@@ -157,7 +158,8 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("id", connector.Id),
             new XAttribute("sourceId", connector.SourceId),
             new XAttribute("targetId", connector.TargetId),
-            new XAttribute("text", connector.Text));
+            new XAttribute("text", connector.Text),
+            WriteStyle(connector.Style));
     }
 
     private static XElement WriteDetails(IReadOnlyList<CompositionDetailSnapshot> details)
@@ -301,7 +303,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadString(element, "id"),
                 ReadString(element, "text"),
                 new Primitives.TcPoint(ReadDouble(element, "x"), ReadDouble(element, "y")),
-                new Primitives.TcSize(ReadDouble(element, "width"), ReadDouble(element, "height")))).ToArray()
+                new Primitives.TcSize(ReadDouble(element, "width"), ReadDouble(element, "height")),
+                ReadStyle(element.Element("Style")))).ToArray()
             ?? Array.Empty<CompositionNodeView>();
     }
 
@@ -312,7 +315,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadString(element, "id"),
                 ReadString(element, "sourceId"),
                 ReadString(element, "targetId"),
-                ReadString(element, "text"))).ToArray()
+                ReadString(element, "text"),
+                ReadStyle(element.Element("Style")))).ToArray()
             ?? Array.Empty<CompositionConnectorView>();
     }
 

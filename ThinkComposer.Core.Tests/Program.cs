@@ -133,11 +133,21 @@ var modernDocument = new CompositionDocumentSnapshot(
             ContainerIdeaId: "root-composition",
             Nodes:
             [
-                new CompositionNodeView("idea-1", "Customer Need", new TcPoint(10, 20), new TcSize(160, 80))
+                new CompositionNodeView(
+                    "idea-1",
+                    "Customer Need",
+                    new TcPoint(10, 20),
+                    new TcSize(160, 80),
+                    Style: new CompositionStyleSnapshot(Fill: "#fff4cc", Stroke: "#b45309", Text: "#111827", StrokeThickness: 1.5))
             ],
             Connectors:
             [
-                new CompositionConnectorView("rel-1", "idea-1", "idea-1", "Addresses")
+                new CompositionConnectorView(
+                    "rel-1",
+                    "idea-1",
+                    "idea-1",
+                    "Addresses",
+                    Style: new CompositionStyleSnapshot(Stroke: "#9333ea", StrokeThickness: 2.25))
             ],
             Complements:
             [
@@ -350,6 +360,8 @@ try
     AssertEqual("source-role", reloadedModernDocument.Relationships[0].LinkRoleId, "modern roundtrip relationship link role");
     AssertEqual("High", reloadedModernDocument.Relationships[0].Details[0].Value, "modern roundtrip relationship detail");
     AssertEqual("Legend", reloadedModernDocument.Views[0].Complements[0].Value, "modern roundtrip complement");
+    AssertEqual("#fff4cc", reloadedModernDocument.Views[0].Nodes[0].Style.Fill, "modern roundtrip view node style");
+    AssertEqual("#9333ea", reloadedModernDocument.Views[0].Connectors[0].Style.Stroke, "modern roundtrip view connector style");
     AssertEqual("idea-1", reloadedModernDocument.Views[1].ContainerIdeaId, "modern roundtrip view container");
     AssertEqual("legacy.package.raw", reloadedModernDocument.Extensions[0].Key, "modern roundtrip extension");
 }
