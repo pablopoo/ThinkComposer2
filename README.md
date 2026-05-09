@@ -2,6 +2,8 @@
 
 ThinkComposer2 is a modernized fork of ThinkComposer focused on a native Windows desktop experience.
 
+![ThinkComposer2 WinUI editing a Business Model document](docs/screenshots/thinkcomposer2-winui-business-model.png)
+
 ## Current Direction
 
 - Native WinUI 3 application for Windows.
