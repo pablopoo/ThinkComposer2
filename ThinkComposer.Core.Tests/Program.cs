@@ -1045,6 +1045,52 @@ AssertEqual(190.0, movedSelectionSnapshot.Nodes.Single(node => node.Id == "left"
 AssertEqual(305.0, movedSelectionSnapshot.Nodes.Single(node => node.Id == "right").Position.X, "move selection right x");
 AssertEqual(indexedSnapshot.Connectors.Count, movedSelectionSnapshot.Connectors.Count, "move selection preserves connectors");
 
+var layoutSnapshot = indexedSnapshot with
+{
+    Nodes =
+    [
+        new CompositionNodeView("a", "A", new TcPoint(100, 200), new TcSize(80, 40)),
+        new CompositionNodeView("b", "B", new TcPoint(240, 260), new TcSize(120, 60)),
+        new CompositionNodeView("c", "C", new TcPoint(420, 220), new TcSize(60, 80))
+    ]
+};
+var alignedLeft = CompositionSnapshotSelectionEditor.Align(
+    layoutSnapshot,
+    ["a", "b", "c"],
+    CompositionSelectionAlignment.Left);
+AssertEqual(100.0, alignedLeft.Nodes.Single(node => node.Id == "b").Position.X, "align left b");
+AssertEqual(100.0, alignedLeft.Nodes.Single(node => node.Id == "c").Position.X, "align left c");
+var alignedBottom = CompositionSnapshotSelectionEditor.Align(
+    layoutSnapshot,
+    ["a", "b", "c"],
+    CompositionSelectionAlignment.Bottom);
+AssertEqual(280.0, alignedBottom.Nodes.Single(node => node.Id == "a").Position.Y, "align bottom a");
+AssertEqual(240.0, alignedBottom.Nodes.Single(node => node.Id == "c").Position.Y, "align bottom c");
+
+var sameSize = CompositionSnapshotSelectionEditor.ResizeToMatch(
+    layoutSnapshot,
+    ["a", "b", "c"],
+    CompositionSelectionSizeMode.SameSize);
+AssertEqual(80.0, sameSize.Nodes.Single(node => node.Id == "b").Size.Width, "same size width");
+AssertEqual(40.0, sameSize.Nodes.Single(node => node.Id == "c").Size.Height, "same size height");
+
+var distributedHorizontal = CompositionSnapshotSelectionEditor.Distribute(
+    layoutSnapshot,
+    ["a", "b", "c"],
+    CompositionSelectionDistribution.Horizontal);
+AssertEqual(260.0, distributedHorizontal.Nodes.Single(node => node.Id == "b").Position.X, "distribute horizontal b");
+
+var broughtFront = CompositionSnapshotSelectionEditor.Reorder(
+    layoutSnapshot,
+    ["a"],
+    CompositionSelectionZOrder.BringToFront);
+AssertEqual("a", broughtFront.Nodes.Last().Id, "bring front last node");
+var sentBack = CompositionSnapshotSelectionEditor.Reorder(
+    layoutSnapshot,
+    ["c"],
+    CompositionSelectionZOrder.SendToBack);
+AssertEqual("c", sentBack.Nodes.First().Id, "send back first node");
+
 var editSession = new CompositionEditingSession(indexedSnapshot);
 editSession.Apply(renamedSnapshot);
 AssertEqual(true, editSession.CanUndo, "session can undo");
