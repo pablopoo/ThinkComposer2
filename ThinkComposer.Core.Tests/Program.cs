@@ -759,6 +759,35 @@ AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind
 AssertTrue(commandEntries.Any(entry => entry.Kind == CompositionCommandEntryKind.Node && entry.TargetId == "customer"), "command catalog node");
 AssertEqual("Customer Need", CompositionCommandCatalog.Search(commandEntries, "customer").First().Title, "command search node");
 AssertEqual(0, CompositionCommandCatalog.Search(commandEntries, "zzzz-not-found").Count, "command search miss");
+var emptyCommandContext = new CompositionCommandContext(
+    HasDocument: false,
+    HasSnapshot: false,
+    SelectedNodeCount: 0,
+    HasSelectedConnector: false,
+    HasClipboard: false,
+    CanUndo: false,
+    CanRedo: false);
+var disabledCommands = CompositionCommandCatalog.ForSnapshot(null, emptyCommandContext);
+var disabledSave = disabledCommands.Single(entry => entry.Id == CompositionCommandIds.Save);
+AssertEqual(false, disabledSave.IsEnabled, "save disabled without document");
+AssertEqual("Open or create a document first.", disabledSave.DisabledReason, "save disabled reason");
+var selectedCommandContext = emptyCommandContext with
+{
+    HasDocument = true,
+    HasSnapshot = true,
+    SelectedNodeCount = 2,
+    HasClipboard = true,
+    CanUndo = true,
+    CanRedo = true
+};
+var contextualCommands = CompositionCommandCatalog.ForSnapshot(snapshot, selectedCommandContext);
+AssertTrue(contextualCommands.Any(entry =>
+    entry.Id == CompositionCommandIds.AlignLeft &&
+    entry.Surfaces.HasFlag(CompositionCommandSurface.CanvasContextMenu) &&
+    entry.IsEnabled), "align left command enabled for multi-selection");
+AssertTrue(contextualCommands.Any(entry =>
+    entry.Id == CompositionCommandIds.CommandPalette &&
+    entry.Accelerator == "Ctrl+Shift+P"), "command palette accelerator");
 
 var nodeIds = snapshot.Nodes.Select(node => node.Id).ToHashSet(StringComparer.Ordinal);
 AssertTrue(nodeIds.SetEquals(["customer", "capability", "service"]), "node ids");
