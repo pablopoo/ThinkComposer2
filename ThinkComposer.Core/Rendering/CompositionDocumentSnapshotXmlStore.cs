@@ -135,6 +135,7 @@ public static class CompositionDocumentSnapshotXmlStore
             new XElement("Connectors", view.Connectors.Select(WriteConnector)),
             WriteExtensions("Complements", view.Complements),
             WriteStyle(view.Style),
+            WriteViewOptions(view.Options),
             WriteExtensions("Extensions", view.Extensions));
     }
 
@@ -196,6 +197,24 @@ public static class CompositionDocumentSnapshotXmlStore
             new XAttribute("strokeDash", style.StrokeDash),
             new XElement("Properties", style.Properties.Select(property =>
                 new XElement("Property", new XAttribute("key", property.Key), new XAttribute("value", property.Value)))));
+    }
+
+    private static XElement WriteViewOptions(CompositionViewOptionsSnapshot options)
+    {
+        return new XElement(
+            "Options",
+            new XAttribute("showGrid", options.ShowGrid),
+            new XAttribute("snapToGrid", options.SnapToGrid),
+            new XAttribute("showGridPoints", options.ShowGridPoints),
+            new XAttribute("showIndicators", options.ShowIndicators),
+            new XAttribute("showMarkers", options.ShowMarkers),
+            new XAttribute("showMarkerTitles", options.ShowMarkerTitles),
+            new XAttribute("showConceptDefinitionLabels", options.ShowConceptDefinitionLabels),
+            new XAttribute("showRelationshipDefinitionLabels", options.ShowRelationshipDefinitionLabels),
+            new XAttribute("showLinkRoleDescriptorLabels", options.ShowLinkRoleDescriptorLabels),
+            new XAttribute("showLinkRoleDefinitorLabels", options.ShowLinkRoleDefinitorLabels),
+            new XAttribute("showLinkRoleVariantLabels", options.ShowLinkRoleVariantLabels),
+            new XAttribute("autoSizeByEnteredText", options.AutoSizeByEnteredText));
     }
 
     private static XElement WriteExtensions(string elementName, IReadOnlyList<CompositionExtensionSnapshot> extensions)
@@ -292,7 +311,8 @@ public static class CompositionDocumentSnapshotXmlStore
                 ReadExtensions(element.Element("Complements")),
                 ReadStyle(element.Element("Style")),
                 ReadExtensions(element.Element("Extensions")),
-                ReadString(element, "containerIdeaId"))).ToArray()
+                ReadString(element, "containerIdeaId"),
+                ReadViewOptions(element.Element("Options")))).ToArray()
             ?? Array.Empty<CompositionViewLayerSnapshot>();
     }
 
@@ -375,6 +395,28 @@ public static class CompositionDocumentSnapshotXmlStore
             ReadProperties(element.Element("Properties")));
     }
 
+    private static CompositionViewOptionsSnapshot ReadViewOptions(XElement? element)
+    {
+        if (element is null)
+        {
+            return new CompositionViewOptionsSnapshot();
+        }
+
+        return new CompositionViewOptionsSnapshot(
+            ReadBool(element, "showGrid"),
+            ReadBool(element, "snapToGrid"),
+            ReadBool(element, "showGridPoints"),
+            ReadBool(element, "showIndicators", defaultValue: true),
+            ReadBool(element, "showMarkers", defaultValue: true),
+            ReadBool(element, "showMarkerTitles"),
+            ReadBool(element, "showConceptDefinitionLabels"),
+            ReadBool(element, "showRelationshipDefinitionLabels"),
+            ReadBool(element, "showLinkRoleDescriptorLabels"),
+            ReadBool(element, "showLinkRoleDefinitorLabels"),
+            ReadBool(element, "showLinkRoleVariantLabels"),
+            ReadBool(element, "autoSizeByEnteredText"));
+    }
+
     private static IReadOnlyList<CompositionExtensionSnapshot> ReadExtensions(XElement? container)
     {
         return container?.Elements("Extension").Select(element =>
@@ -412,9 +454,9 @@ public static class CompositionDocumentSnapshotXmlStore
             : 0;
     }
 
-    private static bool ReadBool(XElement element, string attributeName)
+    private static bool ReadBool(XElement element, string attributeName, bool defaultValue = false)
     {
-        return bool.TryParse(element.Attribute(attributeName)?.Value, out var value) && value;
+        return bool.TryParse(element.Attribute(attributeName)?.Value, out var value) ? value : defaultValue;
     }
 
     private static string Format(double value)

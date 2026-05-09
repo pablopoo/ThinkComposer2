@@ -421,6 +421,42 @@ finally
     }
 }
 
+var viewOptions = new CompositionViewOptionsSnapshot(
+    ShowGrid: true,
+    SnapToGrid: true,
+    ShowGridPoints: true,
+    ShowIndicators: false,
+    ShowMarkers: true,
+    ShowMarkerTitles: true,
+    ShowConceptDefinitionLabels: true,
+    ShowRelationshipDefinitionLabels: true,
+    ShowLinkRoleDescriptorLabels: true,
+    ShowLinkRoleDefinitorLabels: false,
+    ShowLinkRoleVariantLabels: true,
+    AutoSizeByEnteredText: true);
+var optionsDocument = modernDocument with
+{
+    Views =
+    [
+        modernDocument.Views[0] with { Options = viewOptions }
+    ]
+};
+var optionsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-options-{Guid.NewGuid():N}.tcdoc");
+try
+{
+    CompositionDocumentSnapshotXmlStore.Save(optionsDocument, optionsPath);
+    var reloadedOptionsDocument = CompositionDocumentSnapshotXmlStore.Load(optionsPath);
+    AssertEqual(true, reloadedOptionsDocument.Views[0].Options.ShowGrid, "view options show grid");
+    AssertEqual(true, reloadedOptionsDocument.Views[0].Options.AutoSizeByEnteredText, "view options auto size");
+}
+finally
+{
+    if (File.Exists(optionsPath))
+    {
+        File.Delete(optionsPath);
+    }
+}
+
 var modernFromView = CompositionDocumentSnapshotAdapter.FromViewSnapshot(snapshot);
 AssertEqual(snapshot.Id, modernFromView.Id, "adapter document id");
 AssertEqual(snapshot.Title, modernFromView.Title, "adapter document title");

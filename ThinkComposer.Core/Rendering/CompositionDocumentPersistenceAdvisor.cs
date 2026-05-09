@@ -84,6 +84,7 @@ public static class CompositionDocumentPersistenceAdvisor
         return views.Any(view =>
             view.Complements.Count > 0 ||
             HasRichExtensions(view.Extensions, allowSourceContract: false) ||
+            HasRichViewOptions(view.Options) ||
             HasRichStyle(view.Style));
     }
 
@@ -104,5 +105,10 @@ public static class CompositionDocumentPersistenceAdvisor
             style.StrokeThickness != 0 ||
             !string.IsNullOrWhiteSpace(style.StrokeDash) ||
             style.Properties.Count > 0;
+    }
+
+    private static bool HasRichViewOptions(CompositionViewOptionsSnapshot options)
+    {
+        return options != new CompositionViewOptionsSnapshot();
     }
 }
