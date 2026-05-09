@@ -47,10 +47,17 @@
     </Page.Resources>
 
     <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NewDocumentKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="OpenKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SaveKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="S" Modifiers="Control,Shift" Invoked="SaveAsKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="P" Modifiers="Control,Shift" Invoked="CommandPaletteKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="C" Modifiers="Control" Invoked="CopyKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="X" Modifiers="Control" Invoked="CutKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="V" Modifiers="Control" Invoked="PasteKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="A" Modifiers="Control" Invoked="SelectAllKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="F8" Invoked="FitToViewKeyboardAccelerator_Invoked" />
+        <KeyboardAccelerator Key="Delete" Invoked="DeleteKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="Left" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="Right" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />
         <KeyboardAccelerator Key="Up" Invoked="MoveSelectionKeyboardAccelerator_Invoked" />

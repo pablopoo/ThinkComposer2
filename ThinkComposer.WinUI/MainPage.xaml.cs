@@ -138,6 +138,13 @@ public sealed partial class MainPage : Page
         SetExplorerMode(ExplorerMode.Domain);
     }
 
+    private void ShowExplorerDomain()
+    {
+        _isExplorerVisible = true;
+        SetExplorerMode(ExplorerMode.Domain);
+        ApplyPanelState();
+    }
+
     private void InspectorButton_Click(object sender, RoutedEventArgs e)
     {
         _isInspectorVisible = !_isInspectorVisible;
@@ -792,6 +799,36 @@ public sealed partial class MainPage : Page
         PasteClipboardSelection();
     }
 
+    private void NewDocumentKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.NewDocument);
+        args.Handled = true;
+    }
+
+    private void OpenKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.Open);
+        args.Handled = true;
+    }
+
+    private void SaveKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.Save);
+        args.Handled = true;
+    }
+
+    private void SaveAsKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.SaveAs);
+        args.Handled = true;
+    }
+
+    private void CommandPaletteKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.CommandPalette);
+        args.Handled = true;
+    }
+
     private void CopyKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         CopySelectionToClipboard();
@@ -812,12 +849,19 @@ public sealed partial class MainPage : Page
 
     private void SelectAllKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (_currentSnapshot is not null)
-        {
-            CanvasView.SelectNodes(_currentSnapshot.Nodes.Select(node => node.Id));
-            StatusContextText.Text = $"Selected {_currentSnapshot.Nodes.Count} concepts";
-        }
+        SelectAllConcepts();
+        args.Handled = true;
+    }
 
+    private void FitToViewKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.FitToView);
+        args.Handled = true;
+    }
+
+    private void DeleteKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ExecuteCommand(CompositionCommandIds.Delete);
         args.Handled = true;
     }
 
@@ -1680,21 +1724,25 @@ public sealed partial class MainPage : Page
         }
 
         ApplySelectedNode(node);
+        RefreshCommandCatalog();
     }
 
     private void CanvasView_SelectedNodesChanged(object? sender, IReadOnlyList<CompositionNodeView> nodes)
     {
         if (nodes.Count <= 1)
         {
+            RefreshCommandCatalog();
             return;
         }
 
         ApplySelectedNodes(nodes);
+        RefreshCommandCatalog();
     }
 
     private void CanvasView_SelectedConnectorChanged(object? sender, CompositionConnectorView? connector)
     {
         ApplySelectedConnector(connector);
+        RefreshCommandCatalog();
     }
 
     private void CanvasView_NodeMoved(object? sender, CompositionNodeView node)
@@ -2782,6 +2830,19 @@ public sealed partial class MainPage : Page
         StatusContextText.Text = $"Pasted {pastedNodeIds.Length} concept(s)";
     }
 
+    private void SelectAllConcepts()
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a composition view first.";
+            return;
+        }
+
+        CanvasView.SelectNodes(_currentSnapshot.Nodes.Select(node => node.Id));
+        StatusContextText.Text = $"Selected {_currentSnapshot.Nodes.Count} concepts";
+        RefreshCommandCatalog();
+    }
+
     private void MoveSelectedNodesBy(TcPoint delta)
     {
         if (_currentSnapshot is null || (delta.X == 0 && delta.Y == 0))
@@ -3367,6 +3428,14 @@ public sealed partial class MainPage : Page
 
     private void ExecuteCommandEntry(CompositionCommandEntry entry)
     {
+        if (!entry.IsEnabled)
+        {
+            StatusContextText.Text = string.IsNullOrWhiteSpace(entry.DisabledReason)
+                ? $"{entry.Title} is not available."
+                : entry.DisabledReason;
+            return;
+        }
+
         if (entry.Id.StartsWith("recent.", StringComparison.Ordinal) &&
             !string.IsNullOrWhiteSpace(entry.TargetId))
         {
@@ -3447,8 +3516,37 @@ public sealed partial class MainPage : Page
             case CompositionCommandIds.NewRelationship:
                 NewRelationshipButton_Click(this, new RoutedEventArgs());
                 break;
+            case CompositionCommandIds.EditName:
+                InspectorNameBox.Focus(FocusState.Programmatic);
+                InspectorNameBox.SelectAll();
+                break;
+            case CompositionCommandIds.ConvertType:
+                InspectorKindBox.Focus(FocusState.Programmatic);
+                StatusContextText.Text = "Use the inspector Kind selector to convert type.";
+                break;
+            case CompositionCommandIds.OpenCompositeView:
+                OpenCompositeViewButton_Click(this, new RoutedEventArgs());
+                break;
             case CompositionCommandIds.Delete:
                 DeleteButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Cut:
+                CutButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Copy:
+                CopyButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.Paste:
+                PasteButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.SelectAll:
+                SelectAllConcepts();
+                break;
+            case CompositionCommandIds.PasteShortcut:
+                CreateShortcutButton_Click(this, new RoutedEventArgs());
+                break;
+            case CompositionCommandIds.GoParent:
+                StatusContextText.Text = "Parent navigation will be available from the view context.";
                 break;
             case CompositionCommandIds.Undo:
                 UndoButton_Click(this, new RoutedEventArgs());
@@ -3456,20 +3554,86 @@ public sealed partial class MainPage : Page
             case CompositionCommandIds.Redo:
                 RedoButton_Click(this, new RoutedEventArgs());
                 break;
+            case CompositionCommandIds.CommandPalette:
+                ShowCommandPalette();
+                break;
             case CompositionCommandIds.FocusCanvas:
                 FocusButton_Click(this, new RoutedEventArgs());
                 break;
             case CompositionCommandIds.ToggleTheme:
                 ThemeButton_Click(this, new RoutedEventArgs());
                 break;
+            case CompositionCommandIds.FitToView:
+                CanvasView.FitSnapshotToViewport();
+                StatusContextText.Text = "Fit to view";
+                break;
+            case CompositionCommandIds.ActualSize:
+            case CompositionCommandIds.ZoomIn:
+            case CompositionCommandIds.ZoomOut:
+            case CompositionCommandIds.PresentationMode:
+            case CompositionCommandIds.FullScreen:
+            case CompositionCommandIds.ToggleGrid:
+            case CompositionCommandIds.ToggleSnapToGrid:
+            case CompositionCommandIds.ToggleGridPoints:
+            case CompositionCommandIds.ToggleIndicators:
+            case CompositionCommandIds.ToggleMarkers:
+            case CompositionCommandIds.ToggleMarkerTitles:
+            case CompositionCommandIds.ToggleConceptDefinitionLabels:
+            case CompositionCommandIds.ToggleRelationshipDefinitionLabels:
+            case CompositionCommandIds.ToggleLinkRoleDescriptorLabels:
+            case CompositionCommandIds.ToggleLinkRoleDefinitorLabels:
+            case CompositionCommandIds.ToggleLinkRoleVariantLabels:
+            case CompositionCommandIds.ToggleAutoSizeByText:
+                StatusContextText.Text = "View command will be available from the View menu.";
+                break;
+            case CompositionCommandIds.GetFormat:
+            case CompositionCommandIds.ApplyFormat:
+            case CompositionCommandIds.AlignTop:
+            case CompositionCommandIds.AlignLeft:
+            case CompositionCommandIds.AlignRight:
+            case CompositionCommandIds.AlignBottom:
+            case CompositionCommandIds.AlignCenter:
+            case CompositionCommandIds.AlignMiddle:
+            case CompositionCommandIds.SameWidth:
+            case CompositionCommandIds.SameHeight:
+            case CompositionCommandIds.SameSize:
+            case CompositionCommandIds.DistributeHorizontally:
+            case CompositionCommandIds.DistributeVertically:
+            case CompositionCommandIds.BringToFront:
+            case CompositionCommandIds.SendToBack:
+            case CompositionCommandIds.BringForward:
+            case CompositionCommandIds.SendBackward:
+                StatusContextText.Text = "Layout and format commands will be available from the canvas context menu.";
+                break;
+            case CompositionCommandIds.ChangeRelationshipDefinition:
+                InspectorKindBox.Focus(FocusState.Programmatic);
+                StatusContextText.Text = "Use the inspector Kind selector to change relationship definition.";
+                break;
+            case CompositionCommandIds.ChangeLinkRole:
+                InspectorLinkRoleBox.Focus(FocusState.Programmatic);
+                StatusContextText.Text = "Use the inspector Link role selector.";
+                break;
+            case CompositionCommandIds.GenerationPreview:
+                ShowBottomTab(BottomPanelTab.Preview);
+                StatusContextText.Text = "Generation preview will be available in the inspector.";
+                break;
+            case CompositionCommandIds.DomainStudio:
+                ShowExplorerDomain();
+                StatusContextText.Text = "Domain Studio will open here when the dedicated surface is added.";
+                break;
+            case CompositionCommandIds.EditDocumentProperties:
+                InspectorNameBox.Focus(FocusState.Programmatic);
+                StatusContextText.Text = "Document properties will be available in the inspector.";
+                break;
         }
     }
 
     private void RefreshCommandCatalog()
     {
+        var context = BuildCommandContext();
         var sourceEntries = _currentDocument is not null && _currentSnapshot is not null
-            ? CompositionCommandCatalog.ForDocument(BuildCurrentDocument())
-            : CompositionCommandCatalog.ForSnapshot(_currentSnapshot);
+            ? CompositionCommandCatalog.ForDocument(BuildCurrentDocument(), context)
+            : CompositionCommandCatalog.ForSnapshot(_currentSnapshot, context);
         var entries = new List<CompositionCommandEntry>(sourceEntries);
         entries.AddRange(_recentFiles.Select(filePath =>
             new CompositionCommandEntry(
@@ -3480,6 +3644,25 @@ public sealed partial class MainPage : Page
                 "Recent file")));
         _commandEntries = entries;
         RefreshSearchResults();
+    }
+
+    private CompositionCommandContext BuildCommandContext()
+    {
+        return new CompositionCommandContext(
+            HasDocument: _currentDocument is not null || _currentSnapshot is not null,
+            HasSnapshot: _currentSnapshot is not null,
+            SelectedNodeCount: GetSelectedNodeIds().Count,
+            HasSelectedConnector: CanvasView.SelectedConnector is not null,
+            HasClipboard: _clipboardSelection is { Nodes.Count: > 0 },
+            CanUndo: _editingSession?.CanUndo == true,
+            CanRedo: _editingSession?.CanRedo == true);
+    }
+
+    private void ShowCommandPalette()
+    {
+        RefreshCommandCatalog();
+        CommandSearchBox.Focus(FocusState.Programmatic);
+        CommandSearchBox.IsSuggestionListOpen = true;
     }
 
     private static bool TryGetDefinitionGroup(string commandId, out CompositionDefinitionGroup group)
