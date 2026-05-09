@@ -375,6 +375,25 @@
                                 </Grid>
                             </Expander>
 
+                            <Expander x:Name="DocumentExpander" Header="Document" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <TextBox x:Name="DocumentTitleBox" Header="Title" PlaceholderText="Document title" />
+                                    <TextBox x:Name="DomainNameBox" Header="Domain" PlaceholderText="Domain name" />
+                                    <TextBox
+                                        x:Name="DomainSummaryBox"
+                                        Header="Summary"
+                                        AcceptsReturn="True"
+                                        MinHeight="64"
+                                        TextWrapping="Wrap"
+                                        PlaceholderText="Domain summary" />
+                                    <Button
+                                        x:Name="ApplyDocumentPropertiesButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="ApplyDocumentPropertiesButton_Click"
+                                        Content="Apply document properties" />
+                                </StackPanel>
+                            </Expander>
+
                             <Expander Header="Layout" IsExpanded="True">
                                 <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -621,6 +640,23 @@
                                 </StackPanel>
                             </Expander>
 
+                            <Expander x:Name="GenerationPreviewExpander" Header="Generation preview" IsExpanded="False">
+                                <StackPanel Padding="0,10,0,0" Spacing="8">
+                                    <Button
+                                        x:Name="RefreshGenerationPreviewButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="RefreshGenerationPreviewButton_Click"
+                                        Content="Refresh preview" />
+                                    <TextBox
+                                        x:Name="GenerationPreviewBox"
+                                        AcceptsReturn="True"
+                                        IsReadOnly="True"
+                                        MinHeight="120"
+                                        TextWrapping="Wrap"
+                                        PlaceholderText="Generated output preview" />
+                                </StackPanel>
+                            </Expander>
+
                             <Expander x:Name="StyleExpander" Header="Style" IsExpanded="False">
                                 <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -654,6 +690,77 @@
                                         HorizontalAlignment="Stretch"
                                         Click="ApplyStyleButton_Click"
                                         Content="Apply style" />
+                                </Grid>
+                            </Expander>
+
+                            <Expander x:Name="ShapeExpander" Header="Shape" IsExpanded="False">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Geometry" />
+                                    <ComboBox x:Name="ShapeGeometryBox" Grid.Column="1" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Rectangle" Tag="rectangle" />
+                                        <ComboBoxItem Content="Rounded rectangle" Tag="roundedRectangle" />
+                                        <ComboBoxItem Content="Ellipse" Tag="ellipse" />
+                                        <ComboBoxItem Content="Hexagon" Tag="hexagon" />
+                                    </ComboBox>
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Multiple" />
+                                    <ToggleSwitch x:Name="ShapeMultipleSwitch" Grid.Row="1" Grid.Column="1" />
+
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Flip H" />
+                                    <ToggleSwitch x:Name="ShapeFlipHorizontalSwitch" Grid.Row="2" Grid.Column="1" />
+
+                                    <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Flip V" />
+                                    <ToggleSwitch x:Name="ShapeFlipVerticalSwitch" Grid.Row="3" Grid.Column="1" />
+
+                                    <TextBlock Grid.Row="4" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Tilt" />
+                                    <NumberBox x:Name="ShapeTiltBox" Grid.Row="4" Grid.Column="1" SmallChange="1" SpinButtonPlacementMode="Compact" />
+                                </Grid>
+                            </Expander>
+
+                            <Expander x:Name="TextFormatExpander" Header="Text" IsExpanded="False">
+                                <Grid Padding="0,10,0,0" ColumnSpacing="12" RowSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Font" />
+                                    <TextBox x:Name="TextFontFamilyBox" Grid.Column="1" PlaceholderText="Segoe UI" />
+
+                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Size" />
+                                    <NumberBox x:Name="TextFontSizeBox" Grid.Row="1" Grid.Column="1" Minimum="1" SmallChange="1" SpinButtonPlacementMode="Compact" />
+
+                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Bold" />
+                                    <ToggleSwitch x:Name="TextBoldSwitch" Grid.Row="2" Grid.Column="1" />
+
+                                    <TextBlock Grid.Row="3" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Italic" />
+                                    <ToggleSwitch x:Name="TextItalicSwitch" Grid.Row="3" Grid.Column="1" />
+
+                                    <TextBlock Grid.Row="4" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedForegroundBrush}" Text="Align" />
+                                    <ComboBox x:Name="TextAlignmentBox" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Left" Tag="left" />
+                                        <ComboBoxItem Content="Center" Tag="center" />
+                                        <ComboBoxItem Content="Right" Tag="right" />
+                                    </ComboBox>
                                 </Grid>
                             </Expander>
 

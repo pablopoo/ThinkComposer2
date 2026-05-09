@@ -1555,6 +1555,7 @@ public sealed partial class MainPage : Page
 
         _snapshotIndex = CompositionSnapshotIndex.FromSnapshot(snapshot);
         UpdateDocumentTitleIndicator();
+        SetDocumentInspector();
 
         UpdateExplorer(snapshot);
         var complements = GetCurrentView(_currentDocument)?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
@@ -2438,6 +2439,65 @@ public sealed partial class MainPage : Page
         }
 
         StatusContextText.Text = "Select a concept or relationship first";
+    }
+
+    private void ApplyDocumentPropertiesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a document first.";
+            return;
+        }
+
+        var title = string.IsNullOrWhiteSpace(DocumentTitleBox.Text)
+            ? "Untitled"
+            : DocumentTitleBox.Text.Trim();
+        var domainName = string.IsNullOrWhiteSpace(DomainNameBox.Text)
+            ? "Default Domain"
+            : DomainNameBox.Text.Trim();
+        var domainSummary = DomainSummaryBox.Text.Trim();
+        var document = EnsureCurrentDocument();
+        _currentDocument = document with
+        {
+            Title = title,
+            Domain = document.Domain with
+            {
+                Name = domainName,
+                Summary = domainSummary
+            }
+        };
+
+        ApplyEditedSnapshot(
+            _currentSnapshot with { Title = title },
+            _selectedNodeId,
+            fitToViewport: false,
+            selectedConnectorId: _selectedConnectorId);
+        SetDocumentInspector();
+        StatusContextText.Text = "Document properties updated";
+    }
+
+    private void RefreshGenerationPreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            GenerationPreviewBox.Text = string.Empty;
+            StatusContextText.Text = "Open or create a document first.";
+            return;
+        }
+
+        _currentDocument = BuildCurrentDocument();
+        var result = CompositionDocumentFileGenerator.Generate(_currentDocument);
+        if (result.Files.Count == 0)
+        {
+            GenerationPreviewBox.Text = "No generation templates.";
+            StatusContextText.Text = "No generation templates";
+            return;
+        }
+
+        GenerationPreviewBox.Text = string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            result.Files.Select(file => $"# {file.RelativePath}{Environment.NewLine}{file.Content}"));
+        StatusContextText.Text = $"Previewed {result.Files.Count} generated file(s)";
     }
 
     private void ApplySelectedNode(CompositionNodeView? node)
@@ -3630,16 +3690,50 @@ public sealed partial class MainPage : Page
             : $"{markers.Count} marker(s)";
     }
 
+    private void SetDocumentInspector()
+    {
+        var hasSnapshot = _currentSnapshot is not null;
+        var document = _currentDocument;
+        DocumentTitleBox.Text = document?.Title ?? _currentSnapshot?.Title ?? string.Empty;
+        DomainNameBox.Text = document?.Domain.Name ?? string.Empty;
+        DomainSummaryBox.Text = document?.Domain.Summary ?? string.Empty;
+        DocumentTitleBox.IsEnabled = hasSnapshot;
+        DomainNameBox.IsEnabled = hasSnapshot;
+        DomainSummaryBox.IsEnabled = hasSnapshot;
+        ApplyDocumentPropertiesButton.IsEnabled = hasSnapshot;
+        RefreshGenerationPreviewButton.IsEnabled = hasSnapshot;
+    }
+
     private void SetStyleInspector(CompositionStyleSnapshot style, bool isEnabled)
     {
         InspectorFillBox.Text = style.Fill;
         InspectorStrokeBox.Text = style.Stroke;
         InspectorTextColorBox.Text = style.Text;
         InspectorStrokeThicknessBox.Value = style.StrokeThickness > 0 ? style.StrokeThickness : 0;
+        SetComboByTag(ShapeGeometryBox, GetStyleProperty(style, "shape.geometry", "rectangle"));
+        ShapeMultipleSwitch.IsOn = ReadBoolStyleProperty(style, "shape.multipleSymbol");
+        ShapeFlipHorizontalSwitch.IsOn = ReadBoolStyleProperty(style, "shape.flipHorizontal");
+        ShapeFlipVerticalSwitch.IsOn = ReadBoolStyleProperty(style, "shape.flipVertical");
+        ShapeTiltBox.Value = ReadDoubleStyleProperty(style, "shape.tilt");
+        TextFontFamilyBox.Text = GetStyleProperty(style, "text.fontFamily");
+        TextFontSizeBox.Value = ReadDoubleStyleProperty(style, "text.fontSize");
+        TextBoldSwitch.IsOn = ReadBoolStyleProperty(style, "text.bold");
+        TextItalicSwitch.IsOn = ReadBoolStyleProperty(style, "text.italic");
+        SetComboByTag(TextAlignmentBox, GetStyleProperty(style, "text.alignment", "left"));
         InspectorFillBox.IsEnabled = isEnabled;
         InspectorStrokeBox.IsEnabled = isEnabled;
         InspectorTextColorBox.IsEnabled = isEnabled;
         InspectorStrokeThicknessBox.IsEnabled = isEnabled;
+        ShapeGeometryBox.IsEnabled = isEnabled;
+        ShapeMultipleSwitch.IsEnabled = isEnabled;
+        ShapeFlipHorizontalSwitch.IsEnabled = isEnabled;
+        ShapeFlipVerticalSwitch.IsEnabled = isEnabled;
+        ShapeTiltBox.IsEnabled = isEnabled;
+        TextFontFamilyBox.IsEnabled = isEnabled;
+        TextFontSizeBox.IsEnabled = isEnabled;
+        TextBoldSwitch.IsEnabled = isEnabled;
+        TextItalicSwitch.IsEnabled = isEnabled;
+        TextAlignmentBox.IsEnabled = isEnabled;
         ApplyStyleButton.IsEnabled = isEnabled;
     }
 
@@ -3720,11 +3814,84 @@ public sealed partial class MainPage : Page
     private CompositionStyleSnapshot ReadStyleInspector()
     {
         var thickness = InspectorStrokeThicknessBox.Value;
+        var properties = ReadCurrentStyleProperties();
+        SetStyleProperty(properties, "shape.geometry", SelectedTag(ShapeGeometryBox));
+        SetStyleProperty(properties, "shape.multipleSymbol", ShapeMultipleSwitch.IsOn ? "true" : string.Empty);
+        SetStyleProperty(properties, "shape.flipHorizontal", ShapeFlipHorizontalSwitch.IsOn ? "true" : string.Empty);
+        SetStyleProperty(properties, "shape.flipVertical", ShapeFlipVerticalSwitch.IsOn ? "true" : string.Empty);
+        SetStyleProperty(properties, "shape.tilt", double.IsNaN(ShapeTiltBox.Value) || ShapeTiltBox.Value == 0 ? string.Empty : ShapeTiltBox.Value.ToString("0.###"));
+        SetStyleProperty(properties, "text.fontFamily", TextFontFamilyBox.Text.Trim());
+        SetStyleProperty(properties, "text.fontSize", double.IsNaN(TextFontSizeBox.Value) || TextFontSizeBox.Value <= 0 ? string.Empty : TextFontSizeBox.Value.ToString("0.###"));
+        SetStyleProperty(properties, "text.bold", TextBoldSwitch.IsOn ? "true" : string.Empty);
+        SetStyleProperty(properties, "text.italic", TextItalicSwitch.IsOn ? "true" : string.Empty);
+        SetStyleProperty(properties, "text.alignment", SelectedTag(TextAlignmentBox));
         return new CompositionStyleSnapshot(
             Fill: InspectorFillBox.Text.Trim(),
             Stroke: InspectorStrokeBox.Text.Trim(),
             Text: InspectorTextColorBox.Text.Trim(),
-            StrokeThickness: double.IsNaN(thickness) ? 0 : Math.Max(0, thickness));
+            StrokeThickness: double.IsNaN(thickness) ? 0 : Math.Max(0, thickness),
+            Properties: properties);
+    }
+
+    private static string GetStyleProperty(CompositionStyleSnapshot style, string key, string fallback = "")
+    {
+        return style.Properties.TryGetValue(key, out var value) ? value : fallback;
+    }
+
+    private Dictionary<string, string> ReadCurrentStyleProperties()
+    {
+        var style = !string.IsNullOrWhiteSpace(_selectedNodeId)
+            ? FindNode(_selectedNodeId)?.Style
+            : !string.IsNullOrWhiteSpace(_selectedConnectorId)
+                ? FindConnector(_selectedConnectorId)?.Style
+                : null;
+        return style?.Properties.ToDictionary(
+                property => property.Key,
+                property => property.Value,
+                StringComparer.Ordinal)
+            ?? new Dictionary<string, string>(StringComparer.Ordinal);
+    }
+
+    private static bool ReadBoolStyleProperty(CompositionStyleSnapshot style, string key)
+    {
+        return bool.TryParse(GetStyleProperty(style, key), out var value) && value;
+    }
+
+    private static double ReadDoubleStyleProperty(CompositionStyleSnapshot style, string key)
+    {
+        return double.TryParse(GetStyleProperty(style, key), out var value) ? value : 0;
+    }
+
+    private static void SetStyleProperty(IDictionary<string, string> properties, string key, string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            properties[key] = value.Trim();
+            return;
+        }
+
+        properties.Remove(key);
+    }
+
+    private static string SelectedTag(ComboBox comboBox)
+    {
+        return comboBox.SelectedItem is ComboBoxItem { Tag: string tag } ? tag : string.Empty;
+    }
+
+    private static void SetComboByTag(ComboBox comboBox, string tag)
+    {
+        for (var index = 0; index < comboBox.Items.Count; index++)
+        {
+            if (comboBox.Items[index] is ComboBoxItem item &&
+                item.Tag is string candidate &&
+                string.Equals(candidate, tag, StringComparison.OrdinalIgnoreCase))
+            {
+                comboBox.SelectedIndex = index;
+                return;
+            }
+        }
+
+        comboBox.SelectedIndex = comboBox.Items.Count > 0 ? 0 : -1;
     }
 
     private static void SetComboFirstItem(ComboBox comboBox, string text)
