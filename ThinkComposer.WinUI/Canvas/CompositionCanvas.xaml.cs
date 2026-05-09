@@ -60,6 +60,7 @@ public sealed partial class CompositionCanvas : UserControl
         .Select(node => node.Source)
         .ToArray();
     public CompositionConnectorView? SelectedConnector => _selectedConnector;
+    public CompositionViewOptionsSnapshot ViewOptions { get; private set; } = new();
 
     public void LoadSnapshot(
         CompositionViewSnapshot snapshot,
@@ -157,6 +158,28 @@ public sealed partial class CompositionCanvas : UserControl
         DrawingSurface.Invalidate();
     }
 
+    public void ApplyViewOptions(CompositionViewOptionsSnapshot options)
+    {
+        ViewOptions = options ?? new CompositionViewOptionsSnapshot();
+        DrawingSurface.Invalidate();
+    }
+
+    public void SetActualSize()
+    {
+        _zoom = 1.0;
+        _pan = Vector2.Zero;
+        DrawingSurface.Invalidate();
+    }
+
+    public void ZoomBy(double factor)
+    {
+        _zoom = Math.Clamp(
+            _zoom * factor,
+            CompositionCanvasRenderDefaults.InteractionMinZoom,
+            CompositionCanvasRenderDefaults.InteractionMaxZoom);
+        DrawingSurface.Invalidate();
+    }
+
     private void DrawingSurface_Draw(CanvasControl sender, CanvasDrawEventArgs args)
     {
         var session = args.DrawingSession;
@@ -177,15 +200,34 @@ public sealed partial class CompositionCanvas : UserControl
 
     private void DrawGrid(CanvasDrawingSession session, double width, double height, CanvasPalette palette)
     {
+        if (!ViewOptions.ShowGrid && !ViewOptions.ShowGridPoints)
+        {
+            return;
+        }
+
         const float spacing = 24;
         for (var x = _pan.X % spacing; x < width; x += spacing)
         {
-            session.DrawLine((float)x, 0, (float)x, (float)height, palette.GridLine, 0.5f);
+            if (ViewOptions.ShowGrid)
+            {
+                session.DrawLine((float)x, 0, (float)x, (float)height, palette.GridLine, 0.5f);
+            }
+
+            if (ViewOptions.ShowGridPoints)
+            {
+                for (var y = _pan.Y % spacing; y < height; y += spacing)
+                {
+                    session.FillCircle((float)x, (float)y, 1.1f, palette.GridLine);
+                }
+            }
         }
 
-        for (var y = _pan.Y % spacing; y < height; y += spacing)
+        if (ViewOptions.ShowGrid)
         {
-            session.DrawLine(0, (float)y, (float)width, (float)y, palette.GridLine, 0.5f);
+            for (var y = _pan.Y % spacing; y < height; y += spacing)
+            {
+                session.DrawLine(0, (float)y, (float)width, (float)y, palette.GridLine, 0.5f);
+            }
         }
     }
 
@@ -513,7 +555,15 @@ public sealed partial class CompositionCanvas : UserControl
                     continue;
                 }
 
-                node.MoveTo(startBounds.X + deltaX, startBounds.Y + deltaY);
+                var x = startBounds.X + deltaX;
+                var y = startBounds.Y + deltaY;
+                if (ViewOptions.SnapToGrid)
+                {
+                    x = Snap(x);
+                    y = Snap(y);
+                }
+
+                node.MoveTo(x, y);
                 NodeMoved?.Invoke(this, node.Source);
             }
 
@@ -564,6 +614,12 @@ public sealed partial class CompositionCanvas : UserControl
     private Point ToWorld(Point screenPoint)
     {
         return new Point((screenPoint.X - _pan.X) / _zoom, (screenPoint.Y - _pan.Y) / _zoom);
+    }
+
+    private static double Snap(double value)
+    {
+        const double grid = 10;
+        return Math.Round(value / grid) * grid;
     }
 
     private CanvasNode? HitTest(Point worldPoint)

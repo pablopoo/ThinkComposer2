@@ -190,6 +190,68 @@ public sealed partial class MainPage : Page
         ShowBottomTab(BottomPanelTab.Diagnostics);
     }
 
+    private void ViewOptionsButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshCommandCatalog();
+        var options = GetCurrentView(_currentDocument)?.Options ?? CanvasView.ViewOptions;
+        var flyout = new MenuFlyout();
+        AddViewCommand(flyout, CompositionCommandIds.ActualSize);
+        AddViewCommand(flyout, CompositionCommandIds.ZoomIn);
+        AddViewCommand(flyout, CompositionCommandIds.ZoomOut);
+        AddViewCommand(flyout, CompositionCommandIds.FitToView);
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        AddViewToggle(flyout, CompositionCommandIds.ToggleGrid, options.ShowGrid);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleSnapToGrid, options.SnapToGrid);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleGridPoints, options.ShowGridPoints);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleIndicators, options.ShowIndicators);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleMarkers, options.ShowMarkers);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleMarkerTitles, options.ShowMarkerTitles);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleConceptDefinitionLabels, options.ShowConceptDefinitionLabels);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleRelationshipDefinitionLabels, options.ShowRelationshipDefinitionLabels);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleLinkRoleDescriptorLabels, options.ShowLinkRoleDescriptorLabels);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleLinkRoleDefinitorLabels, options.ShowLinkRoleDefinitorLabels);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleLinkRoleVariantLabels, options.ShowLinkRoleVariantLabels);
+        AddViewToggle(flyout, CompositionCommandIds.ToggleAutoSizeByText, options.AutoSizeByEnteredText);
+        flyout.ShowAt(ViewOptionsButton);
+    }
+
+    private void AddViewCommand(MenuFlyout flyout, string commandId)
+    {
+        var command = FindCommandEntry(commandId);
+        if (command is null)
+        {
+            return;
+        }
+
+        var item = new MenuFlyoutItem
+        {
+            Text = command.Title,
+            Tag = command,
+            IsEnabled = command.IsEnabled
+        };
+        item.Click += CanvasCommandMenuItem_Click;
+        flyout.Items.Add(item);
+    }
+
+    private void AddViewToggle(MenuFlyout flyout, string commandId, bool isChecked)
+    {
+        var command = FindCommandEntry(commandId);
+        if (command is null)
+        {
+            return;
+        }
+
+        var item = new ToggleMenuFlyoutItem
+        {
+            Text = command.Title,
+            Tag = command,
+            IsChecked = isChecked,
+            IsEnabled = command.IsEnabled
+        };
+        item.Click += CanvasCommandMenuItem_Click;
+        flyout.Items.Add(item);
+    }
+
     private void FocusButton_Click(object sender, RoutedEventArgs e)
     {
         var showPanels = !(_isExplorerVisible || _isInspectorVisible || _isBottomVisible);
@@ -1496,6 +1558,7 @@ public sealed partial class MainPage : Page
         UpdateExplorer(snapshot);
         var complements = GetCurrentView(_currentDocument)?.Complements ?? Array.Empty<CompositionExtensionSnapshot>();
         CanvasView.LoadSnapshot(snapshot, selectedNodeId, fitToViewport, selectedConnectorId, complements);
+        CanvasView.ApplyViewOptions(GetCurrentView(_currentDocument)?.Options ?? new CompositionViewOptionsSnapshot());
         if (CanvasView.SelectedConnector is not null)
         {
             ApplySelectedConnector(CanvasView.SelectedConnector);
@@ -3064,6 +3127,37 @@ public sealed partial class MainPage : Page
         RefreshDiagnostics();
     }
 
+    private void UpdateCurrentViewOptions(Func<CompositionViewOptionsSnapshot, CompositionViewOptionsSnapshot> update)
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a composition view first.";
+            return;
+        }
+
+        var document = EnsureCurrentDocument();
+        var viewId = _currentViewId ?? document.Views.FirstOrDefault()?.Id;
+        if (string.IsNullOrWhiteSpace(viewId))
+        {
+            StatusContextText.Text = "No active view.";
+            return;
+        }
+
+        _currentViewId = viewId;
+        var views = document.Views.Select(view =>
+        {
+            if (!string.Equals(view.Id, viewId, StringComparison.Ordinal))
+            {
+                return view;
+            }
+
+            return view with { Options = update(view.Options) };
+        }).ToArray();
+        _currentDocument = document with { Views = views };
+        CanvasView.ApplyViewOptions(GetCurrentView(_currentDocument)?.Options ?? new CompositionViewOptionsSnapshot());
+        MarkDocumentMetadataChanged("View options updated");
+    }
+
     private void RefreshCurrentSelectionInspector()
     {
         if (!string.IsNullOrWhiteSpace(_selectedTemplateKey))
@@ -3746,23 +3840,59 @@ public sealed partial class MainPage : Page
                 StatusContextText.Text = "Fit to view";
                 break;
             case CompositionCommandIds.ActualSize:
+                CanvasView.SetActualSize();
+                StatusContextText.Text = "Actual size";
+                break;
             case CompositionCommandIds.ZoomIn:
+                CanvasView.ZoomBy(1.1);
+                StatusContextText.Text = "Zoom in";
+                break;
             case CompositionCommandIds.ZoomOut:
+                CanvasView.ZoomBy(0.9);
+                StatusContextText.Text = "Zoom out";
+                break;
             case CompositionCommandIds.PresentationMode:
+                StatusContextText.Text = "Presentation mode is available through HTML presentation export.";
+                break;
             case CompositionCommandIds.FullScreen:
+                FocusButton_Click(this, new RoutedEventArgs());
+                StatusContextText.Text = "Full-screen editing layout";
+                break;
             case CompositionCommandIds.ToggleGrid:
+                UpdateCurrentViewOptions(options => options with { ShowGrid = !options.ShowGrid });
+                break;
             case CompositionCommandIds.ToggleSnapToGrid:
+                UpdateCurrentViewOptions(options => options with { SnapToGrid = !options.SnapToGrid });
+                break;
             case CompositionCommandIds.ToggleGridPoints:
+                UpdateCurrentViewOptions(options => options with { ShowGridPoints = !options.ShowGridPoints });
+                break;
             case CompositionCommandIds.ToggleIndicators:
+                UpdateCurrentViewOptions(options => options with { ShowIndicators = !options.ShowIndicators });
+                break;
             case CompositionCommandIds.ToggleMarkers:
+                UpdateCurrentViewOptions(options => options with { ShowMarkers = !options.ShowMarkers });
+                break;
             case CompositionCommandIds.ToggleMarkerTitles:
+                UpdateCurrentViewOptions(options => options with { ShowMarkerTitles = !options.ShowMarkerTitles });
+                break;
             case CompositionCommandIds.ToggleConceptDefinitionLabels:
+                UpdateCurrentViewOptions(options => options with { ShowConceptDefinitionLabels = !options.ShowConceptDefinitionLabels });
+                break;
             case CompositionCommandIds.ToggleRelationshipDefinitionLabels:
+                UpdateCurrentViewOptions(options => options with { ShowRelationshipDefinitionLabels = !options.ShowRelationshipDefinitionLabels });
+                break;
             case CompositionCommandIds.ToggleLinkRoleDescriptorLabels:
+                UpdateCurrentViewOptions(options => options with { ShowLinkRoleDescriptorLabels = !options.ShowLinkRoleDescriptorLabels });
+                break;
             case CompositionCommandIds.ToggleLinkRoleDefinitorLabels:
+                UpdateCurrentViewOptions(options => options with { ShowLinkRoleDefinitorLabels = !options.ShowLinkRoleDefinitorLabels });
+                break;
             case CompositionCommandIds.ToggleLinkRoleVariantLabels:
+                UpdateCurrentViewOptions(options => options with { ShowLinkRoleVariantLabels = !options.ShowLinkRoleVariantLabels });
+                break;
             case CompositionCommandIds.ToggleAutoSizeByText:
-                StatusContextText.Text = "View command will be available from the View menu.";
+                UpdateCurrentViewOptions(options => options with { AutoSizeByEnteredText = !options.AutoSizeByEnteredText });
                 break;
             case CompositionCommandIds.GetFormat:
             case CompositionCommandIds.ApplyFormat:

@@ -828,10 +828,25 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="Ready" />
             <TextBlock x:Name="StatusContextText" Grid.Column="1" Margin="18,0" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="WinUI migration shell" />
-            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="Native app" />
+            <Button
+                x:Name="ViewOptionsButton"
+                Grid.Column="2"
+                Width="28"
+                Height="24"
+                MinWidth="0"
+                Padding="0"
+                Background="Transparent"
+                BorderBrush="{ThemeResource ShellBorderBrush}"
+                Click="ViewOptionsButton_Click"
+                Foreground="{ThemeResource StatusForegroundBrush}"
+                ToolTipService.ToolTip="View options">
+                <SymbolIcon Symbol="View" />
+            </Button>
+            <TextBlock Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="Native app" />
         </Grid>
     </Grid>
 </Page>
