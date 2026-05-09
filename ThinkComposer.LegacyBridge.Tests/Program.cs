@@ -90,6 +90,33 @@ finally
     }
 }
 
+var predefinedDomainPaths = Directory.GetFiles(
+    Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "PredefinedContent")),
+    "*.tdom");
+AssertTrue(predefinedDomainPaths.Length > 0, "predefined domain fixtures exist");
+foreach (var predefinedDomainPath in predefinedDomainPaths)
+{
+    var predefinedExportPath = Path.Combine(
+        Path.GetTempPath(),
+        $"thinkcomposer-predefined-{Path.GetFileNameWithoutExtension(predefinedDomainPath)}-{Guid.NewGuid():N}.tcdoc");
+    try
+    {
+        var document = LegacyCompositionDocumentExporter.ExportToFile(predefinedDomainPath, predefinedExportPath);
+        var reloadedDocument = CompositionDocumentSnapshotXmlStore.Load(predefinedExportPath);
+
+        AssertTrue(!string.IsNullOrWhiteSpace(document.Title), $"predefined {Path.GetFileName(predefinedDomainPath)} title");
+        AssertEqual(document.Id, reloadedDocument.Id, $"predefined {Path.GetFileName(predefinedDomainPath)} roundtrip id");
+        AssertTrue(reloadedDocument.Domain.ConceptDefinitions.Count > 0, $"predefined {Path.GetFileName(predefinedDomainPath)} concept definitions");
+    }
+    finally
+    {
+        if (File.Exists(predefinedExportPath))
+        {
+            File.Delete(predefinedExportPath);
+        }
+    }
+}
+
 static void AssertEqual<T>(T expected, T actual, string name)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))

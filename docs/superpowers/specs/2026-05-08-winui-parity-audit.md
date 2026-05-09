@@ -23,7 +23,7 @@ It is still not a complete legacy replacement only where the remaining work depe
 - Output: SVG/HTML export, full document HTML report, HTML presentation deck, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
-- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script/release-script coverage, workflow output tests, mind-map accelerators, and solution build; launch/UI smoke scripts cover startup, main window, toolbar commands, theme toggle, domain/content explorer tabs, and concept creation; publish script emits self-contained WinUI output plus release manifest/zip; release script emits multi-runtime artifacts plus `release-index.json` with SHA-256 hashes, update channel metadata, and optional Authenticode signing.
+- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script/release-script coverage, workflow output tests, mind-map accelerators, and solution build; launch/UI smoke scripts cover startup, main window, toolbar commands, theme toggle, domain/content explorer tabs, and concept creation; legacy bridge regression tests export every predefined `.tdom` domain to `.tcdoc`; publish script emits self-contained WinUI output plus release manifest/zip; release script emits multi-runtime artifacts plus `release-index.json` with SHA-256 hashes, update channel metadata, and optional Authenticode signing.
 
 ## Remaining Gaps
 

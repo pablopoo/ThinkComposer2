@@ -15,6 +15,6 @@ try
 }
 catch (Exception problem)
 {
-    Console.Error.WriteLine(problem.Message);
+    Console.Error.WriteLine(problem);
     return 1;
 }

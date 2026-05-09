@@ -673,6 +673,16 @@ public static class LegacyCompositionDocumentLoader
         {
             // Read-only bridge has no active legacy edit engine to mark modified.
         }
+        catch (NotSupportedException problem) when (IsLegacyImageMaterializationFailure(problem))
+        {
+            // Some legacy domains contain WPF image references that cannot be resolved in the bridge process.
+            // The bridge is read-only and preserves the original package, so continue without blocking import.
+        }
+    }
+
+    private static bool IsLegacyImageMaterializationFailure(Exception problem)
+    {
+        return problem.StackTrace?.IndexOf("ImageAssignment.get_Image", StringComparison.Ordinal) >= 0;
     }
 
     private static object LoadPackageContent(string filePath, out string? packageTitle, out Guid? packageId)
