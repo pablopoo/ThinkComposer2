@@ -106,6 +106,8 @@ public sealed partial class MainPage : Page
     private List<string> _recentFiles = [];
     private List<IReadOnlyList<string>> _tableEditorRows = [];
     private IReadOnlyList<CompositionCommandEntry> _commandEntries = Array.Empty<CompositionCommandEntry>();
+    private readonly Dictionary<string, CompositionDocumentTextSearchResult> _documentSearchResultsByEntryId = new(StringComparer.Ordinal);
+    private CompositionDocumentTextSearchResult? _selectedDocumentSearchResult;
 
     public MainPage()
     {
@@ -1150,7 +1152,52 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        SearchResultsList.ItemsSource = CompositionCommandCatalog.Search(_commandEntries, BottomSearchBox.Text, limit: 50);
+        var query = BottomSearchBox.Text;
+        _documentSearchResultsByEntryId.Clear();
+        _selectedDocumentSearchResult = null;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            SearchResultsList.ItemsSource = Array.Empty<CompositionCommandEntry>();
+            return;
+        }
+
+        var commandResults = CompositionCommandCatalog.Search(_commandEntries, query, limit: 25);
+        var documentResults = _currentSnapshot is null
+            ? Array.Empty<CompositionDocumentTextSearchResult>()
+            : CompositionDocumentTextSearch.Search(BuildCurrentDocument(), query, limit: 50);
+        var entries = commandResults
+            .Concat(documentResults.Select(ToSearchCommandEntry))
+            .ToArray();
+        SearchResultsList.ItemsSource = entries;
+    }
+
+    private CompositionCommandEntry ToSearchCommandEntry(CompositionDocumentTextSearchResult result)
+    {
+        var id = $"search:{result.Kind}:{result.TargetId}:{result.FieldPath}";
+        _documentSearchResultsByEntryId[id] = result;
+        return new CompositionCommandEntry(
+            id,
+            result.Title,
+            ToCommandEntryKind(result.Kind),
+            result.TargetId,
+            result.Preview,
+            CompositionCommandCategory.Edit,
+            CompositionCommandSurface.CommandPalette,
+            IsEnabled: result.IsReplaceable);
+    }
+
+    private static CompositionCommandEntryKind ToCommandEntryKind(CompositionDocumentTextSearchResultKind kind)
+    {
+        return kind switch
+        {
+            CompositionDocumentTextSearchResultKind.Idea => CompositionCommandEntryKind.Node,
+            CompositionDocumentTextSearchResultKind.Relationship => CompositionCommandEntryKind.Connector,
+            CompositionDocumentTextSearchResultKind.View => CompositionCommandEntryKind.View,
+            CompositionDocumentTextSearchResultKind.Definition => CompositionCommandEntryKind.Definition,
+            CompositionDocumentTextSearchResultKind.Template => CompositionCommandEntryKind.Template,
+            CompositionDocumentTextSearchResultKind.Complement => CompositionCommandEntryKind.Complement,
+            _ => CompositionCommandEntryKind.Command
+        };
     }
 
     private void RefreshPreview()
@@ -1565,6 +1612,31 @@ public sealed partial class MainPage : Page
         RefreshBottomPanelContent();
     }
 
+    private void GoToParentView()
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var document = BuildCurrentDocument();
+        var target = CompositionDocumentNavigator.FindParentTarget(document, _currentViewId);
+        if (target is null)
+        {
+            StatusContextText.Text = "No parent view";
+            return;
+        }
+
+        _currentDocument = document;
+        OpenDocumentView(target.ViewId);
+        if (!string.IsNullOrWhiteSpace(target.SelectedIdeaId))
+        {
+            CanvasView.SelectNode(target.SelectedIdeaId);
+        }
+
+        StatusContextText.Text = "Opened parent view";
+    }
+
     private void ApplySnapshot(CompositionViewSnapshot snapshot, string? snapshotPath)
     {
         _currentDocument = null;
@@ -1942,6 +2014,7 @@ public sealed partial class MainPage : Page
                 CompositionCommandIds.ConvertType,
                 CompositionCommandIds.NewRelationship,
                 CompositionCommandIds.OpenCompositeView,
+                CompositionCommandIds.GoParent,
                 CompositionCommandIds.PasteShortcut,
                 CompositionCommandIds.Cut,
                 CompositionCommandIds.Copy,
@@ -1958,6 +2031,7 @@ public sealed partial class MainPage : Page
             CompositionCommandIds.NewConcept,
             CompositionCommandIds.Paste,
             CompositionCommandIds.SelectAll,
+            CompositionCommandIds.GoParent,
             CompositionCommandIds.FitToView,
             CompositionCommandIds.ToggleGrid,
             CompositionCommandIds.ToggleSnapToGrid,
@@ -2976,8 +3050,153 @@ public sealed partial class MainPage : Page
             return;
         }
 
+        if (_documentSearchResultsByEntryId.TryGetValue(entry.Id, out var searchResult))
+        {
+            _selectedDocumentSearchResult = searchResult;
+            ApplyDocumentSearchResult(searchResult);
+            return;
+        }
+
         SearchResultsList.SelectedItem = null;
         ExecuteCommandEntry(entry);
+    }
+
+    private void ReplaceSelectedButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var entry = SearchResultsList.SelectedItem as CompositionCommandEntry;
+        var result = entry is not null && _documentSearchResultsByEntryId.TryGetValue(entry.Id, out var selectedResult)
+            ? selectedResult
+            : _selectedDocumentSearchResult;
+        if (result is null || !result.IsReplaceable)
+        {
+            StatusContextText.Text = "Select a document search result first";
+            return;
+        }
+
+        var searchText = BottomSearchBox.Text;
+        if (string.IsNullOrEmpty(searchText))
+        {
+            return;
+        }
+
+        var document = CompositionDocumentTextReplacer.ReplaceSelected(
+            BuildCurrentDocument(),
+            result,
+            searchText,
+            ReplaceBox.Text);
+        ApplyReplacedDocument(document, "Replaced selected result");
+    }
+
+    private void ReplaceAllButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSnapshot is null)
+        {
+            return;
+        }
+
+        var searchText = BottomSearchBox.Text;
+        if (string.IsNullOrEmpty(searchText))
+        {
+            return;
+        }
+
+        var result = CompositionDocumentTextReplacer.ReplaceAll(BuildCurrentDocument(), searchText, ReplaceBox.Text);
+        if (result.ReplacementCount == 0)
+        {
+            StatusContextText.Text = "No editable matches";
+            return;
+        }
+
+        ApplyReplacedDocument(result.Document, $"Replaced {result.ReplacementCount} occurrence(s)");
+    }
+
+    private void ApplyDocumentSearchResult(CompositionDocumentTextSearchResult result)
+    {
+        switch (result.Kind)
+        {
+            case CompositionDocumentTextSearchResultKind.Idea:
+                NavigateToIdea(result.TargetId);
+                break;
+            case CompositionDocumentTextSearchResultKind.Relationship:
+                NavigateToRelationship(result.TargetId);
+                break;
+            case CompositionDocumentTextSearchResultKind.View:
+                OpenDocumentView(result.TargetId);
+                break;
+            case CompositionDocumentTextSearchResultKind.Detail:
+                NavigateToDetail(result);
+                break;
+            case CompositionDocumentTextSearchResultKind.Definition:
+                if (TryFindDefinitionGroup(result.TargetId, out var group))
+                {
+                    ApplySelectedDefinition(group, result.TargetId);
+                }
+                break;
+            case CompositionDocumentTextSearchResultKind.Template:
+                ApplySelectedTemplate(result.TargetId);
+                break;
+            case CompositionDocumentTextSearchResultKind.Complement:
+                ApplySelectedComplement(result.TargetId);
+                break;
+        }
+
+        StatusContextText.Text = $"Selected {result.Title}";
+    }
+
+    private void NavigateToIdea(string ideaId)
+    {
+        var document = _currentDocument ?? BuildCurrentDocument();
+        var viewId = document.Views.FirstOrDefault(view =>
+            view.Nodes.Any(node => string.Equals(node.Id, ideaId, StringComparison.Ordinal)))?.Id;
+        if (!string.IsNullOrWhiteSpace(viewId) && !string.Equals(viewId, _currentViewId, StringComparison.Ordinal))
+        {
+            OpenDocumentView(viewId);
+        }
+
+        CanvasView.SelectNode(ideaId);
+    }
+
+    private void NavigateToRelationship(string relationshipId)
+    {
+        var document = _currentDocument ?? BuildCurrentDocument();
+        var viewId = document.Views.FirstOrDefault(view =>
+            view.Connectors.Any(connector => string.Equals(connector.Id, relationshipId, StringComparison.Ordinal)))?.Id;
+        if (!string.IsNullOrWhiteSpace(viewId) && !string.Equals(viewId, _currentViewId, StringComparison.Ordinal))
+        {
+            OpenDocumentView(viewId);
+        }
+
+        CanvasView.SelectConnector(relationshipId);
+    }
+
+    private void NavigateToDetail(CompositionDocumentTextSearchResult result)
+    {
+        var ownerId = SearchFieldPathSegment(result.FieldPath, 1);
+        if (result.FieldPath.StartsWith("idea:", StringComparison.Ordinal))
+        {
+            NavigateToIdea(ownerId);
+            return;
+        }
+
+        if (result.FieldPath.StartsWith("relationship:", StringComparison.Ordinal))
+        {
+            NavigateToRelationship(ownerId);
+        }
+    }
+
+    private void ApplyReplacedDocument(CompositionDocumentSnapshot document, string status)
+    {
+        _currentDocument = document;
+        var snapshot = CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, _currentViewId);
+        _editingSession = new CompositionEditingSession(snapshot);
+        ApplySessionSnapshot(snapshot, _selectedNodeId, _selectedConnectorId, markDirty: true, fitToViewport: false);
+        StatusContextText.Text = status;
+        RefreshSearchResults();
     }
 
     private void ApplyInspectorName()
@@ -4234,7 +4453,7 @@ public sealed partial class MainPage : Page
                 PasteShortcutFromClipboard();
                 break;
             case CompositionCommandIds.GoParent:
-                StatusContextText.Text = "Parent navigation will be available from the view context.";
+                GoToParentView();
                 break;
             case CompositionCommandIds.Undo:
                 UndoButton_Click(this, new RoutedEventArgs());
@@ -4427,6 +4646,27 @@ public sealed partial class MainPage : Page
         return parts.Length == 3 &&
             string.Equals(parts[0], "definition", StringComparison.Ordinal) &&
             Enum.TryParse(parts[1], out group);
+    }
+
+    private bool TryFindDefinitionGroup(string definitionId, out CompositionDefinitionGroup group)
+    {
+        group = default;
+        foreach (var candidate in Enum.GetValues<CompositionDefinitionGroup>())
+        {
+            if (FindDefinition(candidate, definitionId) is not null)
+            {
+                group = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string SearchFieldPathSegment(string fieldPath, int index)
+    {
+        var segments = fieldPath.Split(':');
+        return index >= 0 && index < segments.Length ? segments[index] : string.Empty;
     }
 
     private static string GetNodeTitle(CompositionNodeView node)

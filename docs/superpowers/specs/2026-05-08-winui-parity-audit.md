@@ -40,9 +40,14 @@ It is still not a complete legacy replacement only where the remaining work depe
 
 ### P1 - Composite Navigation And Complements
 
-- Modern documents preserve composite/shortcut metadata and support view switching, composite-view creation, and shortcut-object creation.
+- Modern documents preserve composite/shortcut metadata and support view switching, composite-view creation, shortcut-object creation, and parent-view navigation.
 - Complements render as group regions and cards, and explicit complement geometry is respected where present.
 - Remaining gap is complete parity for every legacy complement-specific styling option.
+
+### P1 - Search And Replace
+
+- Search covers commands plus editable document text, including concepts, relationships, details, views, definitions, templates, and complements.
+- Replace selected and replace all are implemented for editable document snapshot fields.
 
 ### P1 - Output Parity
 

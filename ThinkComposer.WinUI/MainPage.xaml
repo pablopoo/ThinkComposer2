@@ -915,15 +915,36 @@
                             Visibility="Collapsed">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <TextBox
                                 x:Name="BottomSearchBox"
                                 TextChanged="BottomSearchBox_TextChanged"
                                 PlaceholderText="Search commands, concepts, relationships..." />
+                            <Grid Grid.Row="1" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox
+                                    x:Name="ReplaceBox"
+                                    PlaceholderText="Replace with..." />
+                                <Button
+                                    x:Name="ReplaceSelectedButton"
+                                    Grid.Column="1"
+                                    Click="ReplaceSelectedButton_Click"
+                                    Content="Replace selected" />
+                                <Button
+                                    x:Name="ReplaceAllButton"
+                                    Grid.Column="2"
+                                    Click="ReplaceAllButton_Click"
+                                    Content="Replace all" />
+                            </Grid>
                             <ListView
                                 x:Name="SearchResultsList"
-                                Grid.Row="1"
+                                Grid.Row="2"
                                 DisplayMemberPath="Title"
                                 SelectionChanged="SearchResultsList_SelectionChanged" />
                         </Grid>

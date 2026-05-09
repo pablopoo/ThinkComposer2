@@ -379,6 +379,32 @@ AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKi
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Definition && entry.TargetId == "source-role"), "document command link role definition");
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.View && entry.TargetId == "view-child"), "document command child view");
 AssertTrue(documentCommands.Any(entry => entry.Kind == CompositionCommandEntryKind.Template && entry.TargetId == "legacy.template.concept.default"), "document command template");
+var childParentTarget = CompositionDocumentNavigator.FindParentTarget(modernDocument, "view-child");
+AssertTrue(childParentTarget is not null, "parent navigation target");
+AssertEqual("view-1", childParentTarget!.ViewId, "parent navigation view");
+AssertEqual("idea-1", childParentTarget.SelectedIdeaId, "parent navigation selected idea");
+AssertTrue(CompositionDocumentNavigator.FindParentTarget(modernDocument, "view-1") is null, "root has no parent");
+
+var textResults = CompositionDocumentTextSearch.Search(generationDocument, "Customer").ToArray();
+AssertTrue(textResults.Any(result => result.Kind == CompositionDocumentTextSearchResultKind.Idea && result.TargetId == "idea-1"), "search idea");
+AssertTrue(textResults.Any(result => result.Kind == CompositionDocumentTextSearchResultKind.View && result.TargetId == "view-child"), "search view");
+AssertTrue(textResults.All(result => result.IsReplaceable), "document search results replaceable");
+AssertTrue(CompositionDocumentTextSearch.Search(generationDocument, "Addresses").Any(result => result.Kind == CompositionDocumentTextSearchResultKind.Relationship && result.TargetId == "rel-1"), "search relationship");
+AssertTrue(CompositionDocumentTextSearch.Search(generationDocument, "Spec").Any(result => result.Kind == CompositionDocumentTextSearchResultKind.Detail && result.TargetId == "detail-1"), "search detail");
+AssertTrue(CompositionDocumentTextSearch.Search(generationDocument, "Concept").Any(result => result.Kind == CompositionDocumentTextSearchResultKind.Definition && result.TargetId == "concept-def"), "search definition");
+
+var renamedIdeaDocument = CompositionDocumentTextReplacer.ReplaceSelected(
+    generationDocument,
+    textResults.First(result => result.TargetId == "idea-1"),
+    "Customer",
+    "Client");
+AssertEqual("Client Need", renamedIdeaDocument.Ideas.Single(idea => idea.Id == "idea-1").Name, "replace selected idea");
+
+var replaceAllResult = CompositionDocumentTextReplacer.ReplaceAll(generationDocument, "Customer", "Client");
+AssertTrue(replaceAllResult.ReplacementCount >= 3, "replace all count");
+AssertEqual("Client Need", replaceAllResult.Document.Ideas.Single(idea => idea.Id == "idea-1").Name, "replace all idea");
+AssertEqual("Client Need Detail", replaceAllResult.Document.Views.Single(view => view.Id == "view-child").Name, "replace all view");
+AssertTrue(replaceAllResult.Document.Ideas[0].Details[0].Value.Contains("spec.pdf", StringComparison.Ordinal), "replace all preserves unrelated detail");
 var templateEditedDocument = CompositionDocumentSnapshotEditor.UpsertDomainTemplate(
     modernDocument,
     new CompositionExtensionSnapshot(
