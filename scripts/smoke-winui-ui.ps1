@@ -8,7 +8,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$defaultExePath = Join-Path $repoRoot "ThinkComposer.WinUI\bin\x86\Debug\net10.0-windows10.0.26100.0\win-x86\ThinkComposer.WinUI.exe"
+$x64ExePath = Join-Path $repoRoot "ThinkComposer.WinUI\bin\x64\Debug\net10.0-windows10.0.26100.0\win-x64\ThinkComposer.WinUI.exe"
+$x86ExePath = Join-Path $repoRoot "ThinkComposer.WinUI\bin\x86\Debug\net10.0-windows10.0.26100.0\win-x86\ThinkComposer.WinUI.exe"
+$defaultExePath = if (Test-Path -LiteralPath $x64ExePath) { $x64ExePath } else { $x86ExePath }
 $exePath = if ([string]::IsNullOrWhiteSpace($ExecutablePath)) { $defaultExePath } else { $ExecutablePath }
 $process = $null
 
@@ -48,6 +50,21 @@ function Invoke-Element {
 
     $pattern = $Element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
     $pattern.Invoke()
+}
+
+function Find-ElementByIdOrName {
+    param(
+        [System.Windows.Automation.AutomationElement]$Root,
+        [string]$AutomationId,
+        [string]$Name
+    )
+
+    $element = Find-ElementByAutomationId -Root $Root -AutomationId $AutomationId
+    if ($element -ne $null) {
+        return $element
+    }
+
+    return Find-ElementByName -Root $Root -Name $Name
 }
 
 if (-not (Test-Path -LiteralPath $exePath)) {
@@ -112,7 +129,18 @@ try {
     Invoke-Element -Element (Find-ElementByAutomationId -Root $root -AutomationId "ExplorerDomainTabButton") -Name "Domain tab"
     Start-Sleep -Milliseconds 300
     Invoke-Element -Element (Find-ElementByAutomationId -Root $root -AutomationId "ExplorerContentTabButton") -Name "Content tab"
+    if ((Find-ElementByIdOrName -Root $root -AutomationId "ViewOptionsButton" -Name "View options") -eq $null) {
+        throw "View options button not found."
+    }
+
     Invoke-Element -Element (Find-ElementByName -Root $root -Name "New concept") -Name "New concept"
+    Invoke-Element -Element (Find-ElementByIdOrName -Root $root -AutomationId "OpenDomainStudioExplorerButton" -Name "Domain Studio") -Name "Domain Studio"
+    Start-Sleep -Milliseconds 300
+    if ((Find-ElementByAutomationId -Root $root -AutomationId "DomainStudioTitle") -eq $null) {
+        throw "Domain Studio did not open."
+    }
+
+    Invoke-Element -Element (Find-ElementByAutomationId -Root $root -AutomationId "CloseDomainStudioButton") -Name "Close Domain Studio"
 
     Write-Host "WinUI UI smoke passed. PID: $($process.Id)" -ForegroundColor Green
 }

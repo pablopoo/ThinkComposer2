@@ -188,9 +188,24 @@
                         <RowDefinition Height="38" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <Grid Padding="12,0,6,0">
+                    <Grid Padding="12,0,6,0" ColumnSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="EXPLORER" />
                         <Button
+                            x:Name="OpenDomainStudioExplorerButton"
+                            Grid.Column="1"
+                            MinWidth="0"
+                            Padding="8,3"
+                            AutomationProperties.AutomationId="OpenDomainStudioExplorerButton"
+                            AutomationProperties.Name="Domain Studio"
+                            Click="OpenDomainStudioButton_Click"
+                            Content="Domain Studio" />
+                        <Button
+                            Grid.Column="2"
                             Width="28"
                             Height="28"
                             MinWidth="0"
@@ -397,6 +412,8 @@
                                         Content="Apply document properties" />
                                     <Button
                                         x:Name="OpenDomainStudioButton"
+                                        AutomationProperties.AutomationId="OpenDomainStudioButton"
+                                        AutomationProperties.Name="Open Domain Studio"
                                         HorizontalAlignment="Stretch"
                                         Click="OpenDomainStudioButton_Click"
                                         Content="Open Domain Studio" />
@@ -950,6 +967,8 @@
             <TextBlock x:Name="StatusContextText" Grid.Column="1" Margin="18,0" VerticalAlignment="Center" Foreground="{ThemeResource StatusForegroundBrush}" Text="WinUI migration shell" />
             <Button
                 x:Name="ViewOptionsButton"
+                AutomationProperties.AutomationId="ViewOptionsButton"
+                AutomationProperties.Name="View options"
                 Grid.Column="2"
                 Width="28"
                 Height="24"

@@ -4,7 +4,7 @@ Date: 2026-05-08
 
 ## Summary
 
-The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
+The WinUI app now covers the main editor loop and a substantial part of the rich-document workflow: `.tcdoc` modern documents, legacy import/merge, canvas editing, modern command palette/context menus/view menu, Domain Studio, domain definitions, link-role variants, multi-view navigation metadata, composite views, shortcut authoring, details, table-detail/base-table row editing, markers, visual complements, styles, templates, reports, generation, validation, clipboard/multi-select, migration checks, and reproducible WinUI publish output.
 
 It is still not a complete legacy replacement only where the remaining work depends on product/release decisions: native PDF/XPS generation, real signing certificate provisioning, installer/update hosting, and licensing policy.
 
@@ -14,16 +14,17 @@ It is still not a complete legacy replacement only where the remaining work depe
 - Data contract: versioned `CompositionDocumentSnapshot`, XML roundtrip, schema validation, migration-safe `.tcview` warning.
 - Legacy bridge: exports legacy packages to `.tcdoc` or `.tcview`; WinUI consumes `.tcdoc` through the external bridge tool without referencing WPF.
 - Canvas: render concepts/relationships, pan, zoom, select, multi-select, move, precise keyboard move, create concept, Tab/Enter mind-map creation, create relationship, delete, undo/redo.
+- Command UX: shared command metadata, disabled-state reasons, keyboard accelerators, canvas right-click menus, view-options menu, selection layout commands, z-order commands, get/apply format, and command-palette indexing.
 - Navigation: browse/switch modern document views from Explorer and command search; create/open composite views from selected concepts; create shortcut objects in the current view; preserve composite/shortcut metadata in `.tcdoc`.
-- Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, current-view complements, and generation templates.
+- Inspector: edit concept/relationship names, layout, definitions, link-role variants, details, markers, styles, shape/text style properties, document/domain properties, current-view complements, generation templates, and generation preview.
 - Canvas complements: render group regions plus legend/info/quote cards from current-view complements.
-- Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions.
+- Domain: browse/edit concept, relationship, link-role, marker, table, and external-language definitions through Explorer and Domain Studio.
 - Details: custom fields, links, attachments, CSV table details with per-cell row editing.
 - Base tables: table definitions persist and edit per-cell row records, with records included in preview/report output.
 - Output: SVG/HTML export, full document HTML report, HTML presentation deck, template-based file generation, full-document printable HTML preview with browser print/save-to-PDF handoff.
 - Panels: Explorer, Inspector, Messages, Search, Preview, Diagnostics.
 - Settings: light/dark theme and panel visibility.
-- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script/release-script coverage, workflow output tests, mind-map accelerators, and solution build; launch/UI smoke scripts cover startup, main window, toolbar commands, theme toggle, domain/content explorer tabs, and concept creation; legacy bridge regression tests export every predefined `.tdom` domain to `.tcdoc`; publish script emits self-contained WinUI output plus release manifest/zip; release script emits multi-runtime artifacts plus `release-index.json` with SHA-256 hashes, update channel metadata, and optional Authenticode signing.
+- Hardening: full migration check script verifies WinUI/Core WPF boundaries, smoke-script/release-script coverage, workflow output tests, mind-map accelerators, and solution build; launch/UI smoke scripts cover startup, main window, toolbar commands, theme toggle, view-options affordance, Domain Studio opening, domain/content explorer tabs, and concept creation; legacy bridge regression tests export every predefined `.tdom` domain to `.tcdoc`; publish script emits self-contained WinUI output plus release manifest/zip; release script emits multi-runtime artifacts plus `release-index.json` with SHA-256 hashes, update channel metadata, and optional Authenticode signing.
 
 ## Remaining Gaps
 

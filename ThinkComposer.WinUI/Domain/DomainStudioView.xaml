@@ -15,9 +15,15 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="Domain Studio" />
+            <TextBlock
+                AutomationProperties.AutomationId="DomainStudioTitle"
+                VerticalAlignment="Center"
+                FontSize="15"
+                FontWeight="SemiBold"
+                Text="Domain Studio" />
             <Button
                 Grid.Column="1"
+                AutomationProperties.AutomationId="CloseDomainStudioButton"
                 MinWidth="0"
                 Padding="10,4"
                 Click="CloseButton_Click"
