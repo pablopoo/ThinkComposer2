@@ -99,6 +99,7 @@ public sealed partial class MainPage : Page
     private string? _pendingRelationshipSourceId;
     private string? _pendingRelationshipDefinitionId;
     private CompositionSnapshotSelection? _clipboardSelection;
+    private CompositionStyleSnapshot? _copiedFormat;
     private TcPoint? _lastCanvasContextPoint;
     private bool _isApplyingInspector;
     private BottomPanelTab _bottomPanelTab = BottomPanelTab.Messages;
@@ -3105,6 +3106,161 @@ public sealed partial class MainPage : Page
         StatusContextText.Text = $"Moved {selectedNodeIds.Count} concept(s)";
     }
 
+    private void GetSelectionFormat()
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a composition view first.";
+            return;
+        }
+
+        var selectedNodeIds = GetSelectedNodeIds();
+        var selectedNode = selectedNodeIds.Count > 0
+            ? _currentSnapshot.Nodes.FirstOrDefault(node => string.Equals(node.Id, selectedNodeIds[0], StringComparison.Ordinal))
+            : null;
+        if (selectedNode is not null)
+        {
+            _copiedFormat = selectedNode.Style;
+            StatusContextText.Text = "Concept format copied";
+            return;
+        }
+
+        var selectedConnector = CanvasView.SelectedConnector;
+        if (selectedConnector is not null)
+        {
+            _copiedFormat = selectedConnector.Style;
+            StatusContextText.Text = "Relationship format copied";
+            return;
+        }
+
+        StatusContextText.Text = "Select a concept or relationship first.";
+    }
+
+    private void ApplySelectionFormat()
+    {
+        if (_currentSnapshot is null)
+        {
+            StatusContextText.Text = "Open or create a composition view first.";
+            return;
+        }
+
+        if (_copiedFormat is null)
+        {
+            StatusContextText.Text = "No copied format.";
+            return;
+        }
+
+        var selectedNodeIds = GetSelectedNodeIds();
+        var selectedConnectorId = CanvasView.SelectedConnector?.Id;
+        if (selectedNodeIds.Count == 0 && string.IsNullOrWhiteSpace(selectedConnectorId))
+        {
+            StatusContextText.Text = "Select a concept or relationship first.";
+            return;
+        }
+
+        var selectedNodeIdSet = selectedNodeIds.ToHashSet(StringComparer.Ordinal);
+        var nextSnapshot = _currentSnapshot with
+        {
+            Nodes = _currentSnapshot.Nodes.Select(node => selectedNodeIdSet.Contains(node.Id)
+                ? node with { Style = _copiedFormat }
+                : node).ToArray(),
+            Connectors = _currentSnapshot.Connectors.Select(connector =>
+                string.Equals(connector.Id, selectedConnectorId, StringComparison.Ordinal)
+                    ? connector with { Style = _copiedFormat }
+                    : connector).ToArray()
+        };
+
+        ApplyEditedSnapshot(
+            nextSnapshot,
+            selectedNodeIds.Count == 1 ? selectedNodeIds[0] : null,
+            fitToViewport: false,
+            selectedConnectorId: selectedConnectorId);
+        if (selectedNodeIds.Count > 1)
+        {
+            CanvasView.SelectNodes(selectedNodeIds);
+        }
+
+        StatusContextText.Text = "Format applied";
+    }
+
+    private void ApplySelectionAlignment(CompositionSelectionAlignment alignment)
+    {
+        var selectedNodeIds = RequireSelectedNodes(minCount: 2);
+        if (selectedNodeIds.Count == 0 || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotSelectionEditor.Align(_currentSnapshot, selectedNodeIds, alignment),
+            null,
+            fitToViewport: false);
+        CanvasView.SelectNodes(selectedNodeIds);
+        StatusContextText.Text = $"Aligned {selectedNodeIds.Count} concepts";
+    }
+
+    private void ApplySelectionResize(CompositionSelectionSizeMode mode)
+    {
+        var selectedNodeIds = RequireSelectedNodes(minCount: 2);
+        if (selectedNodeIds.Count == 0 || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotSelectionEditor.ResizeToMatch(_currentSnapshot, selectedNodeIds, mode),
+            null,
+            fitToViewport: false);
+        CanvasView.SelectNodes(selectedNodeIds);
+        StatusContextText.Text = $"Resized {selectedNodeIds.Count} concepts";
+    }
+
+    private void ApplySelectionDistribution(CompositionSelectionDistribution distribution)
+    {
+        var selectedNodeIds = RequireSelectedNodes(minCount: 3);
+        if (selectedNodeIds.Count == 0 || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotSelectionEditor.Distribute(_currentSnapshot, selectedNodeIds, distribution),
+            null,
+            fitToViewport: false);
+        CanvasView.SelectNodes(selectedNodeIds);
+        StatusContextText.Text = $"Distributed {selectedNodeIds.Count} concepts";
+    }
+
+    private void ApplySelectionZOrder(CompositionSelectionZOrder zOrder)
+    {
+        var selectedNodeIds = RequireSelectedNodes(minCount: 1);
+        if (selectedNodeIds.Count == 0 || _currentSnapshot is null)
+        {
+            return;
+        }
+
+        ApplyEditedSnapshot(
+            CompositionSnapshotSelectionEditor.Reorder(_currentSnapshot, selectedNodeIds, zOrder),
+            selectedNodeIds.Count == 1 ? selectedNodeIds[0] : null,
+            fitToViewport: false);
+        CanvasView.SelectNodes(selectedNodeIds);
+        StatusContextText.Text = "Layer order updated";
+    }
+
+    private IReadOnlyList<string> RequireSelectedNodes(int minCount)
+    {
+        var selectedNodeIds = GetSelectedNodeIds();
+        if (selectedNodeIds.Count >= minCount)
+        {
+            return selectedNodeIds;
+        }
+
+        StatusContextText.Text = minCount <= 1
+            ? "Select a concept first."
+            : $"Select at least {minCount} concepts first.";
+        return Array.Empty<string>();
+    }
+
     private static bool IsTextInputFocused()
     {
         return FocusManager.GetFocusedElement() is TextBox or AutoSuggestBox or NumberBox or ComboBox;
@@ -3895,23 +4051,55 @@ public sealed partial class MainPage : Page
                 UpdateCurrentViewOptions(options => options with { AutoSizeByEnteredText = !options.AutoSizeByEnteredText });
                 break;
             case CompositionCommandIds.GetFormat:
+                GetSelectionFormat();
+                break;
             case CompositionCommandIds.ApplyFormat:
+                ApplySelectionFormat();
+                break;
             case CompositionCommandIds.AlignTop:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Top);
+                break;
             case CompositionCommandIds.AlignLeft:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Left);
+                break;
             case CompositionCommandIds.AlignRight:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Right);
+                break;
             case CompositionCommandIds.AlignBottom:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Bottom);
+                break;
             case CompositionCommandIds.AlignCenter:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Center);
+                break;
             case CompositionCommandIds.AlignMiddle:
+                ApplySelectionAlignment(CompositionSelectionAlignment.Middle);
+                break;
             case CompositionCommandIds.SameWidth:
+                ApplySelectionResize(CompositionSelectionSizeMode.SameWidth);
+                break;
             case CompositionCommandIds.SameHeight:
+                ApplySelectionResize(CompositionSelectionSizeMode.SameHeight);
+                break;
             case CompositionCommandIds.SameSize:
+                ApplySelectionResize(CompositionSelectionSizeMode.SameSize);
+                break;
             case CompositionCommandIds.DistributeHorizontally:
+                ApplySelectionDistribution(CompositionSelectionDistribution.Horizontal);
+                break;
             case CompositionCommandIds.DistributeVertically:
+                ApplySelectionDistribution(CompositionSelectionDistribution.Vertical);
+                break;
             case CompositionCommandIds.BringToFront:
+                ApplySelectionZOrder(CompositionSelectionZOrder.BringToFront);
+                break;
             case CompositionCommandIds.SendToBack:
+                ApplySelectionZOrder(CompositionSelectionZOrder.SendToBack);
+                break;
             case CompositionCommandIds.BringForward:
+                ApplySelectionZOrder(CompositionSelectionZOrder.BringForward);
+                break;
             case CompositionCommandIds.SendBackward:
-                StatusContextText.Text = "Layout and format commands will be available from the canvas context menu.";
+                ApplySelectionZOrder(CompositionSelectionZOrder.SendBackward);
                 break;
             case CompositionCommandIds.ChangeRelationshipDefinition:
                 InspectorKindBox.Focus(FocusState.Programmatic);
