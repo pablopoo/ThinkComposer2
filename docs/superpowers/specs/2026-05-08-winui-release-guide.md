@@ -50,3 +50,22 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-winui-release.ps1 `
 ```
 
 The verifier checks the product id, update channel, artifact existence, primary artifact SHA-256 hashes, and directory hash manifests. With `-RequireSigned`, it also verifies Authenticode signatures for signed artifacts.
+
+## Clean Artifact Smoke
+
+Use this when validating the app outside `bin\Debug`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\publish-winui.ps1 `
+  -Configuration Release `
+  -RuntimeIdentifier win-x64 `
+  -OutputRoot artifacts\winui-cleanqa
+
+powershell -ExecutionPolicy Bypass -File scripts\smoke-winui-ui.ps1 `
+  -ExecutablePath artifacts\winui-cleanqa\Release-win-x64\ThinkComposer.WinUI.exe `
+  -DocumentPath PredefinedContent\Business_Model.tdom `
+  -ExpectedTitle "Business Overview" `
+  -StartupSeconds 8
+```
+
+For a modern-document smoke, first import a legacy package or save as `.tcdoc`, then run the same UI smoke with `-DocumentPath` pointing at that `.tcdoc`. The smoke covers startup, toolbar commands, theme toggle, Explorer tabs, concept creation, and startup document identity.
