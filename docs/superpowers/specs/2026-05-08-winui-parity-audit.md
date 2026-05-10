@@ -42,8 +42,8 @@ It is still not a complete legacy replacement only where the remaining work depe
 ### P1 - Composite Navigation And Complements
 
 - Modern documents preserve composite/shortcut metadata and support view switching, composite-view creation, shortcut-object creation, and parent-view navigation.
-- Complements render as group regions and cards, and explicit complement geometry is respected where present.
-- Remaining gap is complete parity for every legacy complement-specific styling option.
+- Complements render as group regions and cards; explicit geometry plus common style metadata for fill, stroke, text, opacity, stroke thickness, font, and icon is respected where present.
+- Remaining gap is limited to unknown legacy-specific complement variants not yet represented in fixtures.
 
 ### P1 - Search And Replace
 

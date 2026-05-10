@@ -21,6 +21,7 @@ public static class CompositionViewComplementLayout
         {
             var kind = Classify(complement);
             var title = TitleFromComplement(complement);
+            var style = ReadStyle(complement);
             if (TryReadExplicitLayout(complement, out var position, out var size))
             {
                 items.Add(new CompositionComplementRenderItem(
@@ -29,7 +30,8 @@ public static class CompositionViewComplementLayout
                     complement.Value,
                     kind,
                     position,
-                    size));
+                    size,
+                    style));
                 continue;
             }
 
@@ -41,7 +43,8 @@ public static class CompositionViewComplementLayout
                     complement.Value,
                     kind,
                     new TcPoint(bounds.Left - 28, bounds.Top - 28),
-                    new TcSize(Math.Max(180, bounds.Width + 56), Math.Max(120, bounds.Height + 56))));
+                    new TcSize(Math.Max(180, bounds.Width + 56), Math.Max(120, bounds.Height + 56)),
+                    style));
                 continue;
             }
 
@@ -51,7 +54,8 @@ public static class CompositionViewComplementLayout
                 complement.Value,
                 kind,
                 new TcPoint(bounds.Right + 32, bounds.Top + (cardIndex * 92)),
-                new TcSize(220, kind == "Legend" ? 104 : 84)));
+                new TcSize(220, kind == "Legend" ? 104 : 84),
+                style));
             cardIndex++;
         }
 
@@ -140,6 +144,65 @@ public static class CompositionViewComplementLayout
         var rawValue = TryGetProperty(complement, key);
         return rawValue is not null &&
             double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static CompositionComplementStyle ReadStyle(CompositionExtensionSnapshot complement)
+    {
+        return new CompositionComplementStyle(
+            Fill: FirstProperty(complement, "fill", "background", "backgroundColor"),
+            Stroke: FirstProperty(complement, "stroke", "border", "borderColor"),
+            Text: FirstProperty(complement, "text", "foreground", "foregroundColor", "textColor"),
+            Opacity: ReadClampedDouble(complement, 1, "opacity", "alpha"),
+            StrokeThickness: ReadPositiveDouble(complement, 0, "strokeThickness", "borderThickness", "borderWidth"),
+            FontFamily: FirstProperty(complement, "font", "fontFamily"),
+            FontSize: ReadPositiveDouble(complement, 0, "fontSize"),
+            Icon: FirstProperty(complement, "icon"));
+    }
+
+    private static string FirstProperty(CompositionExtensionSnapshot complement, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            var value = TryGetProperty(complement, key);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value!.Trim();
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static double ReadClampedDouble(
+        CompositionExtensionSnapshot complement,
+        double fallback,
+        params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (TryReadDouble(complement, key, out var value) && value >= 0 && value <= 1)
+            {
+                return value;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static double ReadPositiveDouble(
+        CompositionExtensionSnapshot complement,
+        double fallback,
+        params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (TryReadDouble(complement, key, out var value) && value > 0)
+            {
+                return value;
+            }
+        }
+
+        return fallback;
     }
 
     private static string? TryGetProperty(CompositionExtensionSnapshot complement, string key)

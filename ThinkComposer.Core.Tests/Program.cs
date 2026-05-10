@@ -198,6 +198,52 @@ AssertEqual("view-child", modernDocument.Ideas[0].ActiveViewId, "modern composit
 AssertEqual("legacy-target-idea", modernDocument.Ideas[0].ShortcutTargetId, "modern shortcut target");
 AssertEqual("Spec", modernDocument.Ideas[0].Details[0].Name, "modern idea detail");
 AssertEqual("Legend", modernDocument.Views[0].Complements[0].Value, "modern view complement");
+var styledComplementItems = CompositionViewComplementLayout.Build(
+    [
+        new CompositionExtensionSnapshot(
+            "legend.status",
+            "Styled body",
+            new Dictionary<string, string>
+            {
+                ["kind"] = "legend",
+                ["title"] = "Status",
+                ["backgroundColor"] = "#fff4cc",
+                ["borderColor"] = "#b45309",
+                ["textColor"] = "#111827",
+                ["alpha"] = "0.65",
+                ["borderWidth"] = "2.5",
+                ["fontFamily"] = "Consolas",
+                ["fontSize"] = "13.5",
+                ["icon"] = "warning"
+            })
+    ],
+    modernDocument.Views[0].Nodes);
+var styledComplement = styledComplementItems.Single();
+AssertEqual("#fff4cc", styledComplement.Style.Fill, "complement style fill alias");
+AssertEqual("#b45309", styledComplement.Style.Stroke, "complement style stroke alias");
+AssertEqual("#111827", styledComplement.Style.Text, "complement style text alias");
+AssertEqual(0.65, styledComplement.Style.Opacity, "complement style opacity alias");
+AssertEqual(2.5, styledComplement.Style.StrokeThickness, "complement style stroke thickness alias");
+AssertEqual("Consolas", styledComplement.Style.FontFamily, "complement style font family alias");
+AssertEqual(13.5, styledComplement.Style.FontSize, "complement style font size");
+AssertEqual("warning", styledComplement.Style.Icon, "complement style icon");
+
+var fallbackComplement = CompositionViewComplementLayout.Build(
+    [
+        new CompositionExtensionSnapshot(
+            "info.bad-style",
+            "Bad style",
+            new Dictionary<string, string>
+            {
+                ["opacity"] = "not-a-number",
+                ["strokeThickness"] = "-4",
+                ["fontSize"] = "0"
+            })
+    ],
+    modernDocument.Views[0].Nodes).Single();
+AssertEqual(1.0, fallbackComplement.Style.Opacity, "complement invalid opacity fallback");
+AssertEqual(0.0, fallbackComplement.Style.StrokeThickness, "complement invalid stroke fallback");
+AssertEqual(0.0, fallbackComplement.Style.FontSize, "complement invalid font fallback");
 AssertEqual("legacy.package.raw", modernDocument.Extensions[0].Key, "modern extension");
 
 var invalidDocument = modernDocument with

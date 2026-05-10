@@ -8,4 +8,8 @@ public sealed record CompositionComplementRenderItem(
     string Body,
     string Kind,
     TcPoint Position,
-    TcSize Size);
+    TcSize Size,
+    CompositionComplementStyle? Style = null)
+{
+    public CompositionComplementStyle Style { get; init; } = Style ?? new CompositionComplementStyle();
+}

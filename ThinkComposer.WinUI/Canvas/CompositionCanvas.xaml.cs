@@ -301,13 +301,17 @@ public sealed partial class CompositionCanvas : UserControl
         foreach (var item in BuildComplementItems().Where(item => item.Kind == "Group"))
         {
             var bounds = ToRect(item);
-            session.FillRoundedRectangle(bounds, 8, 8, WithAlpha(palette.SelectedStroke, 24));
-            session.DrawRoundedRectangle(bounds, 8, 8, WithAlpha(palette.SelectedStroke, 130), 1.2f);
+            var fill = WithOpacity(ColorFromStyle(item.Style.Fill, WithAlpha(palette.SelectedStroke, 24)), item.Style.Opacity);
+            var stroke = WithOpacity(ColorFromStyle(item.Style.Stroke, WithAlpha(palette.SelectedStroke, 130)), item.Style.Opacity);
+            var text = WithOpacity(ColorFromStyle(item.Style.Text, ColorFromStyle(item.Style.Stroke, palette.SelectedStroke)), item.Style.Opacity);
+            using var format = CreateComplementTextFormat(item.Style, BodyFormat, isTitle: false);
+            session.FillRoundedRectangle(bounds, 8, 8, fill);
+            session.DrawRoundedRectangle(bounds, 8, 8, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.2f));
             session.DrawText(
-                item.Title,
+                PrefixIcon(item),
                 new Rect(bounds.X + 12, bounds.Y + 8, Math.Max(1, bounds.Width - 24), 22),
-                palette.SelectedStroke,
-                BodyFormat);
+                text,
+                format);
         }
     }
 
@@ -316,18 +320,27 @@ public sealed partial class CompositionCanvas : UserControl
         foreach (var item in BuildComplementItems().Where(item => item.Kind != "Group"))
         {
             var bounds = ToRect(item);
-            session.FillRoundedRectangle(bounds, 7, 7, palette.NodeFill);
-            session.DrawRoundedRectangle(bounds, 7, 7, WithAlpha(palette.SelectedStroke, 150), 1.1f);
+            var defaultStroke = item.Kind == "Quote"
+                ? Windows.UI.Color.FromArgb(255, 147, 51, 234)
+                : WithAlpha(palette.SelectedStroke, 150);
+            var fill = WithOpacity(ColorFromStyle(item.Style.Fill, palette.NodeFill), item.Style.Opacity);
+            var stroke = WithOpacity(ColorFromStyle(item.Style.Stroke, defaultStroke), item.Style.Opacity);
+            var text = WithOpacity(ColorFromStyle(item.Style.Text, palette.Text), item.Style.Opacity);
+            var muted = WithOpacity(ColorFromStyle(item.Style.Text, palette.MutedText), item.Style.Opacity);
+            using var titleFormat = CreateComplementTextFormat(item.Style, CompactTitleFormat, isTitle: true);
+            using var bodyFormat = CreateComplementTextFormat(item.Style, BodyFormat, isTitle: false);
+            session.FillRoundedRectangle(bounds, 7, 7, fill);
+            session.DrawRoundedRectangle(bounds, 7, 7, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.1f));
             session.DrawText(
-                item.Title,
+                PrefixIcon(item),
                 new Rect(bounds.X + 12, bounds.Y + 10, Math.Max(1, bounds.Width - 24), 22),
-                palette.Text,
-                CompactTitleFormat);
+                text,
+                titleFormat);
             session.DrawText(
                 string.IsNullOrWhiteSpace(item.Body) ? item.Key : item.Body,
                 new Rect(bounds.X + 12, bounds.Y + 36, Math.Max(1, bounds.Width - 24), Math.Max(1, bounds.Height - 44)),
-                palette.MutedText,
-                BodyFormat);
+                muted,
+                bodyFormat);
         }
     }
 
@@ -344,6 +357,35 @@ public sealed partial class CompositionCanvas : UserControl
     private static Windows.UI.Color WithAlpha(Windows.UI.Color color, byte alpha)
     {
         return Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B);
+    }
+
+    private static Windows.UI.Color WithOpacity(Windows.UI.Color color, double opacity)
+    {
+        var factor = double.IsNaN(opacity) ? 1 : Math.Clamp(opacity, 0, 1);
+        return Windows.UI.Color.FromArgb((byte)Math.Round(color.A * factor), color.R, color.G, color.B);
+    }
+
+    private static string PrefixIcon(CompositionComplementRenderItem item)
+    {
+        return string.IsNullOrWhiteSpace(item.Style.Icon)
+            ? item.Title
+            : $"{item.Style.Icon.Trim()}  {item.Title}";
+    }
+
+    private static CanvasTextFormat CreateComplementTextFormat(
+        CompositionComplementStyle style,
+        CanvasTextFormat fallback,
+        bool isTitle)
+    {
+        return new CanvasTextFormat
+        {
+            FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? fallback.FontFamily : style.FontFamily,
+            FontSize = style.FontSize > 0 ? (float)style.FontSize : fallback.FontSize,
+            FontWeight = isTitle ? FontWeights.SemiBold : FontWeights.Normal,
+            WordWrapping = fallback.WordWrapping,
+            TrimmingGranularity = fallback.TrimmingGranularity,
+            TrimmingSign = fallback.TrimmingSign
+        };
     }
 
     private static Rect CreateCompactTextRect(Rect bounds, double horizontalPadding)

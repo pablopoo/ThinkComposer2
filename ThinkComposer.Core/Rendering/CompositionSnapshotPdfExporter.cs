@@ -243,18 +243,19 @@ public static class CompositionSnapshotPdfExporter
         {
             var rect = ProjectRect(item, project);
             using var roundRect = new SKRoundRect(rect, 8, 8);
-            fillPaint.Color = WithAlpha(new SKColor(43, 120, 198), 28);
-            strokePaint.Color = WithAlpha(new SKColor(43, 120, 198), 135);
-            strokePaint.StrokeWidth = 1.2f;
+            fillPaint.Color = WithOpacity(ParseColor(item.Style.Fill, WithAlpha(new SKColor(43, 120, 198), 28)), item.Style.Opacity);
+            strokePaint.Color = WithOpacity(ParseColor(item.Style.Stroke, WithAlpha(new SKColor(43, 120, 198), 135)), item.Style.Opacity);
+            strokePaint.StrokeWidth = Math.Max(0.5f, (float)PositiveOrDefault(item.Style.StrokeThickness, 1.2));
             canvas.DrawRoundRect(roundRect, fillPaint);
             canvas.DrawRoundRect(roundRect, strokePaint);
 
-            textPaint.Color = strokePaint.Color;
+            textPaint.Color = WithOpacity(ParseColor(item.Style.Text, ParseColor(item.Style.Stroke, new SKColor(43, 120, 198))), item.Style.Opacity);
+            using var styledFont = CreateComplementFont(item.Style, font);
             DrawWrappedText(
                 canvas,
-                item.Title,
+                PrefixIcon(item),
                 new SKRect(rect.Left + 10, rect.Top + 8, rect.Right - 10, rect.Top + 28),
-                font,
+                styledFont,
                 textPaint,
                 maxLines: 1);
         }
@@ -274,31 +275,34 @@ public static class CompositionSnapshotPdfExporter
         {
             var rect = ProjectRect(item, project);
             using var roundRect = new SKRoundRect(rect, 7, 7);
-            fillPaint.Color = new SKColor(248, 250, 252);
-            strokePaint.Color = item.Kind == "Quote"
+            var defaultStroke = item.Kind == "Quote"
                 ? new SKColor(147, 51, 234)
                 : new SKColor(43, 120, 198);
-            strokePaint.StrokeWidth = 1.1f;
+            fillPaint.Color = WithOpacity(ParseColor(item.Style.Fill, new SKColor(248, 250, 252)), item.Style.Opacity);
+            strokePaint.Color = WithOpacity(ParseColor(item.Style.Stroke, defaultStroke), item.Style.Opacity);
+            strokePaint.StrokeWidth = Math.Max(0.5f, (float)PositiveOrDefault(item.Style.StrokeThickness, 1.1));
             canvas.DrawRoundRect(roundRect, fillPaint);
             canvas.DrawRoundRect(roundRect, strokePaint);
 
-            textPaint.Color = new SKColor(31, 35, 40);
+            textPaint.Color = WithOpacity(ParseColor(item.Style.Text, new SKColor(31, 35, 40)), item.Style.Opacity);
+            using var styledTitleFont = CreateComplementFont(item.Style, titleFont);
             DrawWrappedText(
                 canvas,
-                item.Title,
+                PrefixIcon(item),
                 new SKRect(rect.Left + 10, rect.Top + 8, rect.Right - 10, rect.Top + 28),
-                titleFont,
+                styledTitleFont,
                 textPaint,
                 maxLines: 1);
 
-            textPaint.Color = new SKColor(95, 107, 122);
+            textPaint.Color = WithOpacity(ParseColor(item.Style.Text, new SKColor(95, 107, 122)), item.Style.Opacity);
+            using var styledBodyFont = CreateComplementFont(item.Style, bodyFont);
             DrawWrappedText(
                 canvas,
                 string.IsNullOrWhiteSpace(item.Body) ? item.Key : item.Body,
                 new SKRect(rect.Left + 10, rect.Top + 32, rect.Right - 10, rect.Bottom - 8),
-                bodyFont,
+                styledBodyFont,
                 textPaint,
-                maxLines: Math.Max(1, (int)((rect.Height - 40) / Math.Max(1, bodyFont.Size + 2))));
+                maxLines: Math.Max(1, (int)((rect.Height - 40) / Math.Max(1, styledBodyFont.Size + 2))));
         }
     }
 
@@ -426,6 +430,30 @@ public static class CompositionSnapshotPdfExporter
     private static SKColor WithAlpha(SKColor color, byte alpha)
     {
         return new SKColor(color.Red, color.Green, color.Blue, alpha);
+    }
+
+    private static SKColor WithOpacity(SKColor color, double opacity)
+    {
+        var factor = double.IsNaN(opacity) ? 1 : Math.Max(0, Math.Min(1, opacity));
+        return new SKColor(color.Red, color.Green, color.Blue, (byte)Math.Round(color.Alpha * factor));
+    }
+
+    private static SKFont CreateComplementFont(CompositionComplementStyle style, SKFont fallback)
+    {
+        var typeface = string.IsNullOrWhiteSpace(style.FontFamily)
+            ? fallback.Typeface
+            : SKTypeface.FromFamilyName(style.FontFamily);
+        return new SKFont(typeface, style.FontSize > 0 ? (float)style.FontSize : fallback.Size)
+        {
+            Edging = SKFontEdging.Antialias
+        };
+    }
+
+    private static string PrefixIcon(CompositionComplementRenderItem item)
+    {
+        return string.IsNullOrWhiteSpace(item.Style.Icon)
+            ? item.Title
+            : $"{item.Style.Icon.Trim()}  {item.Title}";
     }
 
     private readonly record struct SnapshotBounds(double Left, double Top, double Right, double Bottom);
