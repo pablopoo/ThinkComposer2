@@ -53,7 +53,7 @@ It is still not a complete legacy replacement only where the remaining work depe
 ### P1 - Output Parity
 
 - HTML report, HTML presentation, template generation, metadata-directive stripping, and file-output workflow coverage are implemented.
-- Native PDF export is implemented in the WinUI path. XPS is intentionally not carried forward as a user-facing output target.
+- Native PDF export is implemented in the WinUI path with wrapped diagram labels, relationship arrows, complement rendering, and richer report table/detail pages. XPS is intentionally not carried forward as a user-facing output target.
 - Legacy native presentation output is replaced by an HTML presentation deck generated from document views.
 
 ### P2 - Product/Release Hardening

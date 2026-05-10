@@ -41,9 +41,11 @@ public static class CompositionDocumentReportPdfExporter
             Style = SKPaintStyle.Stroke
         };
 
-        DrawCoverPage(pdf, document, options, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
-        DrawViewPages(pdf, document, options, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
-        DrawSummaryPages(pdf, document, options, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
+        var pageNumber = 1;
+        DrawCoverPage(pdf, document, options, pageNumber++, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
+        DrawViewPages(pdf, document, options, ref pageNumber, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
+        DrawSummaryPages(pdf, document, options, ref pageNumber, titleFont, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
+        DrawTableDataPages(pdf, document, options, ref pageNumber, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
 
         pdf.Close();
         return stream.ToArray();
@@ -53,6 +55,7 @@ public static class CompositionDocumentReportPdfExporter
         SKDocument pdf,
         CompositionDocumentSnapshot document,
         CompositionPdfExportOptions options,
+        int pageNumber,
         SKFont titleFont,
         SKFont headingFont,
         SKFont bodyFont,
@@ -62,8 +65,9 @@ public static class CompositionDocumentReportPdfExporter
     {
         using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
         canvas.Clear(SKColors.White);
+        DrawPageChrome(canvas, document, "Overview", pageNumber, options, bodyFont, mutedPaint, dividerPaint);
 
-        var y = options.Margin + 28;
+        var y = options.Margin + 42;
         canvas.DrawText(Clean(document.Title, "Untitled document"), options.Margin, y, titleFont, textPaint);
         y += 34;
         canvas.DrawText($"Domain: {Clean(document.Domain.Name, "Untitled domain")}", options.Margin, y, headingFont, mutedPaint);
@@ -99,6 +103,7 @@ public static class CompositionDocumentReportPdfExporter
         SKDocument pdf,
         CompositionDocumentSnapshot document,
         CompositionPdfExportOptions options,
+        ref int pageNumber,
         SKFont titleFont,
         SKFont headingFont,
         SKFont bodyFont,
@@ -106,40 +111,82 @@ public static class CompositionDocumentReportPdfExporter
         SKPaint mutedPaint,
         SKPaint dividerPaint)
     {
-        var views = document.Views.Count == 0
-            ? [CompositionDocumentSnapshotAdapter.ToViewSnapshot(document)]
-            : document.Views.Select(view => CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, view.Id)).ToArray();
-
-        foreach (var view in views)
+        if (document.Views.Count == 0)
         {
-            using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
-            canvas.Clear(SKColors.White);
-            canvas.DrawText(Clean(view.Title, "View"), options.Margin, options.Margin, headingFont, textPaint);
-            canvas.DrawText(
-                $"Concepts: {view.Nodes.Count}  Relationships: {view.Connectors.Count}",
-                options.Margin,
-                options.Margin + 20,
+            DrawViewPage(
+                pdf,
+                document,
+                options,
+                pageNumber++,
+                CompositionDocumentSnapshotAdapter.ToViewSnapshot(document),
+                Array.Empty<CompositionExtensionSnapshot>(),
+                headingFont,
                 bodyFont,
-                mutedPaint);
-            canvas.DrawLine(options.Margin, options.Margin + 30, options.PageWidth - options.Margin, options.Margin + 30, dividerPaint);
-
-            var viewOptions = options with
-            {
-                Margin = options.Margin + 24,
-                PageHeight = options.PageHeight - 64
-            };
-            canvas.Save();
-            canvas.Translate(0, 48);
-            CompositionSnapshotPdfExporter.RenderSnapshot(canvas, view, viewOptions, clearBackground: false);
-            canvas.Restore();
-            pdf.EndPage();
+                textPaint,
+                mutedPaint,
+                dividerPaint);
+            return;
         }
+
+        foreach (var viewLayer in document.Views)
+        {
+            DrawViewPage(
+                pdf,
+                document,
+                options,
+                pageNumber++,
+                CompositionDocumentSnapshotAdapter.ToViewSnapshot(document, viewLayer.Id),
+                viewLayer.Complements,
+                headingFont,
+                bodyFont,
+                textPaint,
+                mutedPaint,
+                dividerPaint);
+        }
+    }
+
+    private static void DrawViewPage(
+        SKDocument pdf,
+        CompositionDocumentSnapshot document,
+        CompositionPdfExportOptions options,
+        int pageNumber,
+        CompositionViewSnapshot view,
+        IReadOnlyList<CompositionExtensionSnapshot> complements,
+        SKFont headingFont,
+        SKFont bodyFont,
+        SKPaint textPaint,
+        SKPaint mutedPaint,
+        SKPaint dividerPaint)
+    {
+        using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
+        canvas.Clear(SKColors.White);
+        DrawPageChrome(canvas, document, Clean(view.Title, "View"), pageNumber, options, bodyFont, mutedPaint, dividerPaint);
+        canvas.DrawText(Clean(view.Title, "View"), options.Margin, options.Margin + 22, headingFont, textPaint);
+        canvas.DrawText(
+            $"Concepts: {view.Nodes.Count}  Relationships: {view.Connectors.Count}  Complements: {complements.Count}",
+            options.Margin,
+            options.Margin + 42,
+            bodyFont,
+            mutedPaint);
+        canvas.DrawLine(options.Margin, options.Margin + 52, options.PageWidth - options.Margin, options.Margin + 52, dividerPaint);
+
+        var viewOptions = options with
+        {
+            Margin = options.Margin + 24,
+            PageHeight = options.PageHeight - 88
+        };
+        canvas.Save();
+        canvas.Translate(0, 70);
+        CompositionSnapshotPdfExporter.RenderSnapshot(canvas, view, viewOptions, complements, clearBackground: false);
+        canvas.Restore();
+        pdf.EndPage();
     }
 
     private static void DrawSummaryPages(
         SKDocument pdf,
         CompositionDocumentSnapshot document,
         CompositionPdfExportOptions options,
+        ref int pageNumber,
         SKFont titleFont,
         SKFont headingFont,
         SKFont bodyFont,
@@ -149,8 +196,9 @@ public static class CompositionDocumentReportPdfExporter
     {
         using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
         canvas.Clear(SKColors.White);
+        DrawPageChrome(canvas, document, "Summary", pageNumber++, options, bodyFont, mutedPaint, dividerPaint);
 
-        var y = options.Margin;
+        var y = options.Margin + 24;
         canvas.DrawText("Concepts", options.Margin, y, headingFont, textPaint);
         y += 24;
         y = DrawSummaryLines(
@@ -165,7 +213,7 @@ public static class CompositionDocumentReportPdfExporter
         if (y > options.PageHeight - options.Margin - 80)
         {
             pdf.EndPage();
-            DrawRelationshipSummaryPage(pdf, document, options, headingFont, bodyFont, textPaint);
+            DrawRelationshipSummaryPage(pdf, document, options, pageNumber++, headingFont, bodyFont, textPaint, mutedPaint, dividerPaint);
             return;
         }
 
@@ -187,13 +235,17 @@ public static class CompositionDocumentReportPdfExporter
         SKDocument pdf,
         CompositionDocumentSnapshot document,
         CompositionPdfExportOptions options,
+        int pageNumber,
         SKFont headingFont,
         SKFont bodyFont,
-        SKPaint textPaint)
+        SKPaint textPaint,
+        SKPaint mutedPaint,
+        SKPaint dividerPaint)
     {
         using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
         canvas.Clear(SKColors.White);
-        var y = options.Margin;
+        DrawPageChrome(canvas, document, "Relationships", pageNumber, options, bodyFont, mutedPaint, dividerPaint);
+        var y = options.Margin + 24;
         canvas.DrawText("Relationships", options.Margin, y, headingFont, textPaint);
         y += 24;
         DrawSummaryLines(
@@ -205,6 +257,80 @@ public static class CompositionDocumentReportPdfExporter
             bodyFont,
             textPaint);
         pdf.EndPage();
+    }
+
+    private static void DrawTableDataPages(
+        SKDocument pdf,
+        CompositionDocumentSnapshot document,
+        CompositionPdfExportOptions options,
+        ref int pageNumber,
+        SKFont headingFont,
+        SKFont bodyFont,
+        SKPaint textPaint,
+        SKPaint mutedPaint,
+        SKPaint dividerPaint)
+    {
+        var tableLines = BuildTableDataLines(document).ToArray();
+        if (tableLines.Length == 0)
+        {
+            return;
+        }
+
+        using var canvas = pdf.BeginPage(options.PageWidth, options.PageHeight);
+        canvas.Clear(SKColors.White);
+        DrawPageChrome(canvas, document, "Tables and Details", pageNumber++, options, bodyFont, mutedPaint, dividerPaint);
+
+        var y = options.Margin + 24;
+        canvas.DrawText("Tables and Details", options.Margin, y, headingFont, textPaint);
+        y += 26;
+        DrawSummaryLines(canvas, tableLines, options, y, bodyFont, textPaint);
+        pdf.EndPage();
+    }
+
+    private static IEnumerable<string> BuildTableDataLines(CompositionDocumentSnapshot document)
+    {
+        foreach (var definition in document.Domain.TableDefinitions)
+        {
+            if (definition.TableRecords.Rows.Count == 0)
+            {
+                continue;
+            }
+
+            yield return $"Table definition: {definition.Name}";
+            yield return $"Columns: {string.Join(", ", definition.TableRecords.Columns)}";
+            foreach (var row in definition.TableRecords.Rows)
+            {
+                yield return $"Record: {string.Join(" | ", row)}";
+            }
+        }
+
+        foreach (var idea in document.Ideas)
+        {
+            foreach (var detail in idea.Details.Where(detail => string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal)))
+            {
+                var table = CompositionDetailTableCsv.Parse(detail.Value);
+                yield return $"Concept table: {idea.Name} / {detail.Name}";
+                yield return $"Columns: {string.Join(", ", table.Columns)}";
+                foreach (var row in table.Rows)
+                {
+                    yield return $"Row: {string.Join(" | ", row)}";
+                }
+            }
+        }
+
+        foreach (var relationship in document.Relationships)
+        {
+            foreach (var detail in relationship.Details.Where(detail => string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal)))
+            {
+                var table = CompositionDetailTableCsv.Parse(detail.Value);
+                yield return $"Relationship table: {relationship.Name} / {detail.Name}";
+                yield return $"Columns: {string.Join(", ", table.Columns)}";
+                foreach (var row in table.Rows)
+                {
+                    yield return $"Row: {string.Join(" | ", row)}";
+                }
+            }
+        }
     }
 
     private static float DrawSummaryLines(
@@ -239,6 +365,24 @@ public static class CompositionDocumentReportPdfExporter
         }
 
         return y;
+    }
+
+    private static void DrawPageChrome(
+        SKCanvas canvas,
+        CompositionDocumentSnapshot document,
+        string section,
+        int pageNumber,
+        CompositionPdfExportOptions options,
+        SKFont font,
+        SKPaint mutedPaint,
+        SKPaint dividerPaint)
+    {
+        var title = Clean(document.Title, "Untitled document");
+        canvas.DrawText(title, options.Margin, options.Margin - 12, font, mutedPaint);
+        canvas.DrawText(section, options.PageWidth / 2, options.Margin - 12, font, mutedPaint);
+        canvas.DrawLine(options.Margin, options.Margin - 4, options.PageWidth - options.Margin, options.Margin - 4, dividerPaint);
+        canvas.DrawLine(options.Margin, options.PageHeight - options.Margin + 10, options.PageWidth - options.Margin, options.PageHeight - options.Margin + 10, dividerPaint);
+        canvas.DrawText($"Page {pageNumber}", options.Margin, options.PageHeight - options.Margin + 26, font, mutedPaint);
     }
 
     private static float DrawWrappedText(

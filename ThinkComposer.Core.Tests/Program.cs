@@ -32,6 +32,23 @@ var exportedViewPdf = CompositionSnapshotPdfExporter.Export(snapshot);
 AssertTrue(exportedViewPdf.Length > 1024, "view pdf non-trivial size");
 AssertTrue(StartsWithPdfHeader(exportedViewPdf), "view pdf header");
 AssertTrue(ContainsAscii(exportedViewPdf, "/Type /Page"), "view pdf page marker");
+var complementedViewPdf = CompositionSnapshotPdfExporter.Export(
+    snapshot,
+    [
+        new CompositionExtensionSnapshot(
+            "legend.status",
+            "Legend\nCritical flow",
+            new Dictionary<string, string>
+            {
+                ["kind"] = "legend",
+                ["title"] = "Status Legend",
+                ["x"] = "420",
+                ["y"] = "30",
+                ["width"] = "220",
+                ["height"] = "110"
+            })
+    ]);
+AssertTrue(complementedViewPdf.Length > exportedViewPdf.Length + 256, "view pdf complement content");
 
 var previewText = CompositionSnapshotPreviewTextBuilder.Build(snapshot);
 AssertTrue(previewText.Contains("Composition 1", StringComparison.Ordinal), "preview title");
@@ -283,6 +300,67 @@ var modernReportPdf = CompositionDocumentReportPdfExporter.Export(modernDocument
 AssertTrue(modernReportPdf.Length > 2048, "modern report pdf non-trivial size");
 AssertTrue(StartsWithPdfHeader(modernReportPdf), "modern report pdf header");
 AssertTrue(ContainsAscii(modernReportPdf, "/Type /Page"), "modern report pdf page marker");
+var richReportDocument = modernDocument with
+{
+    Domain = modernDocument.Domain with
+    {
+        TableDefinitions =
+        [
+            modernDocument.Domain.TableDefinitions[0] with
+            {
+                TableRecords = new CompositionDetailTableSnapshot(
+                    ["Task", "Owner", "Status"],
+                    [
+                        ["Review PDF output", "Pablo", "Open"],
+                        ["Validate table rendering", "Team", "Ready"]
+                    ])
+            }
+        ]
+    },
+    Ideas =
+    [
+        modernDocument.Ideas[0] with
+        {
+            Summary = "Long summary used to verify wrapped report text in generated PDF output.",
+            Details =
+            [
+                modernDocument.Ideas[0].Details[0],
+                CompositionDetailFactory.CreateTable(
+                    "Checklist",
+                    ["Task", "State"],
+                    [
+                        ["Review diagram labels", "Done"],
+                        ["Review complement rendering", "Open"]
+                    ])
+            ]
+        }
+    ],
+    Views =
+    [
+        modernDocument.Views[0] with
+        {
+            Complements =
+            [
+                new CompositionExtensionSnapshot(
+                    "quote.review",
+                    "PDF report should include complement cards and readable summaries.",
+                    new Dictionary<string, string>
+                    {
+                        ["kind"] = "quote",
+                        ["title"] = "Review note",
+                        ["x"] = "220",
+                        ["y"] = "130",
+                        ["width"] = "260",
+                        ["height"] = "96"
+                    })
+            ]
+        },
+        modernDocument.Views[1]
+    ]
+};
+var richReportPdf = CompositionDocumentReportPdfExporter.Export(richReportDocument);
+AssertTrue(CountAscii(richReportPdf, "/Type /Page") >= CountAscii(modernReportPdf, "/Type /Page") + 1, "rich report pdf extra page");
+AssertTrue(richReportPdf.Length > modernReportPdf.Length + 512, "rich report pdf includes extra sections");
 var presentationHtml = CompositionDocumentPresentationHtmlExporter.Export(modernDocument);
 AssertTrue(presentationHtml.Contains("<section class=\"slide\"", StringComparison.Ordinal), "presentation slide section");
 AssertTrue(presentationHtml.Contains("Customer Need Detail", StringComparison.Ordinal), "presentation view slide");
@@ -1268,6 +1346,20 @@ static bool StartsWithPdfHeader(byte[] content)
 static bool ContainsAscii(byte[] content, string text)
 {
     return System.Text.Encoding.ASCII.GetString(content).Contains(text, StringComparison.Ordinal);
+}
+
+static int CountAscii(byte[] content, string text)
+{
+    var ascii = System.Text.Encoding.ASCII.GetString(content);
+    var count = 0;
+    var index = 0;
+    while ((index = ascii.IndexOf(text, index, StringComparison.Ordinal)) >= 0)
+    {
+        count++;
+        index += text.Length;
+    }
+
+    return count;
 }
 
 public sealed class LegacyComposition(Guid globalId, string name, LegacyView activeView)

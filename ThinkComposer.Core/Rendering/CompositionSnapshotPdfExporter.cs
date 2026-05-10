@@ -9,17 +9,34 @@ public static class CompositionSnapshotPdfExporter
 
     public static byte[] Export(CompositionViewSnapshot snapshot, CompositionPdfExportOptions? options = null)
     {
+        return ExportInternal(snapshot, Array.Empty<CompositionExtensionSnapshot>(), options);
+    }
+
+    public static byte[] Export(
+        CompositionViewSnapshot snapshot,
+        IReadOnlyList<CompositionExtensionSnapshot> complements,
+        CompositionPdfExportOptions? options = null)
+    {
+        return ExportInternal(snapshot, complements, options);
+    }
+
+    private static byte[] ExportInternal(
+        CompositionViewSnapshot snapshot,
+        IReadOnlyList<CompositionExtensionSnapshot> complements,
+        CompositionPdfExportOptions? options)
+    {
         if (snapshot is null)
         {
             throw new ArgumentNullException(nameof(snapshot));
         }
 
         options ??= new CompositionPdfExportOptions();
+        complements ??= Array.Empty<CompositionExtensionSnapshot>();
         using var stream = new MemoryStream();
         using var document = SKDocument.CreatePdf(stream);
         using var canvas = document.BeginPage(options.PageWidth, options.PageHeight);
 
-        RenderSnapshot(canvas, snapshot, options);
+        RenderSnapshot(canvas, snapshot, options, complements);
 
         document.EndPage();
         document.Close();
@@ -30,6 +47,7 @@ public static class CompositionSnapshotPdfExporter
         SKCanvas canvas,
         CompositionViewSnapshot snapshot,
         CompositionPdfExportOptions options,
+        IReadOnlyList<CompositionExtensionSnapshot>? complements = null,
         bool clearBackground = true)
     {
         if (canvas is null)
@@ -52,7 +70,10 @@ public static class CompositionSnapshotPdfExporter
             canvas.Clear(SKColors.White);
         }
 
-        var bounds = GetBounds(snapshot);
+        var complementItems = CompositionViewComplementLayout.Build(
+            complements ?? Array.Empty<CompositionExtensionSnapshot>(),
+            snapshot.Nodes);
+        var bounds = GetBounds(snapshot, complementItems);
         var contentWidth = Math.Max(1, options.PageWidth - options.Margin * 2);
         var contentHeight = Math.Max(1, options.PageHeight - options.Margin * 2);
         var snapshotWidth = Math.Max(MinimumContentWidth, (float)(bounds.Right - bounds.Left));
@@ -100,6 +121,8 @@ public static class CompositionSnapshotPdfExporter
             Edging = SKFontEdging.Antialias
         };
 
+        DrawComplementRegions(canvas, complementItems, Project, nodeFillPaint, nodeStrokePaint, textPaint, connectorFont);
+
         foreach (var connector in snapshot.Connectors)
         {
             if (!nodesById.TryGetValue(connector.SourceId, out var source) ||
@@ -114,6 +137,7 @@ public static class CompositionSnapshotPdfExporter
             connectorPaint.Color = ParseColor(connector.Style.Stroke, new SKColor(43, 120, 198));
             connectorPaint.StrokeWidth = Math.Max(1, (float)PositiveOrDefault(connector.Style.StrokeThickness, 1.4) * scale);
             canvas.DrawLine(from, to, connectorPaint);
+            DrawArrowHead(canvas, from, to, connectorPaint);
 
             if (!string.IsNullOrWhiteSpace(connector.Text))
             {
@@ -140,23 +164,45 @@ public static class CompositionSnapshotPdfExporter
             canvas.DrawRoundRect(rect, nodeStrokePaint);
 
             textPaint.Color = ParseColor(node.Style.Text, new SKColor(31, 35, 40));
-            var baseline = topLeft.Y + Math.Min(height / 2 + titleFont.Size / 2 - 2, titleFont.Size + 12 * scale);
-            canvas.DrawText(TrimForPdf(node.Text), topLeft.X + 10 * scale, baseline, titleFont, textPaint);
+            DrawWrappedText(
+                canvas,
+                TrimForPdf(node.Text),
+                new SKRect(topLeft.X + 10 * scale, topLeft.Y + 10 * scale, topLeft.X + width - 10 * scale, topLeft.Y + height - 8 * scale),
+                titleFont,
+                textPaint,
+                maxLines: Math.Max(1, (int)(height / Math.Max(1, titleFont.Size + 2))));
         }
+
+        DrawComplementCards(canvas, complementItems, Project, nodeFillPaint, nodeStrokePaint, textPaint, titleFont, connectorFont);
     }
 
-    private static SnapshotBounds GetBounds(CompositionViewSnapshot snapshot)
+    private static SnapshotBounds GetBounds(
+        CompositionViewSnapshot snapshot,
+        IReadOnlyList<CompositionComplementRenderItem> complementItems)
     {
-        if (snapshot.Nodes.Count == 0)
+        if (snapshot.Nodes.Count == 0 && complementItems.Count == 0)
         {
             return new SnapshotBounds(0, 0, MinimumContentWidth, MinimumContentHeight);
         }
 
+        var left = snapshot.Nodes.Count == 0 ? 0 : snapshot.Nodes.Min(node => node.Position.X);
+        var top = snapshot.Nodes.Count == 0 ? 0 : snapshot.Nodes.Min(node => node.Position.Y);
+        var right = snapshot.Nodes.Count == 0 ? MinimumContentWidth : snapshot.Nodes.Max(node => node.Position.X + Math.Max(1, node.Size.Width));
+        var bottom = snapshot.Nodes.Count == 0 ? MinimumContentHeight : snapshot.Nodes.Max(node => node.Position.Y + Math.Max(1, node.Size.Height));
+
+        foreach (var item in complementItems)
+        {
+            left = Math.Min(left, item.Position.X);
+            top = Math.Min(top, item.Position.Y);
+            right = Math.Max(right, item.Position.X + Math.Max(1, item.Size.Width));
+            bottom = Math.Max(bottom, item.Position.Y + Math.Max(1, item.Size.Height));
+        }
+
         return new SnapshotBounds(
-            snapshot.Nodes.Min(node => node.Position.X),
-            snapshot.Nodes.Min(node => node.Position.Y),
-            snapshot.Nodes.Max(node => node.Position.X + Math.Max(1, node.Size.Width)),
-            snapshot.Nodes.Max(node => node.Position.Y + Math.Max(1, node.Size.Height)));
+            left - 12,
+            top - 12,
+            right + 12,
+            bottom + 12);
     }
 
     private static SKColor ParseColor(string value, SKColor fallback)
@@ -182,6 +228,204 @@ public static class CompositionSnapshotPdfExporter
             .Replace('\n', ' ')
             .Trim();
         return trimmed.Length <= 96 ? trimmed : $"{trimmed.Substring(0, 93)}...";
+    }
+
+    private static void DrawComplementRegions(
+        SKCanvas canvas,
+        IReadOnlyList<CompositionComplementRenderItem> items,
+        Func<double, double, SKPoint> project,
+        SKPaint fillPaint,
+        SKPaint strokePaint,
+        SKPaint textPaint,
+        SKFont font)
+    {
+        foreach (var item in items.Where(item => item.Kind == "Group"))
+        {
+            var rect = ProjectRect(item, project);
+            using var roundRect = new SKRoundRect(rect, 8, 8);
+            fillPaint.Color = WithAlpha(new SKColor(43, 120, 198), 28);
+            strokePaint.Color = WithAlpha(new SKColor(43, 120, 198), 135);
+            strokePaint.StrokeWidth = 1.2f;
+            canvas.DrawRoundRect(roundRect, fillPaint);
+            canvas.DrawRoundRect(roundRect, strokePaint);
+
+            textPaint.Color = strokePaint.Color;
+            DrawWrappedText(
+                canvas,
+                item.Title,
+                new SKRect(rect.Left + 10, rect.Top + 8, rect.Right - 10, rect.Top + 28),
+                font,
+                textPaint,
+                maxLines: 1);
+        }
+    }
+
+    private static void DrawComplementCards(
+        SKCanvas canvas,
+        IReadOnlyList<CompositionComplementRenderItem> items,
+        Func<double, double, SKPoint> project,
+        SKPaint fillPaint,
+        SKPaint strokePaint,
+        SKPaint textPaint,
+        SKFont titleFont,
+        SKFont bodyFont)
+    {
+        foreach (var item in items.Where(item => item.Kind != "Group"))
+        {
+            var rect = ProjectRect(item, project);
+            using var roundRect = new SKRoundRect(rect, 7, 7);
+            fillPaint.Color = new SKColor(248, 250, 252);
+            strokePaint.Color = item.Kind == "Quote"
+                ? new SKColor(147, 51, 234)
+                : new SKColor(43, 120, 198);
+            strokePaint.StrokeWidth = 1.1f;
+            canvas.DrawRoundRect(roundRect, fillPaint);
+            canvas.DrawRoundRect(roundRect, strokePaint);
+
+            textPaint.Color = new SKColor(31, 35, 40);
+            DrawWrappedText(
+                canvas,
+                item.Title,
+                new SKRect(rect.Left + 10, rect.Top + 8, rect.Right - 10, rect.Top + 28),
+                titleFont,
+                textPaint,
+                maxLines: 1);
+
+            textPaint.Color = new SKColor(95, 107, 122);
+            DrawWrappedText(
+                canvas,
+                string.IsNullOrWhiteSpace(item.Body) ? item.Key : item.Body,
+                new SKRect(rect.Left + 10, rect.Top + 32, rect.Right - 10, rect.Bottom - 8),
+                bodyFont,
+                textPaint,
+                maxLines: Math.Max(1, (int)((rect.Height - 40) / Math.Max(1, bodyFont.Size + 2))));
+        }
+    }
+
+    private static SKRect ProjectRect(
+        CompositionComplementRenderItem item,
+        Func<double, double, SKPoint> project)
+    {
+        var topLeft = project(item.Position.X, item.Position.Y);
+        var bottomRight = project(item.Position.X + item.Size.Width, item.Position.Y + item.Size.Height);
+        return new SKRect(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y);
+    }
+
+    private static void DrawArrowHead(SKCanvas canvas, SKPoint from, SKPoint to, SKPaint paint)
+    {
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var length = Math.Sqrt(dx * dx + dy * dy);
+        if (length < 1)
+        {
+            return;
+        }
+
+        var ux = (float)(dx / length);
+        var uy = (float)(dy / length);
+        var size = Math.Max(6, paint.StrokeWidth * 3.5f);
+        var wing = size * 0.55f;
+        var baseX = to.X - ux * size;
+        var baseY = to.Y - uy * size;
+        var left = new SKPoint(baseX - uy * wing, baseY + ux * wing);
+        var right = new SKPoint(baseX + uy * wing, baseY - ux * wing);
+
+        using var path = new SKPath();
+        path.MoveTo(to);
+        path.LineTo(left);
+        path.LineTo(right);
+        path.Close();
+
+        using var fill = new SKPaint
+        {
+            IsAntialias = paint.IsAntialias,
+            Color = paint.Color,
+            Style = SKPaintStyle.Fill
+        };
+        canvas.DrawPath(path, fill);
+    }
+
+    private static void DrawWrappedText(
+        SKCanvas canvas,
+        string text,
+        SKRect rect,
+        SKFont font,
+        SKPaint paint,
+        int maxLines)
+    {
+        if (string.IsNullOrWhiteSpace(text) || maxLines <= 0 || rect.Width <= 1)
+        {
+            return;
+        }
+
+        var words = text.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        var line = string.Empty;
+        var y = rect.Top + font.Size;
+        var lines = 0;
+
+        foreach (var word in words)
+        {
+            var candidate = line.Length == 0 ? word : $"{line} {word}";
+            if (font.MeasureText(candidate) <= rect.Width)
+            {
+                line = candidate;
+                continue;
+            }
+
+            if (line.Length == 0)
+            {
+                line = TrimWordToWidth(word, rect.Width, font);
+            }
+
+            lines++;
+            var isLastLine = lines >= maxLines || y > rect.Bottom;
+            canvas.DrawText(isLastLine ? Ellipsize(line, rect.Width, font) : line, rect.Left, y, font, paint);
+            if (isLastLine)
+            {
+                return;
+            }
+
+            y += font.Size + 2;
+            line = word;
+        }
+
+        if (line.Length > 0 && lines < maxLines && y <= rect.Bottom)
+        {
+            canvas.DrawText(lines + 1 >= maxLines ? Ellipsize(line, rect.Width, font) : line, rect.Left, y, font, paint);
+        }
+    }
+
+    private static string TrimWordToWidth(string word, float maxWidth, SKFont font)
+    {
+        var value = word;
+        while (value.Length > 1 && font.MeasureText(value) > maxWidth)
+        {
+            value = value.Substring(0, value.Length - 1);
+        }
+
+        return value;
+    }
+
+    private static string Ellipsize(string text, float maxWidth, SKFont font)
+    {
+        if (font.MeasureText(text) <= maxWidth)
+        {
+            return text;
+        }
+
+        var suffix = "...";
+        var value = text;
+        while (value.Length > 1 && font.MeasureText(value + suffix) > maxWidth)
+        {
+            value = value.Substring(0, value.Length - 1);
+        }
+
+        return value + suffix;
+    }
+
+    private static SKColor WithAlpha(SKColor color, byte alpha)
+    {
+        return new SKColor(color.Red, color.Green, color.Blue, alpha);
     }
 
     private readonly record struct SnapshotBounds(double Left, double Top, double Right, double Bottom);
