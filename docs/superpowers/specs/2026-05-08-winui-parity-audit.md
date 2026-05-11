@@ -36,13 +36,13 @@ It is still not a complete legacy replacement only where the remaining work depe
 ### P1 - Tables And Structured Editors
 
 - Table details and base-table records persist as CSV-style rows and can be edited through per-cell controls.
-- The editor supports bulk paste, A-Z/Z-A sorting, duplicate, move, clear, and remove row actions.
-- Remaining gap versus a spreadsheet is column resizing, drag/drop, formulas, and large-table virtualization.
+- The editor supports bulk paste, A-Z/Z-A sorting, duplicate, move, clear, remove row actions, simple formula evaluation, and persisted column-width metadata.
+- Remaining gap versus a spreadsheet is pointer-driven column resizing, drag/drop row reordering, advanced formula grammar, and large-table virtualization.
 
 ### P1 - Composite Navigation And Complements
 
 - Modern documents preserve composite/shortcut metadata and support view switching, composite-view creation, shortcut-object creation, and parent-view navigation.
-- Complements render as group regions and cards; explicit geometry plus common style metadata for fill, stroke, text, opacity, stroke thickness, font, and icon is respected where present.
+- Complements render as group regions and cards; explicit geometry plus common style metadata for fill, stroke, text, opacity, stroke thickness, stroke dash, font, icon, offsets, and quadrant placement is respected where present.
 - Remaining gap is limited to unknown legacy-specific complement variants not yet represented in fixtures.
 
 ### P1 - Search And Replace

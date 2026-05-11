@@ -534,6 +534,9 @@
                                         x:Name="TableColumnsBox"
                                         TextChanged="TableColumnsBox_TextChanged"
                                         PlaceholderText="Column 1, Column 2" />
+                                    <TextBox
+                                        x:Name="TableColumnWidthsBox"
+                                        PlaceholderText="Column widths, e.g. 160, 220" />
                                     <ListView
                                         x:Name="InspectorTableRowsList"
                                         MaxHeight="112"
@@ -621,6 +624,11 @@
                                         HorizontalAlignment="Stretch"
                                         Click="ClearTableRowButton_Click"
                                         Content="Clear row" />
+                                    <Button
+                                        x:Name="EvaluateTableFormulasButton"
+                                        HorizontalAlignment="Stretch"
+                                        Click="EvaluateTableFormulasButton_Click"
+                                        Content="Evaluate formulas" />
                                     <Button
                                         x:Name="SaveTableDetailButton"
                                         HorizontalAlignment="Stretch"

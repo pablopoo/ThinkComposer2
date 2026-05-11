@@ -6,6 +6,7 @@ public sealed record CompositionComplementStyle(
     string Text = "",
     double Opacity = 1,
     double StrokeThickness = 0,
+    string StrokeDash = "",
     string FontFamily = "",
     double FontSize = 0,
     string Icon = "");

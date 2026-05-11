@@ -169,6 +169,7 @@ public static class CompositionDocumentReportHtmlExporter
 
     private static void AppendTableRecords(StringBuilder builder, CompositionDetailTableSnapshot records)
     {
+        records = CompositionDetailTableFormulaEvaluator.Evaluate(records);
         if (records.Rows.Count == 0)
         {
             return;
@@ -178,9 +179,12 @@ public static class CompositionDocumentReportHtmlExporter
         if (records.Columns.Count > 0)
         {
             builder.AppendLine("          <thead><tr>");
-            foreach (var column in records.Columns)
+            for (var index = 0; index < records.Columns.Count; index++)
             {
-                builder.AppendLine($"            <th>{Encode(column)}</th>");
+                var width = index < records.ColumnWidths.Count && records.ColumnWidths[index] > 0
+                    ? $" style=\"width:{records.ColumnWidths[index].ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}px\""
+                    : string.Empty;
+                builder.AppendLine($"            <th{width}>{Encode(records.Columns[index])}</th>");
             }
             builder.AppendLine("          </tr></thead>");
         }

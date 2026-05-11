@@ -3,6 +3,7 @@ using System.Numerics;
 using Instrumind.ThinkComposer.Core.Primitives;
 using Instrumind.ThinkComposer.Core.Rendering;
 using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Text;
@@ -305,8 +306,9 @@ public sealed partial class CompositionCanvas : UserControl
             var stroke = WithOpacity(ColorFromStyle(item.Style.Stroke, WithAlpha(palette.SelectedStroke, 130)), item.Style.Opacity);
             var text = WithOpacity(ColorFromStyle(item.Style.Text, ColorFromStyle(item.Style.Stroke, palette.SelectedStroke)), item.Style.Opacity);
             using var format = CreateComplementTextFormat(item.Style, BodyFormat, isTitle: false);
+            using var strokeStyle = CreateComplementStrokeStyle(item.Style.StrokeDash);
             session.FillRoundedRectangle(bounds, 8, 8, fill);
-            session.DrawRoundedRectangle(bounds, 8, 8, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.2f));
+            session.DrawRoundedRectangle(bounds, 8, 8, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.2f), strokeStyle);
             session.DrawText(
                 PrefixIcon(item),
                 new Rect(bounds.X + 12, bounds.Y + 8, Math.Max(1, bounds.Width - 24), 22),
@@ -329,8 +331,9 @@ public sealed partial class CompositionCanvas : UserControl
             var muted = WithOpacity(ColorFromStyle(item.Style.Text, palette.MutedText), item.Style.Opacity);
             using var titleFormat = CreateComplementTextFormat(item.Style, CompactTitleFormat, isTitle: true);
             using var bodyFormat = CreateComplementTextFormat(item.Style, BodyFormat, isTitle: false);
+            using var strokeStyle = CreateComplementStrokeStyle(item.Style.StrokeDash);
             session.FillRoundedRectangle(bounds, 7, 7, fill);
-            session.DrawRoundedRectangle(bounds, 7, 7, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.1f));
+            session.DrawRoundedRectangle(bounds, 7, 7, stroke, StrokeWidthFromStyle(item.Style.StrokeThickness, 1.1f), strokeStyle);
             session.DrawText(
                 PrefixIcon(item),
                 new Rect(bounds.X + 12, bounds.Y + 10, Math.Max(1, bounds.Width - 24), 22),
@@ -385,6 +388,21 @@ public sealed partial class CompositionCanvas : UserControl
             WordWrapping = fallback.WordWrapping,
             TrimmingGranularity = fallback.TrimmingGranularity,
             TrimmingSign = fallback.TrimmingSign
+        };
+    }
+
+    private static CanvasStrokeStyle CreateComplementStrokeStyle(string strokeDash)
+    {
+        return new CanvasStrokeStyle
+        {
+            DashStyle = strokeDash.Trim().ToLowerInvariant() switch
+            {
+                "dash" or "dashed" => CanvasDashStyle.Dash,
+                "dot" or "dotted" => CanvasDashStyle.Dot,
+                "dashdot" or "dash-dot" => CanvasDashStyle.DashDot,
+                "dashdotdot" or "dash-dot-dot" => CanvasDashStyle.DashDotDot,
+                _ => CanvasDashStyle.Solid
+            }
         };
     }
 

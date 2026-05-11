@@ -297,8 +297,9 @@ public static class CompositionDocumentReportPdfExporter
             }
 
             yield return $"Table definition: {definition.Name}";
-            yield return $"Columns: {string.Join(", ", definition.TableRecords.Columns)}";
-            foreach (var row in definition.TableRecords.Rows)
+            var table = CompositionDetailTableFormulaEvaluator.Evaluate(definition.TableRecords);
+            yield return $"Columns: {string.Join(", ", table.Columns)}";
+            foreach (var row in table.Rows)
             {
                 yield return $"Record: {string.Join(" | ", row)}";
             }
@@ -308,7 +309,7 @@ public static class CompositionDocumentReportPdfExporter
         {
             foreach (var detail in idea.Details.Where(detail => string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal)))
             {
-                var table = CompositionDetailTableCsv.Parse(detail.Value);
+                var table = CompositionDetailTableFormulaEvaluator.Evaluate(CompositionDetailTableCsv.Parse(detail.Value));
                 yield return $"Concept table: {idea.Name} / {detail.Name}";
                 yield return $"Columns: {string.Join(", ", table.Columns)}";
                 foreach (var row in table.Rows)
@@ -322,7 +323,7 @@ public static class CompositionDocumentReportPdfExporter
         {
             foreach (var detail in relationship.Details.Where(detail => string.Equals(detail.Kind, CompositionDetailKinds.Table, StringComparison.Ordinal)))
             {
-                var table = CompositionDetailTableCsv.Parse(detail.Value);
+                var table = CompositionDetailTableFormulaEvaluator.Evaluate(CompositionDetailTableCsv.Parse(detail.Value));
                 yield return $"Relationship table: {relationship.Name} / {detail.Name}";
                 yield return $"Columns: {string.Join(", ", table.Columns)}";
                 foreach (var row in table.Rows)

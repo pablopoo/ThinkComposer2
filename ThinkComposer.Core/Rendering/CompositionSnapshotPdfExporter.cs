@@ -247,7 +247,7 @@ public static class CompositionSnapshotPdfExporter
             strokePaint.Color = WithOpacity(ParseColor(item.Style.Stroke, WithAlpha(new SKColor(43, 120, 198), 135)), item.Style.Opacity);
             strokePaint.StrokeWidth = Math.Max(0.5f, (float)PositiveOrDefault(item.Style.StrokeThickness, 1.2));
             canvas.DrawRoundRect(roundRect, fillPaint);
-            canvas.DrawRoundRect(roundRect, strokePaint);
+            DrawStyledRoundRect(canvas, roundRect, strokePaint, item.Style.StrokeDash);
 
             textPaint.Color = WithOpacity(ParseColor(item.Style.Text, ParseColor(item.Style.Stroke, new SKColor(43, 120, 198))), item.Style.Opacity);
             using var styledFont = CreateComplementFont(item.Style, font);
@@ -282,7 +282,7 @@ public static class CompositionSnapshotPdfExporter
             strokePaint.Color = WithOpacity(ParseColor(item.Style.Stroke, defaultStroke), item.Style.Opacity);
             strokePaint.StrokeWidth = Math.Max(0.5f, (float)PositiveOrDefault(item.Style.StrokeThickness, 1.1));
             canvas.DrawRoundRect(roundRect, fillPaint);
-            canvas.DrawRoundRect(roundRect, strokePaint);
+            DrawStyledRoundRect(canvas, roundRect, strokePaint, item.Style.StrokeDash);
 
             textPaint.Color = WithOpacity(ParseColor(item.Style.Text, new SKColor(31, 35, 40)), item.Style.Opacity);
             using var styledTitleFont = CreateComplementFont(item.Style, titleFont);
@@ -454,6 +454,38 @@ public static class CompositionSnapshotPdfExporter
         return string.IsNullOrWhiteSpace(item.Style.Icon)
             ? item.Title
             : $"{item.Style.Icon.Trim()}  {item.Title}";
+    }
+
+    private static void DrawStyledRoundRect(
+        SKCanvas canvas,
+        SKRoundRect rect,
+        SKPaint paint,
+        string strokeDash)
+    {
+        var pathEffect = CreateStrokeDash(strokeDash, paint.StrokeWidth);
+        try
+        {
+            paint.PathEffect = pathEffect;
+            canvas.DrawRoundRect(rect, paint);
+        }
+        finally
+        {
+            paint.PathEffect = null;
+            pathEffect?.Dispose();
+        }
+    }
+
+    private static SKPathEffect? CreateStrokeDash(string strokeDash, float strokeWidth)
+    {
+        var scale = Math.Max(1, strokeWidth);
+        return strokeDash.Trim().ToLowerInvariant() switch
+        {
+            "dash" or "dashed" => SKPathEffect.CreateDash([8 * scale, 5 * scale], 0),
+            "dot" or "dotted" => SKPathEffect.CreateDash([2 * scale, 4 * scale], 0),
+            "dashdot" or "dash-dot" => SKPathEffect.CreateDash([8 * scale, 4 * scale, 2 * scale, 4 * scale], 0),
+            "dashdotdot" or "dash-dot-dot" => SKPathEffect.CreateDash([8 * scale, 4 * scale, 2 * scale, 4 * scale, 2 * scale, 4 * scale], 0),
+            _ => null
+        };
     }
 
     private readonly record struct SnapshotBounds(double Left, double Top, double Right, double Bottom);

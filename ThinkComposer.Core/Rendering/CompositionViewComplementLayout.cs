@@ -22,39 +22,43 @@ public static class CompositionViewComplementLayout
             var kind = Classify(complement);
             var title = TitleFromComplement(complement);
             var style = ReadStyle(complement);
-            if (TryReadExplicitLayout(complement, out var position, out var size))
+            if (TryReadExplicitLayout(complement, out var explicitPosition, out var explicitSize))
             {
+                var position = ApplyOffset(complement, explicitPosition);
                 items.Add(new CompositionComplementRenderItem(
                     complement.Key,
                     title,
                     complement.Value,
                     kind,
                     position,
-                    size,
+                    explicitSize,
                     style));
                 continue;
             }
 
             if (kind == "Group")
             {
+                var position = ApplyOffset(complement, new TcPoint(bounds.Left - 28, bounds.Top - 28));
                 items.Add(new CompositionComplementRenderItem(
                     complement.Key,
                     title,
                     complement.Value,
                     kind,
-                    new TcPoint(bounds.Left - 28, bounds.Top - 28),
+                    position,
                     new TcSize(Math.Max(180, bounds.Width + 56), Math.Max(120, bounds.Height + 56)),
                     style));
                 continue;
             }
 
+            var size = new TcSize(220, kind == "Legend" ? 104 : 84);
+            var cardPosition = ApplyOffset(complement, PositionCard(complement, bounds, size, cardIndex));
             items.Add(new CompositionComplementRenderItem(
                 complement.Key,
                 title,
                 complement.Value,
                 kind,
-                new TcPoint(bounds.Right + 32, bounds.Top + (cardIndex * 92)),
-                new TcSize(220, kind == "Legend" ? 104 : 84),
+                cardPosition,
+                size,
                 style));
             cardIndex++;
         }
@@ -153,7 +157,8 @@ public static class CompositionViewComplementLayout
             Stroke: FirstProperty(complement, "stroke", "border", "borderColor"),
             Text: FirstProperty(complement, "text", "foreground", "foregroundColor", "textColor"),
             Opacity: ReadClampedDouble(complement, 1, "opacity", "alpha"),
-            StrokeThickness: ReadPositiveDouble(complement, 0, "strokeThickness", "borderThickness", "borderWidth"),
+            StrokeThickness: ReadPositiveDouble(complement, 0, "strokeThickness", "borderThickness", "borderWidth", "lineThickness", "lineThick"),
+            StrokeDash: FirstProperty(complement, "strokeDash", "lineDash"),
             FontFamily: FirstProperty(complement, "font", "fontFamily"),
             FontSize: ReadPositiveDouble(complement, 0, "fontSize"),
             Icon: FirstProperty(complement, "icon"));
@@ -221,5 +226,36 @@ public static class CompositionViewComplementLayout
         }
 
         return null;
+    }
+
+    private static TcPoint ApplyOffset(CompositionExtensionSnapshot complement, TcPoint position)
+    {
+        var x = position.X + (TryReadDouble(complement, "offsetX", out var offsetX) ? offsetX : 0);
+        var y = position.Y + (TryReadDouble(complement, "offsetY", out var offsetY) ? offsetY : 0);
+        return new TcPoint(x, y);
+    }
+
+    private static TcPoint PositionCard(
+        CompositionExtensionSnapshot complement,
+        (double Left, double Top, double Right, double Bottom, double Width, double Height) bounds,
+        TcSize size,
+        int cardIndex)
+    {
+        var quadrant = FirstProperty(complement, "quadrant", "orientation").ToLowerInvariant();
+        var centerX = bounds.Left + (bounds.Width / 2);
+        var centerY = bounds.Top + (bounds.Height / 2);
+        var stackedY = bounds.Top + (cardIndex * 92);
+
+        return quadrant switch
+        {
+            "top" or "north" or "n" => new TcPoint(centerX - (size.Width / 2), bounds.Top - size.Height - 32),
+            "bottom" or "south" or "s" => new TcPoint(centerX - (size.Width / 2), bounds.Bottom + 32),
+            "left" or "west" or "w" => new TcPoint(bounds.Left - size.Width - 32, centerY - (size.Height / 2) + (cardIndex * 24)),
+            "top-left" or "northwest" or "nw" => new TcPoint(bounds.Left - size.Width - 32, bounds.Top - size.Height - 32),
+            "top-right" or "northeast" or "ne" => new TcPoint(bounds.Right + 32, bounds.Top - size.Height - 32),
+            "bottom-left" or "southwest" or "sw" => new TcPoint(bounds.Left - size.Width - 32, bounds.Bottom + 32),
+            "bottom-right" or "southeast" or "se" => new TcPoint(bounds.Right + 32, bounds.Bottom + 32),
+            _ => new TcPoint(bounds.Right + 32, stackedY)
+        };
     }
 }

@@ -2430,6 +2430,20 @@ public sealed partial class MainPage : Page
             "Table row cleared");
     }
 
+    private void EvaluateTableFormulasButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!HasActiveTableEditor())
+        {
+            return;
+        }
+
+        var selectedRowIndex = GetSelectedTableRowIndex();
+        ApplyTableEditorSnapshot(
+            CompositionDetailTableFormulaEvaluator.Evaluate(ReadCurrentTableEditorSnapshot()),
+            selectedRowIndex >= 0 ? selectedRowIndex : null,
+            "Table formulas evaluated");
+    }
+
     private void SaveTableDetailButton_Click(object sender, RoutedEventArgs e)
     {
         if (_currentSnapshot is null ||
@@ -2446,23 +2460,26 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        var rows = _tableEditorRows
-            .Select(row => (IReadOnlyList<string>)NormalizeTableRow(row, columns.Count))
-            .ToArray();
+        var table = ReadCurrentTableEditorSnapshot();
         if (!string.IsNullOrWhiteSpace(_selectedTableDefinitionId))
         {
             var document = EnsureCurrentDocument();
             _currentDocument = CompositionDocumentSnapshotEditor.SetTableDefinitionRecords(
                 document,
                 _selectedTableDefinitionId,
-                new CompositionDetailTableSnapshot(columns, rows));
+                table);
             MarkDocumentMetadataChanged("Table records saved");
             return;
         }
 
         var detailName = string.IsNullOrWhiteSpace(DetailNameBox.Text) ? "Table" : DetailNameBox.Text.Trim();
         SaveDetail(
-            CompositionDetailFactory.CreateTable(detailName, columns, rows, _selectedTableDetailId),
+            CompositionDetailFactory.CreateTable(
+                detailName,
+                table.Columns,
+                table.Rows,
+                table.ColumnWidths,
+                _selectedTableDetailId),
             "Table detail saved");
     }
 
@@ -3895,6 +3912,7 @@ public sealed partial class MainPage : Page
         {
             var table = CompositionDetailTableCsv.Parse(detail!.Value);
             TableColumnsBox.Text = FormatCsvRecord(table.Columns);
+            TableColumnWidthsBox.Text = FormatColumnWidths(table.ColumnWidths);
             _tableEditorRows = table.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToList();
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
@@ -3903,6 +3921,7 @@ public sealed partial class MainPage : Page
         else
         {
             TableColumnsBox.Text = string.Empty;
+            TableColumnWidthsBox.Text = string.Empty;
             _tableEditorRows = [];
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
@@ -3911,6 +3930,7 @@ public sealed partial class MainPage : Page
         RefreshTableRowsList();
         var canEdit = isEnabled && isTable;
         TableColumnsBox.IsEnabled = canEdit;
+        TableColumnWidthsBox.IsEnabled = canEdit;
         InspectorTableRowsList.IsEnabled = canEdit;
         TableCellsPanel.IsHitTestVisible = canEdit;
         TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
@@ -3923,6 +3943,7 @@ public sealed partial class MainPage : Page
         MoveTableRowDownButton.IsEnabled = canEdit;
         ClearTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
+        EvaluateTableFormulasButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
     }
 
@@ -3935,6 +3956,7 @@ public sealed partial class MainPage : Page
         if (isTableDefinition)
         {
             TableColumnsBox.Text = FormatCsvRecord(definition!.TableRecords.Columns);
+            TableColumnWidthsBox.Text = FormatColumnWidths(definition.TableRecords.ColumnWidths);
             _tableEditorRows = definition.TableRecords.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToList();
             TableEditorExpander.Header = "Base table records";
             SaveTableDetailButton.Content = "Save table records";
@@ -3943,6 +3965,7 @@ public sealed partial class MainPage : Page
         else
         {
             TableColumnsBox.Text = string.Empty;
+            TableColumnWidthsBox.Text = string.Empty;
             _tableEditorRows = [];
             TableEditorExpander.Header = "Table editor";
             SaveTableDetailButton.Content = "Save table detail";
@@ -3951,6 +3974,7 @@ public sealed partial class MainPage : Page
         RefreshTableRowsList();
         var canEdit = isEnabled && isTableDefinition;
         TableColumnsBox.IsEnabled = canEdit;
+        TableColumnWidthsBox.IsEnabled = canEdit;
         InspectorTableRowsList.IsEnabled = canEdit;
         TableCellsPanel.IsHitTestVisible = canEdit;
         TableCellsPanel.Opacity = canEdit ? 1 : 0.55;
@@ -3963,6 +3987,7 @@ public sealed partial class MainPage : Page
         MoveTableRowDownButton.IsEnabled = canEdit;
         ClearTableRowButton.IsEnabled = canEdit;
         DeleteTableRowButton.IsEnabled = canEdit;
+        EvaluateTableFormulasButton.IsEnabled = canEdit;
         SaveTableDetailButton.IsEnabled = canEdit;
     }
 
@@ -4020,7 +4045,8 @@ public sealed partial class MainPage : Page
             columns,
             _tableEditorRows
                 .Select(row => (IReadOnlyList<string>)NormalizeTableRow(row, columns.Count))
-                .ToArray());
+                .ToArray(),
+            NormalizeColumnWidths(ParseColumnWidths(TableColumnWidthsBox.Text), columns.Count));
     }
 
     private void ApplyTableEditorSnapshot(
@@ -4029,6 +4055,7 @@ public sealed partial class MainPage : Page
         string status)
     {
         TableColumnsBox.Text = FormatCsvRecord(table.Columns);
+        TableColumnWidthsBox.Text = FormatColumnWidths(table.ColumnWidths);
         _tableEditorRows = table.Rows
             .Select(row => (IReadOnlyList<string>)row.ToArray())
             .ToList();
@@ -4116,14 +4143,50 @@ public sealed partial class MainPage : Page
         return normalized;
     }
 
+    private static IReadOnlyList<double> NormalizeColumnWidths(IReadOnlyList<double> widths, int columnCount)
+    {
+        var normalized = new double[columnCount];
+        for (var index = 0; index < columnCount; index++)
+        {
+            normalized[index] = index < widths.Count && widths[index] > 0 ? widths[index] : 0;
+        }
+
+        return normalized;
+    }
+
     private static IReadOnlyList<string> ParseCsvRecord(string text)
     {
         return CompositionDetailTableCsv.Parse(text ?? string.Empty).Columns;
     }
 
+    private static IReadOnlyList<double> ParseColumnWidths(string text)
+    {
+        return ParseCsvRecord(text)
+            .Select(value => double.TryParse(
+                value,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var width) && width > 0
+                    ? width
+                    : 0)
+            .ToArray();
+    }
+
     private static string FormatCsvRecord(IReadOnlyList<string> fields)
     {
         return CompositionDetailTableCsv.Format(new CompositionDetailTableSnapshot(fields, Array.Empty<IReadOnlyList<string>>()));
+    }
+
+    private static string FormatColumnWidths(IReadOnlyList<double> widths)
+    {
+        var positiveWidths = widths
+            .Select(width => width > 0
+                ? width.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                : string.Empty)
+            .ToArray();
+        return positiveWidths.Any(width => !string.IsNullOrWhiteSpace(width))
+            ? FormatCsvRecord(positiveWidths)
+            : string.Empty;
     }
 
     private void SetLinkRoleInspector(string? selectedLinkRoleId, bool isEnabled)

@@ -36,6 +36,19 @@ public static class CompositionDetailFactory
         return CreateTable(name, CompositionDetailTableCsv.Format(new CompositionDetailTableSnapshot(columns, rows)), id);
     }
 
+    public static CompositionDetailSnapshot CreateTable(
+        string name,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        IReadOnlyList<double> columnWidths,
+        string? id = null)
+    {
+        return CreateTable(
+            name,
+            CompositionDetailTableCsv.Format(new CompositionDetailTableSnapshot(columns, rows, columnWidths)),
+            id);
+    }
+
     public static CompositionDetailSnapshot Create(string kind, string name, string value, string? id = null)
     {
         if (string.IsNullOrWhiteSpace(name))

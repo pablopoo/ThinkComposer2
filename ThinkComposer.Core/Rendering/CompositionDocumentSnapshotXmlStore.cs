@@ -179,8 +179,14 @@ public static class CompositionDocumentSnapshotXmlStore
     {
         return new XElement(
             "TableRecords",
-            new XElement("Columns", records.Columns.Select(column =>
-                new XElement("Column", new XAttribute("value", column)))),
+            new XElement("Columns", records.Columns.Select((column, index) =>
+            {
+                var width = index >= 0 && index < records.ColumnWidths.Count ? records.ColumnWidths[index] : 0;
+                return new XElement(
+                    "Column",
+                    new XAttribute("value", column),
+                    width > 0 ? new XAttribute("width", Format(width)) : null);
+            })),
             new XElement("Rows", records.Rows.Select(row =>
                 new XElement("Record", row.Select(value =>
                     new XElement("Cell", new XAttribute("value", value)))))));
@@ -363,6 +369,10 @@ public static class CompositionDocumentSnapshotXmlStore
                 .Select(element => ReadString(element, "value"))
                 .ToArray()
             ?? Array.Empty<string>();
+        var widths = container.Element("Columns")?.Elements("Column")
+                .Select(element => ReadDouble(element, "width"))
+                .ToArray()
+            ?? Array.Empty<double>();
         var rows = container.Element("Rows")?.Elements("Record")
                 .Select(record => (IReadOnlyList<string>)record.Elements("Cell")
                     .Select(element => ReadString(element, "value"))
@@ -370,7 +380,7 @@ public static class CompositionDocumentSnapshotXmlStore
                 .ToArray()
             ?? Array.Empty<IReadOnlyList<string>>();
 
-        return new CompositionDetailTableSnapshot(columns, rows);
+        return new CompositionDetailTableSnapshot(columns, rows, widths);
     }
 
     private static IReadOnlyList<string> ReadMarkers(XElement? container)

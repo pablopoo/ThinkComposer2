@@ -212,6 +212,7 @@ var styledComplementItems = CompositionViewComplementLayout.Build(
                 ["textColor"] = "#111827",
                 ["alpha"] = "0.65",
                 ["borderWidth"] = "2.5",
+                ["lineDash"] = "Dash",
                 ["fontFamily"] = "Consolas",
                 ["fontSize"] = "13.5",
                 ["icon"] = "warning"
@@ -224,6 +225,7 @@ AssertEqual("#b45309", styledComplement.Style.Stroke, "complement style stroke a
 AssertEqual("#111827", styledComplement.Style.Text, "complement style text alias");
 AssertEqual(0.65, styledComplement.Style.Opacity, "complement style opacity alias");
 AssertEqual(2.5, styledComplement.Style.StrokeThickness, "complement style stroke thickness alias");
+AssertEqual("Dash", styledComplement.Style.StrokeDash, "complement style stroke dash");
 AssertEqual("Consolas", styledComplement.Style.FontFamily, "complement style font family alias");
 AssertEqual(13.5, styledComplement.Style.FontSize, "complement style font size");
 AssertEqual("warning", styledComplement.Style.Icon, "complement style icon");
@@ -725,10 +727,12 @@ var tableRecordsDocument = CompositionDocumentSnapshotEditor.SetTableDefinitionR
         [
             ["risk", "Risk"],
             ["owner", "Owner"]
-        ]));
+        ],
+        [144, 220]));
 var tableDefinitionRecords = tableRecordsDocument.Domain.TableDefinitions.Single(definition => definition.Id == "table-def").TableRecords;
 AssertEqual("Key", tableDefinitionRecords.Columns[0], "base table records column");
 AssertEqual("Owner", tableDefinitionRecords.Rows[1][1], "base table records value");
+AssertEqual(220.0, tableDefinitionRecords.ColumnWidths[1], "base table column width");
 AssertTrue(CompositionDocumentPreviewTextBuilder.Build(tableRecordsDocument).Contains("Records: 2", StringComparison.Ordinal), "base table records preview");
 AssertTrue(CompositionDocumentReportHtmlExporter.Export(tableRecordsDocument).Contains("Owner", StringComparison.Ordinal), "base table records report");
 var tableRecordsPath = Path.Combine(Path.GetTempPath(), $"thinkcomposer-table-records-{Guid.NewGuid():N}.tcdoc");
@@ -738,6 +742,7 @@ try
     var reloadedTableRecords = CompositionDocumentSnapshotXmlStore.Load(tableRecordsPath)
         .Domain.TableDefinitions.Single(definition => definition.Id == "table-def").TableRecords;
     AssertEqual("Risk", reloadedTableRecords.Rows[0][1], "base table records roundtrip");
+    AssertEqual(144.0, reloadedTableRecords.ColumnWidths[0], "base table width roundtrip");
 }
 finally
 {
@@ -802,6 +807,25 @@ var clearedRow = CompositionDetailTableEditor.ClearRow(tableBase, 0);
 AssertEqual("", clearedRow.Rows[0][0], "table clear row value");
 var invalidMove = CompositionDetailTableEditor.MoveRow(tableBase, 99, -1);
 AssertEqual("Beta", invalidMove.Rows[0][0], "table invalid move noop");
+var tableWithWidths = new CompositionDetailTableSnapshot(
+    ["Name", "Score"],
+    [["Alpha", "10"]],
+    [180, 96]);
+var parsedWidthTable = CompositionDetailTableCsv.Parse(CompositionDetailTableCsv.Format(tableWithWidths));
+AssertEqual(180.0, parsedWidthTable.ColumnWidths[0], "table csv width metadata");
+var formulaTable = new CompositionDetailTableSnapshot(
+    ["A", "B", "Total"],
+    [
+        ["2", "3", "=A1+B1"],
+        ["4", "5", "=SUM(A:A)"],
+        ["6", "7", "=A1*2"],
+        ["8", "2", "=SUM(A1:A3)"]
+    ]);
+var evaluatedFormulaTable = CompositionDetailTableFormulaEvaluator.Evaluate(formulaTable);
+AssertEqual("5", evaluatedFormulaTable.Rows[0][2], "table formula cell addition");
+AssertEqual("20", evaluatedFormulaTable.Rows[1][2], "table formula column sum");
+AssertEqual("4", evaluatedFormulaTable.Rows[2][2], "table formula multiply literal");
+AssertEqual("12", evaluatedFormulaTable.Rows[3][2], "table formula range sum");
 var updatedDetailDocument = CompositionDocumentSnapshotEditor.UpsertIdeaDetail(
     detailedDocument,
     "idea-1",
@@ -906,6 +930,27 @@ AssertEqual(12, positionedComplement.Position.X, "complement explicit x");
 AssertEqual(24, positionedComplement.Position.Y, "complement explicit y");
 AssertEqual(320, positionedComplement.Size.Width, "complement explicit width");
 AssertEqual(180, positionedComplement.Size.Height, "complement explicit height");
+var advancedComplementLayout = CompositionViewComplementLayout.Build(
+    [
+        new CompositionExtensionSnapshot(
+            "legacy.complement.note.1",
+            "Legacy note",
+            new Dictionary<string, string>
+            {
+                ["kind"] = "legend",
+                ["quadrant"] = "top",
+                ["offsetX"] = "5",
+                ["offsetY"] = "6",
+                ["lineThickness"] = "3",
+                ["lineDash"] = "Dot"
+            })
+    ],
+    [new CompositionNodeView("n1", "Node", new TcPoint(100, 100), new TcSize(80, 40))]);
+var advancedComplement = advancedComplementLayout.Single();
+AssertEqual(35.0, advancedComplement.Position.X, "complement quadrant offset x");
+AssertEqual(-30.0, advancedComplement.Position.Y, "complement quadrant offset y");
+AssertEqual(3.0, advancedComplement.Style.StrokeThickness, "complement line thickness alias");
+AssertEqual("Dot", advancedComplement.Style.StrokeDash, "complement line dash alias");
 
 var incomingDocument = new CompositionDocumentSnapshot(
     Id: "incoming-doc",

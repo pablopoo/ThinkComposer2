@@ -4,6 +4,8 @@ namespace Instrumind.ThinkComposer.Core.Rendering;
 
 public static class CompositionDetailTableCsv
 {
+    private const string WidthsDirective = "#tc-widths";
+
     public static CompositionDetailTableSnapshot Parse(string csv)
     {
         var records = ParseRecords(csv);
@@ -12,9 +14,25 @@ public static class CompositionDetailTableCsv
             return new CompositionDetailTableSnapshot();
         }
 
+        var columnWidths = Array.Empty<double>();
+        if (IsWidthsDirective(records[0]))
+        {
+            columnWidths = records[0]
+                .Skip(1)
+                .Select(ParseWidth)
+                .ToArray();
+            records = records.Skip(1).ToArray();
+        }
+
+        if (records.Count == 0)
+        {
+            return new CompositionDetailTableSnapshot(ColumnWidths: columnWidths);
+        }
+
         return new CompositionDetailTableSnapshot(
             records[0],
-            records.Skip(1).Select(row => (IReadOnlyList<string>)row).ToArray());
+            records.Skip(1).Select(row => (IReadOnlyList<string>)row).ToArray(),
+            columnWidths);
     }
 
     public static string Format(CompositionDetailTableSnapshot table)
@@ -24,7 +42,14 @@ public static class CompositionDetailTableCsv
             throw new ArgumentNullException(nameof(table));
         }
 
-        var records = new List<IReadOnlyList<string>> { table.Columns };
+        var records = new List<IReadOnlyList<string>>();
+        if (table.ColumnWidths.Any(width => width > 0))
+        {
+            records.Add(
+                [WidthsDirective, .. table.ColumnWidths.Select(width => width.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))]);
+        }
+
+        records.Add(table.Columns);
         records.AddRange(table.Rows);
         return string.Join(Environment.NewLine, records.Select(FormatRecord));
     }
@@ -138,5 +163,22 @@ public static class CompositionDetailTableCsv
         AddField(record, field);
         records.Add(record.ToArray());
         record.Clear();
+    }
+
+    private static bool IsWidthsDirective(IReadOnlyList<string> record)
+    {
+        return record.Count > 0 &&
+            string.Equals(record[0], WidthsDirective, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static double ParseWidth(string value)
+    {
+        return double.TryParse(
+            value,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var width) && width > 0
+            ? width
+            : 0;
     }
 }

@@ -21,12 +21,13 @@ public static class CompositionDetailTableEditor
             Math.Max(table.Columns.Count, pastedRows.Max(row => row.Count)),
             1);
         var columns = EnsureColumns(table.Columns, columnCount);
+        var widths = EnsureColumnWidths(table.ColumnWidths, columnCount);
         var rows = table.Rows
             .Select(row => NormalizeRow(row, columnCount))
             .Concat(pastedRows.Select(row => NormalizeRow(row, columnCount)))
             .ToArray();
 
-        return new CompositionDetailTableSnapshot(columns, rows);
+        return new CompositionDetailTableSnapshot(columns, rows, widths);
     }
 
     public static CompositionDetailTableSnapshot SortRows(
@@ -55,7 +56,8 @@ public static class CompositionDetailTableEditor
 
         return new CompositionDetailTableSnapshot(
             table.Columns,
-            orderedRows.Select(entry => entry.Row.ToArray()).ToArray());
+            orderedRows.Select(entry => entry.Row.ToArray()).ToArray(),
+            table.ColumnWidths);
     }
 
     public static CompositionDetailTableSnapshot DuplicateRow(
@@ -75,7 +77,7 @@ public static class CompositionDetailTableEditor
         var rows = table.Rows.Select(row => row.ToArray()).ToList();
         rows.Insert(rowIndex + 1, table.Rows[rowIndex].ToArray());
 
-        return new CompositionDetailTableSnapshot(table.Columns, rows);
+        return new CompositionDetailTableSnapshot(table.Columns, rows, table.ColumnWidths);
     }
 
     public static CompositionDetailTableSnapshot MoveRow(
@@ -102,7 +104,7 @@ public static class CompositionDetailTableEditor
         rows.RemoveAt(rowIndex);
         rows.Insert(targetIndex, row);
 
-        return new CompositionDetailTableSnapshot(table.Columns, rows);
+        return new CompositionDetailTableSnapshot(table.Columns, rows, table.ColumnWidths);
     }
 
     public static CompositionDetailTableSnapshot ClearRow(
@@ -123,7 +125,7 @@ public static class CompositionDetailTableEditor
         var rows = table.Rows.Select(row => row.ToArray()).ToList();
         rows[rowIndex] = Enumerable.Repeat(string.Empty, columnCount).ToArray();
 
-        return new CompositionDetailTableSnapshot(table.Columns, rows);
+        return new CompositionDetailTableSnapshot(table.Columns, rows, table.ColumnWidths);
     }
 
     private static IReadOnlyList<string> EnsureColumns(
@@ -153,6 +155,20 @@ public static class CompositionDetailTableEditor
         }
 
         return result;
+    }
+
+    private static IReadOnlyList<double> EnsureColumnWidths(
+        IReadOnlyList<double> widths,
+        int columnCount)
+    {
+        if (widths.Count >= columnCount)
+        {
+            return widths.Take(columnCount).ToArray();
+        }
+
+        return widths
+            .Concat(Enumerable.Repeat(0.0, columnCount - widths.Count))
+            .ToArray();
     }
 
     private static bool IsValidRowIndex(
